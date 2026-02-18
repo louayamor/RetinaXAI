@@ -68,7 +68,7 @@ retinaxai/
 
 ### Clone the repository
 ```bash
-git clone https://github.com/<username>/RetinaXAI.git
+git clone https://github.com/louayamor/retinaxai.git
 cd retinaxai
 ```
 
