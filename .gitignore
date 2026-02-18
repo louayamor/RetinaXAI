@@ -68,3 +68,5 @@ artifacts/**
 *.swp
 *.swo
 *.bak
+
+.venv/
