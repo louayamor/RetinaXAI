@@ -54,8 +54,6 @@ yarn-error.log
 pnpm-lock.yaml
 package-lock.json
 .env
-.env.*
-*.env
 *.dockerignore
 Dockerfile
 docker-compose.override.yml

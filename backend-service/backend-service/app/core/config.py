@@ -47,7 +47,6 @@ class Settings(BaseSettings):
             return json.loads(v)
         return v
 
-
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
