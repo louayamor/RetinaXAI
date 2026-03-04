@@ -135,12 +135,9 @@ files = [
     "tests/integration/test_report_route.py",
     "tests/fixtures/__init__.py",
     "tests/fixtures/patient_fixtures.py",
-
-    "Dockerfile",
-    "requirements.txt",
     ".env.example",
     "alembic.ini",
-    "README.md",
+    
 ]
 
 for d in dirs:
