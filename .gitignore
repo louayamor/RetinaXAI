@@ -69,3 +69,4 @@ artifacts/**
 *.bak
 
 .venv/
+frontend-service/docs/
