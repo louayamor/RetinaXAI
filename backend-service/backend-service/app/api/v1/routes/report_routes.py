@@ -1,0 +1,52 @@
+import uuid
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.auth.dependencies import CurrentUser
+from app.db.session import get_db
+from app.reports.service import ReportService
+from app.schemas.report_schema import ReportGenerateRequest, ReportRead
+
+router = APIRouter(prefix="/reports", tags=["reports"])
+
+
+@router.post("/", response_model=ReportRead, status_code=201)
+async def generate_report(
+    data: ReportGenerateRequest,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    service = ReportService(db)
+    return await service.generate(data, current_user.id)
+
+
+@router.get("/patient/{patient_id}", response_model=dict)
+async def list_patient_reports(
+    patient_id: uuid.UUID,
+    _: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
+):
+    service = ReportService(db)
+    skip = (page - 1) * size
+    reports, total = await service.get_by_patient(patient_id, skip, size)
+    return {
+        "total": total,
+        "page": page,
+        "size": size,
+        "pages": (total + size - 1) // size,
+        "items": [ReportRead.model_validate(r) for r in reports],
+    }
+
+
+@router.get("/{report_id}", response_model=ReportRead)
+async def get_report(
+    report_id: uuid.UUID,
+    _: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    service = ReportService(db)
+    return await service.get_by_id(report_id)
