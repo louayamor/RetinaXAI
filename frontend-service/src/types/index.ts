@@ -54,7 +54,7 @@ export interface AuthUser {
 
 export interface Patient {
   id: string;
-  full_name: string;
+  username: string;
   date_of_birth: string;
   gender: 'male' | 'female' | 'other';
   medical_record_number: string;
