@@ -17,17 +17,19 @@ export function saveTokens(pair: TokenPair): void {
   if (typeof window === 'undefined') return;
   localStorage.setItem(TOKEN_KEY, pair.access_token);
   localStorage.setItem(REFRESH_KEY, pair.refresh_token);
-}
-
-export function getAccessToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(TOKEN_KEY);
+  document.cookie = `${TOKEN_KEY}=${pair.access_token}; path=/; SameSite=Lax`;
 }
 
 export function clearTokens(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_KEY);
+  document.cookie = `${TOKEN_KEY}=; path=/; max-age=0`;
+}
+
+export function getAccessToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(TOKEN_KEY);
 }
 
 export function isAuthenticated(): boolean {
