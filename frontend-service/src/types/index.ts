@@ -1,5 +1,7 @@
 import { Icons } from '@/components/icons';
 
+// ─── Existing template types (keep as-is) ────────────────────────────────────
+
 export interface PermissionCheck {
   permission?: string;
   plan?: string;
@@ -40,5 +42,58 @@ export interface FooterItem {
 }
 
 export type MainNavItem = NavItemWithOptionalChildren;
-
 export type SidebarNavItem = NavItemWithChildren;
+
+// ─── RetinaXAI domain types ───────────────────────────────────────────────────
+
+export interface AuthUser {
+  id: string;
+  username: string;
+  email: string;
+}
+
+export interface Patient {
+  id: string;
+  full_name: string;
+  date_of_birth: string;
+  gender: 'male' | 'female' | 'other';
+  medical_record_number: string;
+  created_at: string;
+}
+
+export interface MRIScan {
+  id: string;
+  patient_id: string;
+  left_scan_path: string;
+  right_scan_path: string;
+  uploaded_at: string;
+}
+
+export type DRSeverity =
+  | 'no_dr'
+  | 'mild'
+  | 'moderate'
+  | 'severe'
+  | 'proliferative';
+
+export interface Prediction {
+  id: string;
+  patient_id: string;
+  scan_id: string;
+  severity: DRSeverity;
+  confidence: number;
+  gradcam_url: string;
+  created_at: string;
+}
+
+export interface Report {
+  id: string;
+  prediction_id: string;
+  content: string;
+  generated_at: string;
+}
+
+export interface ApiError {
+  detail: string;
+  status: number;
+}
