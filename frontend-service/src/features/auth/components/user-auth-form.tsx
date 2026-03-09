@@ -19,7 +19,7 @@ import { loginUser, registerUser } from '@/lib/api';
 import { saveTokens } from '@/lib/auth';
 
 const loginSchema = z.object({
-  username: z.string().min(1, 'Username is required'),
+  email: z.string().email('Enter a valid email'),
   password: z.string().min(1, 'Password is required')
 });
 
@@ -43,7 +43,7 @@ export default function UserAuthForm({ mode }: UserAuthFormProps) {
 
   const loginForm = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { username: '', password: '' }
+    defaultValues: { email: '', password: '' }
   });
 
   const registerForm = useForm<RegisterValues>({
@@ -76,7 +76,7 @@ export default function UserAuthForm({ mode }: UserAuthFormProps) {
     try {
       await registerUser(values);
       const tokens = await loginUser({
-        username: values.username,
+        email: values.email,
         password: values.password
       });
       saveTokens(tokens);
@@ -105,12 +105,12 @@ export default function UserAuthForm({ mode }: UserAuthFormProps) {
         )}
         <FormField
           control={loginForm.control}
-          name='username'
+          name='email'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Username</FormLabel>
+              <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input placeholder='dr.username' {...field} />
+                <Input type='email' placeholder='doctor@hospital.com' {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

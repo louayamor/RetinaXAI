@@ -36,7 +36,7 @@ export interface RegisterPayload {
 }
 
 export interface LoginPayload {
-  username: string;
+  email: string;
   password: string;
 }
 
@@ -50,7 +50,7 @@ export async function registerUser(payload: RegisterPayload): Promise<AuthUser> 
 
 export async function loginUser(payload: LoginPayload): Promise<TokenPair> {
   const form = new URLSearchParams();
-  form.append('username', payload.username);
+  form.append('username', payload.email);
   form.append('password', payload.password);
   return request<TokenPair>('/api/v1/auth/login', {
     method: 'POST',

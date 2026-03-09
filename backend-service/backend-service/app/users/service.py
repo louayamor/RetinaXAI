@@ -19,7 +19,7 @@ class UserService:
             raise ConflictException(f"User with email '{data.email}' already exists.")
         user = User(
             email=data.email,
-            full_name=data.full_name,
+            username=data.username,
             hashed_password=hash_password(data.password),
         )
         return await self.repo.create(user)
