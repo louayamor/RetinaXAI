@@ -7,9 +7,6 @@ BASE_DIR = Path("mlops-service")
 
 dirs = [
     "logs",
-    "logs/pipeline",
-    "logs/data",
-    "logs/system",
 
     "artifacts",
     "artifacts/model",
@@ -25,6 +22,10 @@ dirs = [
     "app/pipeline",
     "app/entity",
     "app/constants",
+
+    "monitoring",
+
+    "tests",
 ]
 
 for d in dirs:
@@ -61,13 +62,20 @@ files = [
     "config/params.yaml",
     "config/schema.yaml",
 
+    "monitoring/__init__.py",
+    "monitoring/evidently_report.py",
+    "monitoring/prometheus_metrics.py",
+
+    "tests/__init__.py",
+
     "research/trials.ipynb",
 
+    "dvc.yaml",
     "main.py",
-
     "Dockerfile",
     "requirements.txt",
     "setup.py",
+    ".env.example",
     "README.md",
 ]
 
