@@ -5,9 +5,7 @@ const PUBLIC_PATHS = ['/auth/login', '/auth/register', '/auth'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
-
   const token = request.cookies.get('rxa_access_token')?.value;
 
   if (!isPublic && !token) {
@@ -20,7 +18,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard/overview', request.url));
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  response.cookies.set('active_theme', 'retinaxai', { path: '/' });
+  return response;
 }
 
 export const config = {
