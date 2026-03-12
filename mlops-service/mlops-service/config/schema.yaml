@@ -1,0 +1,35 @@
+columns:
+  image_path:
+    type: string
+    required: true
+
+  label:
+    type: integer
+    required: true
+    min: 0
+    max: 4
+
+target_column: label
+
+classes:
+  0: No DR
+  1: Mild
+  2: Moderate
+  3: Severe
+  4: Proliferative DR
+
+class_weights:
+  0: 1.0
+  1: 2.0
+  2: 2.0
+  3: 3.0
+  4: 3.0
+
+dataset:
+  name: OctoMed/Messidor2
+  source: huggingface
+  image_column: image
+  label_column: label
+  splits:
+    - train
+    - test
