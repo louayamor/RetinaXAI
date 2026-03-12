@@ -70,3 +70,4 @@ artifacts/**
 
 .venv/
 frontend-service/docs/
+shared/
