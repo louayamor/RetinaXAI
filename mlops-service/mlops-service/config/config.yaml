@@ -1,0 +1,43 @@
+artifacts_root: artifacts
+
+data_ingestion:
+  root_dir: artifacts/data/raw
+  dataset_name: OctoMed/Messidor2
+  train_split: train
+  test_split: test
+  shared_uploads_dir: /app/shared/uploads/images
+
+preprocessing:
+  root_dir: artifacts/data/processed
+  source_dir: artifacts/data/raw
+  image_size: 224
+  train_csv: artifacts/data/processed/train.csv
+  test_csv: artifacts/data/processed/test.csv
+
+model_trainer:
+  root_dir: artifacts/model
+  model_name: efficientnet_b3
+  pretrained: true
+  checkpoint_path: artifacts/model/model.pth
+
+model_evaluation:
+  root_dir: artifacts/model
+  test_csv: artifacts/data/processed/test.csv
+  model_path: artifacts/model/model.pth
+  metric_file: artifacts/model/metrics.json
+
+monitoring:
+  reports_dir: artifacts/monitoring
+  drift_report: artifacts/monitoring/drift_report.html
+  classification_report: artifacts/monitoring/classification_report.html
+  reference_csv: artifacts/data/processed/train.csv
+  current_csv: artifacts/data/processed/test.csv
+  prometheus_port: 9090
+
+mlflow:
+  experiment_name: retinaxai-dr-classification
+  run_name: efficientnet_b3
+
+inter_service:
+  llmops_url: ${LLMOPS_SERVICE_URL}
+  timeout_seconds: 30
