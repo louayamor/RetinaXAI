@@ -44,7 +44,7 @@ inter_service:
 
 ocr_pipeline:
   root_dir: artifacts/ocr
-  input_dir: /home/louay/Downloads/22655
+  input_dir: /home/louay/RetinaXAI/shared/ocr_reports
   output_dir: artifacts/ocr/output
   images_dir: artifacts/ocr/output/images
   json_output: artifacts/ocr/output/reports.json
