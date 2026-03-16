@@ -25,11 +25,26 @@ def _int(value: str | None) -> int | None:
         return None
 
 
-def parse_metadata(text: str) -> ReportMetadata:
+def _eye_from_filename(source_file: str) -> str | None:
+    upper = source_file.upper()
+    if "OD" in upper:
+        return "OD"
+    if "OS" in upper:
+        return "OS"
+    if "OU" in upper:
+        return "OU"
+    return None
+
+
+def parse_metadata(text: str, source_file: str = "") -> ReportMetadata:
+    eye_from_file = _eye_from_filename(source_file)
+    eye_from_text = _find(r"\b(OD|OS|OU)\b", text)
+    eye = (eye_from_file or eye_from_text or "").upper() or None
+
     return ReportMetadata(
         device=_find(r"(Triton|Cirrus|Spectralis|Maestro)", text),
         report_type=_find(r"(3D Macula Report|Macular Report|ONH Report)", text),
-        eye=_find(r"\b(OD|OS|OU)\b", text),
+        eye=eye,
         capture_date=_find(r"Capture Date[:\s]+(\d{2}/\d{2}/\d{4})", text),
         print_date=_find(r"Print Date[:\s]+([\d/]+\s[\d:]+)", text),
         image_quality=_int(_find(r"Image Quality[:\s]*(\d+)", text)),
@@ -66,20 +81,24 @@ def parse_thickness(text: str) -> RetinalThickness:
     )
 
 
-def parse_clinical(text: str) -> ClinicalFindings:
-    comments_match = re.search(
-        r"Comments?[:\s]*Dr\.?\s*Note[:\s]*(.+?)(?:Signature|Date|$)",
+def _extract_comments(text: str) -> str:
+    match = re.search(
+        r"Comments?[:\s]*Dr\.?\s*Note[:\s]*(.+)",
         text, re.IGNORECASE | re.DOTALL
     )
-    comments = comments_match.group(1) if comments_match else text
+    return match.group(1).strip() if match else text
+
+
+def parse_clinical(text: str) -> ClinicalFindings:
+    comments = _extract_comments(text)
     npdr_match = _find(r"(mild|moderate|severe|very severe)\s+NPDR", comments)
-    erm_match = bool(re.search(r"ERM|epiretinal membrane", comments, re.IGNORECASE))
+    erm_match = bool(re.search(r"\bERM\b|epiretinal membrane", comments, re.IGNORECASE))
     residual_erm = bool(re.search(r"residual\s+ERM", comments, re.IGNORECASE))
 
     return ClinicalFindings(
-        vitreous=_find(r"Vitreous\s*=\s*(\w+)", comments),
-        vessels=_find(r"Vessels\s*=\s*(\w+)", comments),
-        thickness_note=_find(r"Thickness\s*=\s*(\w+)", comments),
+        vitreous=_find(r"Vitreous\s*=\s*([^,\n]+)", comments),
+        vessels=_find(r"Vessels\s*=\s*([^,\n]+)", comments),
+        thickness_note=_find(r"Thickness\s*=\s*([^,\n]+)", comments),
         central_retina=_find(r"Central Retina\s*=\s*([^,\n]+)", comments),
         laser_marks=bool(re.search(r"laser marks?", comments, re.IGNORECASE)),
         edema=not bool(re.search(r"without edema|no edema", comments, re.IGNORECASE)),
@@ -90,7 +109,7 @@ def parse_clinical(text: str) -> ClinicalFindings:
 
 def parse_report(text: str, source_file: str) -> OCTReport:
     warnings = []
-    metadata = parse_metadata(text)
+    metadata = parse_metadata(text, source_file)
     patient = parse_patient(text)
     thickness = parse_thickness(text)
     clinical = parse_clinical(text)
