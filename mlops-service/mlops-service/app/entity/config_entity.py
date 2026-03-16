@@ -47,3 +47,14 @@ class MonitoringConfig:
     reference_csv: Path
     current_csv: Path
     prometheus_port: int
+
+
+@dataclass(frozen=True)
+class OCRPipelineConfig:
+    root_dir: Path
+    input_dir: Path
+    output_dir: Path
+    images_dir: Path
+    json_output: Path
+    csv_output: Path
+    regions_config: Path

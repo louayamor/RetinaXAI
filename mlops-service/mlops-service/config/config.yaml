@@ -41,3 +41,12 @@ mlflow:
 inter_service:
   llmops_url: ${LLMOPS_SERVICE_URL}
   timeout_seconds: 30
+
+ocr_pipeline:
+  root_dir: artifacts/ocr
+  input_dir: /home/louay/Downloads/22655
+  output_dir: artifacts/ocr/output
+  images_dir: artifacts/ocr/output/images
+  json_output: artifacts/ocr/output/reports.json
+  csv_output: artifacts/ocr/output/reports.csv
+  regions_config: config/regions.yaml
