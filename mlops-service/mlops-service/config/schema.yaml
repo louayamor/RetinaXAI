@@ -1,21 +1,10 @@
-columns:
-  image_path:
-    type: string
-    required: true
-
-  label:
-    type: integer
-    required: true
-    min: 0
-    max: 4
-
-target_column: label
+target_column: clinical_npdr_grade
 
 classes:
   0: No DR
-  1: Mild
-  2: Moderate
-  3: Severe
+  1: Mild NPDR
+  2: Moderate NPDR
+  3: Severe NPDR
   4: Proliferative DR
 
 class_weights:
@@ -25,7 +14,7 @@ class_weights:
   3: 3.0
   4: 3.0
 
-dataset:
+dl_dataset:
   name: OctoMed/Messidor2
   source: huggingface
   image_column: image
@@ -33,3 +22,75 @@ dataset:
   splits:
     - train
     - test
+  columns:
+    image:
+      type: image
+      required: true
+    label:
+      type: integer
+      required: true
+      min: 0
+      max: 4
+
+ml_dataset:
+  source: samaya
+  label_column: clinical_npdr_grade
+  columns:
+    clinical_npdr_grade:
+      type: integer
+      required: true
+      min: 0
+      max: 4
+    thickness_center_fovea:
+      type: float
+      required: true
+    thickness_average_thickness:
+      type: float
+      required: true
+    thickness_total_volume_mm3:
+      type: float
+      required: true
+    thickness_inner_superior:
+      type: float
+      required: false
+    thickness_inner_nasal:
+      type: float
+      required: false
+    thickness_inner_inferior:
+      type: float
+      required: false
+    thickness_inner_temporal:
+      type: float
+      required: false
+    thickness_outer_superior:
+      type: float
+      required: false
+    thickness_outer_nasal:
+      type: float
+      required: false
+    thickness_outer_inferior:
+      type: float
+      required: false
+    thickness_outer_temporal:
+      type: float
+      required: false
+    patient_age:
+      type: float
+      required: true
+    patient_gender:
+      type: string
+      required: true
+      values: [M, F]
+    meta_eye:
+      type: string
+      required: true
+      values: [OD, OS]
+    clinical_edema:
+      type: string
+      required: false
+    clinical_erm_status:
+      type: string
+      required: false
+    meta_image_quality:
+      type: string
+      required: false
