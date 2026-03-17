@@ -2,51 +2,72 @@ artifacts_root: artifacts
 
 data_ingestion:
   root_dir: artifacts/data/raw
-  dataset_name: OctoMed/Messidor2
-  train_split: train
-  test_split: test
-  shared_uploads_dir: /app/shared/uploads/images
+  huggingface:
+    dataset_name: OctoMed/Messidor2
+    train_split: train
+    test_split: test
+  samaya:
+    images_dir: artifacts/ocr/output/images
+    reports_csv: artifacts/ocr/output/reports.csv
+    reports_json: artifacts/ocr/output/reports.json
 
 preprocessing:
   root_dir: artifacts/data/processed
-  source_dir: artifacts/data/raw
-  image_size: 224
-  train_csv: artifacts/data/processed/train.csv
-  test_csv: artifacts/data/processed/test.csv
+  dl:
+    source_dir: artifacts/data/raw
+    image_size: 224
+    train_csv: artifacts/data/processed/dl/train.csv
+    test_csv: artifacts/data/processed/dl/test.csv
+    samaya_csv: artifacts/data/processed/dl/samaya.csv
+  ml:
+    source_csv: artifacts/ocr/output/reports.csv
+    train_csv: artifacts/data/processed/ml/train.csv
+    test_csv: artifacts/data/processed/ml/test.csv
+    feature_file: artifacts/data/processed/ml/features.json
 
-model_trainer:
-  root_dir: artifacts/model
+dl_model:
+  root_dir: artifacts/model/dl
   model_name: efficientnet_b3
   pretrained: true
-  checkpoint_path: artifacts/model/model.pth
+  checkpoint_path: artifacts/model/dl/model.pth
+
+ml_model:
+  root_dir: artifacts/model/ml
+  model_name: xgboost
+  checkpoint_path: artifacts/model/ml/model.pkl
+  feature_importance_path: artifacts/model/ml/feature_importance.json
 
 model_evaluation:
-  root_dir: artifacts/model
-  test_csv: artifacts/data/processed/test.csv
-  model_path: artifacts/model/model.pth
-  metric_file: artifacts/model/metrics.json
+  dl:
+    root_dir: artifacts/model/dl
+    test_csv: artifacts/data/processed/dl/test.csv
+    model_path: artifacts/model/dl/model.pth
+    metric_file: artifacts/model/dl/metrics.json
+  ml:
+    root_dir: artifacts/model/ml
+    test_csv: artifacts/data/processed/ml/test.csv
+    model_path: artifacts/model/ml/model.pkl
+    metric_file: artifacts/model/ml/metrics.json
 
 monitoring:
   reports_dir: artifacts/monitoring
-  drift_report: artifacts/monitoring/drift_report.html
-  classification_report: artifacts/monitoring/classification_report.html
-  reference_csv: artifacts/data/processed/train.csv
-  current_csv: artifacts/data/processed/test.csv
+  dl:
+    drift_report: artifacts/monitoring/dl_drift_report.html
+    classification_report: artifacts/monitoring/dl_classification_report.html
+    reference_csv: artifacts/data/processed/dl/train.csv
+    current_csv: artifacts/data/processed/dl/test.csv
+  ml:
+    drift_report: artifacts/monitoring/ml_drift_report.html
+    classification_report: artifacts/monitoring/ml_classification_report.html
+    reference_csv: artifacts/data/processed/ml/train.csv
+    current_csv: artifacts/data/processed/ml/test.csv
   prometheus_port: 9090
 
 mlflow:
   experiment_name: retinaxai-dr-classification
-  run_name: efficientnet_b3
+  dl_run_name: efficientnet_b3
+  ml_run_name: xgboost_clinical
 
 inter_service:
   llmops_url: ${LLMOPS_SERVICE_URL}
   timeout_seconds: 30
-
-ocr_pipeline:
-  root_dir: artifacts/ocr
-  input_dir: /home/louay/RetinaXAI/shared/ocr_reports
-  output_dir: artifacts/ocr/output
-  images_dir: artifacts/ocr/output/images
-  json_output: artifacts/ocr/output/reports.json
-  csv_output: artifacts/ocr/output/reports.csv
-  regions_config: config/regions.yaml
