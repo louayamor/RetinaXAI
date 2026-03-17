@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-
 from app.constants import CONFIG_FILE_PATH, PARAMS_FILE_PATH, SCHEMA_FILE_PATH
 from app.entity.config_entity import (
     DataIngestionConfig,
@@ -8,6 +7,7 @@ from app.entity.config_entity import (
     ModelTrainerConfig,
     MonitoringConfig,
     PreprocessingConfig,
+    OCRPipelineConfig,
 )
 from app.utils.common import create_directories, read_yaml
 
@@ -81,4 +81,21 @@ class ConfigurationManager:
             reference_csv=Path(cfg.reference_csv),
             current_csv=Path(cfg.current_csv),
             prometheus_port=cfg.prometheus_port,
+        )
+
+    def get_ocr_pipeline_config(self) -> OCRPipelineConfig:
+        cfg = self.config.ocr_pipeline
+        create_directories([
+            Path(cfg.root_dir),
+            Path(cfg.output_dir),
+            Path(cfg.images_dir),
+        ])
+        return OCRPipelineConfig(
+            root_dir=Path(cfg.root_dir),
+            input_dir=Path(cfg.input_dir),
+            output_dir=Path(cfg.output_dir),
+            images_dir=Path(cfg.images_dir),
+            json_output=Path(cfg.json_output),
+            csv_output=Path(cfg.csv_output),
+            regions_config=Path(cfg.regions_config),
         )
