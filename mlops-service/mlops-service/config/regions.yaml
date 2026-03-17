@@ -1,25 +1,32 @@
 regions:
   fundus_infrared:
     label: "fundus_infrared"
-    rel: [0.01, 0.18, 0.28, 0.52]
+    rel: [0.03, 0.20, 0.27, 0.55]
+
   oct_bscan_horizontal:
     label: "oct_bscan_horizontal"
-    rel: [0.29, 0.18, 0.57, 0.52]
+    rel: [0.30, 0.20, 0.62, 0.55]
+
   etdrs_heatmap:
     label: "etdrs_heatmap"
-    rel: [0.62, 0.18, 0.85, 0.52]
+    rel: [0.64, 0.24, 0.79, 0.48]
+
   shadowgram:
     label: "shadowgram"
-    rel: [0.85, 0.18, 1.00, 0.52]
+    rel: [0.80, 0.24, 0.95, 0.45]
+
   retinal_thickness_map:
     label: "retinal_thickness_map"
-    rel: [0.01, 0.52, 0.28, 1.00]
+    rel: [0.03, 0.59, 0.27, 0.93]
+
   oct_bscan_vertical:
     label: "oct_bscan_vertical"
-    rel: [0.29, 0.52, 0.57, 1.00]
+    rel: [0.30, 0.59, 0.62, 0.93]
+
   ilm_osrpe_3d_map:
     label: "ilm_osrpe_3d_map"
-    rel: [0.62, 0.52, 0.82, 0.78]
+    rel: [0.75, 0.58, 0.90, 0.76]
+
   osrpe_surface_3d:
     label: "osrpe_surface_3d"
-    rel: [0.62, 0.78, 0.82, 1.00]
+    rel: [0.75, 0.76, 0.90, 0.94]
