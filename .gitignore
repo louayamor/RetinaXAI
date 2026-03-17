@@ -69,9 +69,5 @@ artifacts/**
 
 .venv/
 frontend-service/docs/
-<<<<<<< HEAD
-=======
-
->>>>>>> d653876 (ignore shared folder)
 shared/
 research/
