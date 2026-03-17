@@ -56,7 +56,6 @@ package-lock.json
 .env
 .envrc
 *.dockerignore
-Dockerfile
 docker-compose.override.yml
 .ipynb_checkpoints/
 logs/
