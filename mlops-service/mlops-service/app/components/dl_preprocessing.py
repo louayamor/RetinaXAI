@@ -3,6 +3,7 @@ import io
 import pandas as pd
 from datasets import load_from_disk
 from loguru import logger
+from pathlib import Path
 from PIL import Image
 
 from app.entity.config_entity import DLPreprocessingConfig
@@ -12,12 +13,12 @@ class DLPreprocessing:
     def __init__(self, config: DLPreprocessingConfig):
         self.config = config
 
-    def _resize_and_save(self, img: Image.Image, path) -> None:
+    def _resize_and_save(self, img: Image.Image, path: Path) -> None:
         img.convert("RGB").resize(
             (self.config.image_size, self.config.image_size)
         ).save(path)
 
-    def _process_huggingface_split(self, split: str, csv_path) -> list[dict]:
+    def _process_huggingface_split(self, split: str, csv_path: Path) -> None:
         ds = load_from_disk(str(self.config.source_dir / "huggingface" / split))
         output_dir = self.config.root_dir / "images" / "huggingface" / split
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -29,24 +30,28 @@ class DLPreprocessing:
                 img = Image.open(io.BytesIO(img["bytes"]))
             img_path = output_dir / f"{idx}.png"
             self._resize_and_save(img, img_path)
-            records.append({"image_path": str(img_path), "label": sample["label"], "source": "huggingface"})
+            records.append({
+                "image_path": str(img_path),
+                "label": sample["label"],
+                "source": "huggingface",
+            })
 
         pd.DataFrame(records).to_csv(csv_path, index=False)
         logger.info(f"huggingface {split} CSV saved: {csv_path} ({len(records)} rows)")
-        return records
 
-    def _process_samaya_images(self) -> list[dict]:
+    def _process_samaya_images(self) -> None:
         reports_csv = self.config.source_dir.parent.parent / "ocr" / "output" / "reports.csv"
 
         if not reports_csv.exists():
             logger.warning(f"samaya reports CSV not found: {reports_csv}")
-            return []
+            return
 
         df = pd.read_csv(reports_csv)
 
-        if "clinical_npdr_grade" not in df.columns:
-            logger.warning("clinical_npdr_grade column missing from samaya CSV")
-            return []
+        required = {"clinical_npdr_grade", "image_fundus_infrared_path"}
+        if not required.issubset(df.columns):
+            logger.warning(f"samaya CSV missing required columns: {required - set(df.columns)}")
+            return
 
         df = df.dropna(subset=["clinical_npdr_grade", "image_fundus_infrared_path"])
 
@@ -54,10 +59,11 @@ class DLPreprocessing:
         output_dir.mkdir(parents=True, exist_ok=True)
 
         records = []
+        skipped = 0
         for idx, row in df.iterrows():
-            src_path = self.config.source_dir.parent.parent / "ocr" / "output" / "images" / row["image_fundus_infrared_path"]
+            src_path = Path(row["image_fundus_infrared_path"])
             if not src_path.exists():
-                logger.warning(f"samaya image not found: {src_path}")
+                skipped += 1
                 continue
             img_path = output_dir / f"{idx}.png"
             self._resize_and_save(Image.open(src_path), img_path)
@@ -67,9 +73,11 @@ class DLPreprocessing:
                 "source": "samaya",
             })
 
+        if skipped:
+            logger.warning(f"samaya: skipped {skipped} images not found on disk")
+
         pd.DataFrame(records).to_csv(self.config.samaya_csv, index=False)
         logger.info(f"samaya CSV saved: {self.config.samaya_csv} ({len(records)} rows)")
-        return records
 
     def run(self) -> None:
         logger.info("DL preprocessing started")
