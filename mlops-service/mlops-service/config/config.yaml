@@ -3,9 +3,10 @@ artifacts_root: artifacts
 data_ingestion:
   root_dir: artifacts/data/raw
   huggingface:
-    dataset_name: OctoMed/Messidor2
+    dataset_name: bumbledeep/eyepacs
     train_split: train
-    test_split: test
+    test_split: train
+    max_samples: 5000
   samaya:
     images_dir: artifacts/ocr/output/images
     reports_csv: artifacts/ocr/output/reports.csv
@@ -30,6 +31,7 @@ dl_model:
   model_name: efficientnet_b3
   pretrained: true
   checkpoint_path: artifacts/model/dl/model.pth
+  finetuned_checkpoint_path: artifacts/model/dl/model_finetuned.pth
 
 ml_model:
   root_dir: artifacts/model/ml
@@ -42,7 +44,9 @@ model_evaluation:
     root_dir: artifacts/model/dl
     test_csv: artifacts/data/processed/dl/test.csv
     model_path: artifacts/model/dl/model.pth
+    finetuned_model_path: artifacts/model/dl/model_finetuned.pth
     metric_file: artifacts/model/dl/metrics.json
+    finetuned_metric_file: artifacts/model/dl/metrics_finetuned.json
   ml:
     root_dir: artifacts/model/ml
     test_csv: artifacts/data/processed/ml/test.csv
@@ -65,7 +69,8 @@ monitoring:
 
 mlflow:
   experiment_name: retinaxai-dr-classification
-  dl_run_name: efficientnet_b3
+  dl_run_name: efficientnet_b3_eyepacs
+  dl_finetune_run_name: efficientnet_b3_samaya_finetuned
   ml_run_name: xgboost_clinical
 
 inter_service:

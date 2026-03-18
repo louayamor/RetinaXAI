@@ -42,6 +42,7 @@ class ConfigurationManager:
                 dataset_name=cfg.huggingface.dataset_name,
                 train_split=cfg.huggingface.train_split,
                 test_split=cfg.huggingface.test_split,
+                max_samples=cfg.huggingface.get("max_samples", None),
             ),
             samaya=SamayaIngestionConfig(
                 images_dir=Path(cfg.samaya.images_dir),
@@ -84,6 +85,7 @@ class ConfigurationManager:
             model_name=cfg.model_name,
             pretrained=cfg.pretrained,
             checkpoint_path=Path(cfg.checkpoint_path),
+            finetuned_checkpoint_path=Path(cfg.finetuned_checkpoint_path),
         )
 
     def get_ml_model_trainer_config(self) -> MLModelTrainerConfig:
@@ -104,7 +106,9 @@ class ConfigurationManager:
             root_dir=Path(cfg.root_dir),
             test_csv=Path(cfg.test_csv),
             model_path=Path(cfg.model_path),
+            finetuned_model_path=Path(cfg.finetuned_model_path),
             metric_file=Path(cfg.metric_file),
+            finetuned_metric_file=Path(cfg.finetuned_metric_file),
             mlflow_uri=os.environ.get("MLFLOW_TRACKING_URI", ""),
             experiment_name=mlflow_cfg.experiment_name,
             run_name=mlflow_cfg.dl_run_name,

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -8,6 +9,7 @@ class HuggingFaceIngestionConfig:
     dataset_name: str
     train_split: str
     test_split: str
+    max_samples: Optional[int]
 
 
 @dataclass(frozen=True)
@@ -56,6 +58,7 @@ class DLModelTrainerConfig:
     model_name: str
     pretrained: bool
     checkpoint_path: Path
+    finetuned_checkpoint_path: Path
 
 
 @dataclass(frozen=True)
@@ -71,7 +74,9 @@ class DLModelEvaluationConfig:
     root_dir: Path
     test_csv: Path
     model_path: Path
+    finetuned_model_path: Path
     metric_file: Path
+    finetuned_metric_file: Path
     mlflow_uri: str
     experiment_name: str
     run_name: str

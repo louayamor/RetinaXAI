@@ -1,5 +1,5 @@
 dl_training:
-  epochs: 20
+  epochs: 30
   batch_size: 32
   learning_rate: 0.0001
   weight_decay: 0.0001
@@ -9,18 +9,23 @@ dl_training:
   num_classes: 5
   dropout: 0.3
   seed: 42
+  freeze_backbone: false
 
 dl_fine_tuning:
-  epochs: 10
-  batch_size: 16
-  learning_rate: 0.00001
+  epochs: 20
+  batch_size: 8
+  learning_rate: 0.001
   weight_decay: 0.0001
-  num_workers: 4
-  early_stopping_patience: 3
+  num_workers: 2
+  early_stopping_patience: 5
   scheduler: cosine
   num_classes: 5
   dropout: 0.3
   seed: 42
+  freeze_backbone: true
+  knowledge_distillation: true
+  kd_temperature: 4.0
+  kd_alpha: 0.7
 
 augmentation:
   random_horizontal_flip: true
@@ -45,7 +50,6 @@ ml_training:
     learning_rate: 0.05
     subsample: 0.8
     colsample_bytree: 0.8
-    use_label_encoder: false
     eval_metric: mlogloss
   features:
     numeric:

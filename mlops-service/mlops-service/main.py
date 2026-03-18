@@ -1,40 +1,66 @@
+import argparse
 import os
 from pathlib import Path
 
+import dagshub
 import mlflow
 from loguru import logger
+from dotenv import load_dotenv
 
+load_dotenv()
 os.chdir(Path(__file__).parent)
 
+from app.config.configuration import ConfigurationManager
 from app.pipeline.dl_training_pipeline import DLTrainingPipeline
 from app.pipeline.ml_training_pipeline import MLTrainingPipeline
-from app.config.configuration import ConfigurationManager
 
 
 def configure_mlflow():
-    dagshub_uri = os.environ.get("MLFLOW_TRACKING_URI")
-    if not dagshub_uri:
-        raise EnvironmentError("MLFLOW_TRACKING_URI is not set")
-    mlflow.set_tracking_uri(dagshub_uri)
+    dagshub.init(
+        repo_owner="louayamor",
+        repo_name="retinaxai",
+        mlflow=True,
+    )
     mlflow.set_experiment("retinaxai-dr-classification")
-    logger.info(f"mlflow tracking URI: {dagshub_uri}")
+    logger.info("mlflow configured via dagshub")
 
 
-def run_ingestion_only():
-    logger.info("running data ingestion only")
-    manager = ConfigurationManager()
-    cfg = manager.get_data_ingestion_config()
-
+def run_ingestion(manager: ConfigurationManager):
     from app.components.data_ingestion import DataIngestion
+    cfg = manager.get_data_ingestion_config()
     summary = DataIngestion(cfg).run()
-
     logger.info(f"ingestion summary: {summary}")
-    return summary
+
+
+def run_preprocess(manager: ConfigurationManager, pipeline: str):
+    if pipeline in ("dl", "both"):
+        DLTrainingPipeline(manager).run_stage_2()
+    if pipeline in ("ml", "both"):
+        MLTrainingPipeline(manager).run_stage_2()
+
+
+def run_train(manager: ConfigurationManager, pipeline: str):
+    if pipeline in ("dl", "both"):
+        DLTrainingPipeline(manager).run_stage_3()
+    if pipeline in ("ml", "both"):
+        MLTrainingPipeline(manager).run_stage_3()
+
+
+def run_evaluate(manager: ConfigurationManager, pipeline: str):
+    if pipeline in ("dl", "both"):
+        DLTrainingPipeline(manager).run_stage_4()
+    if pipeline in ("ml", "both"):
+        MLTrainingPipeline(manager).run_stage_4()
+
+
+def run_all(manager: ConfigurationManager, pipeline: str):
+    if pipeline in ("dl", "both"):
+        DLTrainingPipeline(manager).run()
+    if pipeline in ("ml", "both"):
+        MLTrainingPipeline(manager).run()
 
 
 if __name__ == "__main__":
-    import argparse
-
     parser = argparse.ArgumentParser(description="RetinaXAI MLOps Service")
     parser.add_argument(
         "--stage",
@@ -52,38 +78,18 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    configure_mlflow()
+    if args.stage in ("train", "evaluate", "all"):
+        configure_mlflow()
+
+    manager = ConfigurationManager()
 
     if args.stage == "ingest":
-        run_ingestion_only()
-
-    elif args.stage == "all":
-        if args.pipeline == "dl":
-            DLTrainingPipeline(ConfigurationManager()).run()
-        elif args.pipeline == "ml":
-            MLTrainingPipeline(ConfigurationManager()).run()
-        else:
-            manager = ConfigurationManager()
-            DLTrainingPipeline(manager).run()
-            MLTrainingPipeline(manager).run()
-
+        run_ingestion(manager)
     elif args.stage == "preprocess":
-        manager = ConfigurationManager()
-        if args.pipeline in ("dl", "both"):
-            DLTrainingPipeline(manager).run_stage_2()
-        if args.pipeline in ("ml", "both"):
-            MLTrainingPipeline(manager).run_stage_2()
-
+        run_preprocess(manager, args.pipeline)
     elif args.stage == "train":
-        manager = ConfigurationManager()
-        if args.pipeline in ("dl", "both"):
-            DLTrainingPipeline(manager).run_stage_3()
-        if args.pipeline in ("ml", "both"):
-            MLTrainingPipeline(manager).run_stage_3()
-
+        run_train(manager, args.pipeline)
     elif args.stage == "evaluate":
-        manager = ConfigurationManager()
-        if args.pipeline in ("dl", "both"):
-            DLTrainingPipeline(manager).run_stage_4()
-        if args.pipeline in ("ml", "both"):
-            MLTrainingPipeline(manager).run_stage_4()
+        run_evaluate(manager, args.pipeline)
+    elif args.stage == "all":
+        run_all(manager, args.pipeline)
