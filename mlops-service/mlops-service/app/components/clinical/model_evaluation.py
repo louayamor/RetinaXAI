@@ -1,0 +1,2 @@
+class ClinicalModelEvaluation:
+    pass

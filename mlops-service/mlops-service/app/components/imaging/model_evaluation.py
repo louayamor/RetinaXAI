@@ -1,0 +1,2 @@
+class ImagingModelEvaluation:
+    pass

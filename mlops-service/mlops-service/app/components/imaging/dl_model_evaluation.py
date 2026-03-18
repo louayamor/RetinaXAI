@@ -1,2 +1,0 @@
-class DLModelEvaluation:
-    pass

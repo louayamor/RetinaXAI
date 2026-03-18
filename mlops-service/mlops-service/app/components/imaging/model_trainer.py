@@ -1,0 +1,2 @@
+class ImagingModelTrainer:
+    pass

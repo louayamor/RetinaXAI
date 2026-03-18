@@ -4,15 +4,22 @@ from pathlib import Path
 
 import dagshub
 import mlflow
-from loguru import logger
 from dotenv import load_dotenv
+from loguru import logger
 
 load_dotenv()
 os.chdir(Path(__file__).parent)
 
-from app.config.configuration import ConfigurationManager
-from app.pipeline.dl_training_pipeline import DLTrainingPipeline
-from app.pipeline.ml_training_pipeline import MLTrainingPipeline
+from app.pipeline.imaging.stage_01_data_ingestion import run as img_ingest
+from app.pipeline.imaging.stage_02_data_cleaning import run as img_clean
+from app.pipeline.imaging.stage_03_data_transformation import run as img_transform
+from app.pipeline.imaging.stage_04_model_trainer import run as img_train
+from app.pipeline.imaging.stage_05_model_evaluation import run as img_evaluate
+from app.pipeline.clinical.stage_01_data_ingestion import run as clin_ingest
+from app.pipeline.clinical.stage_02_data_cleaning import run as clin_clean
+from app.pipeline.clinical.stage_03_data_transformation import run as clin_transform
+from app.pipeline.clinical.stage_04_model_trainer import run as clin_train
+from app.pipeline.clinical.stage_05_model_evaluation import run as clin_evaluate
 
 
 def configure_mlflow():
@@ -25,39 +32,39 @@ def configure_mlflow():
     logger.info("mlflow configured via dagshub")
 
 
-def run_ingestion(manager: ConfigurationManager):
-    from app.components.data_ingestion import DataIngestion
-    cfg = manager.get_data_ingestion_config()
-    summary = DataIngestion(cfg).run()
-    logger.info(f"ingestion summary: {summary}")
+IMAGING_STAGES = {
+    "ingest": img_ingest,
+    "clean": img_clean,
+    "transform": img_transform,
+    "train": img_train,
+    "evaluate": img_evaluate,
+}
+
+CLINICAL_STAGES = {
+    "ingest": clin_ingest,
+    "clean": clin_clean,
+    "transform": clin_transform,
+    "train": clin_train,
+    "evaluate": clin_evaluate,
+}
 
 
-def run_preprocess(manager: ConfigurationManager, pipeline: str):
-    if pipeline in ("dl", "both"):
-        DLTrainingPipeline(manager).run_stage_2()
-    if pipeline in ("ml", "both"):
-        MLTrainingPipeline(manager).run_stage_2()
+def run_pipeline(stage: str, pipeline: str):
+    if stage in ("train", "evaluate", "all"):
+        configure_mlflow()
 
-
-def run_train(manager: ConfigurationManager, pipeline: str):
-    if pipeline in ("dl", "both"):
-        DLTrainingPipeline(manager).run_stage_3()
-    if pipeline in ("ml", "both"):
-        MLTrainingPipeline(manager).run_stage_3()
-
-
-def run_evaluate(manager: ConfigurationManager, pipeline: str):
-    if pipeline in ("dl", "both"):
-        DLTrainingPipeline(manager).run_stage_4()
-    if pipeline in ("ml", "both"):
-        MLTrainingPipeline(manager).run_stage_4()
-
-
-def run_all(manager: ConfigurationManager, pipeline: str):
-    if pipeline in ("dl", "both"):
-        DLTrainingPipeline(manager).run()
-    if pipeline in ("ml", "both"):
-        MLTrainingPipeline(manager).run()
+    if stage == "all":
+        if pipeline in ("imaging", "both"):
+            for fn in IMAGING_STAGES.values():
+                fn()
+        if pipeline in ("clinical", "both"):
+            for fn in CLINICAL_STAGES.values():
+                fn()
+    else:
+        if pipeline in ("imaging", "both"):
+            IMAGING_STAGES[stage]()
+        if pipeline in ("clinical", "both"):
+            CLINICAL_STAGES[stage]()
 
 
 if __name__ == "__main__":
@@ -65,31 +72,16 @@ if __name__ == "__main__":
     parser.add_argument(
         "--stage",
         type=str,
-        choices=["ingest", "preprocess", "train", "evaluate", "all"],
+        choices=["ingest", "clean", "transform", "train", "evaluate", "all"],
         default="all",
         help="pipeline stage to run",
     )
     parser.add_argument(
         "--pipeline",
         type=str,
-        choices=["dl", "ml", "both"],
+        choices=["imaging", "clinical", "both"],
         default="both",
         help="which sub-pipeline to run",
     )
     args = parser.parse_args()
-
-    if args.stage in ("train", "evaluate", "all"):
-        configure_mlflow()
-
-    manager = ConfigurationManager()
-
-    if args.stage == "ingest":
-        run_ingestion(manager)
-    elif args.stage == "preprocess":
-        run_preprocess(manager, args.pipeline)
-    elif args.stage == "train":
-        run_train(manager, args.pipeline)
-    elif args.stage == "evaluate":
-        run_evaluate(manager, args.pipeline)
-    elif args.stage == "all":
-        run_all(manager, args.pipeline)
+    run_pipeline(args.stage, args.pipeline)
