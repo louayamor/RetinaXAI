@@ -42,20 +42,24 @@ class DataIngestion:
         df = pd.read_csv(cfg.reports_csv)
         logger.info(f"samaya CSV loaded: {len(df)} records, {len(df.columns)} columns")
 
-        if not cfg.images_dir.exists():
-            logger.warning(f"samaya images directory not found: {cfg.images_dir}")
-            return {"images": [], "records": len(df)}
+        valid_images = []
+        missing = 0
+        for path_str in df["image_fundus_infrared_path"].dropna():
+            p = Path(path_str)
+            if p.exists():
+                valid_images.append(str(p))
+            else:
+                missing += 1
 
-        valid_extensions = {".jpg", ".jpeg", ".png", ".bmp", ".tiff"}
-        images = [
-            p for p in cfg.images_dir.rglob("*")
-            if p.is_file() and p.suffix.lower() in valid_extensions
-        ]
-        logger.info(f"samaya images found: {len(images)}")
+        if missing:
+            logger.warning(f"samaya: {missing} fundus image paths not found on disk")
+
+        logger.info(f"samaya valid fundus images: {len(valid_images)}")
 
         return {
             "records": len(df),
-            "images": [str(p) for p in images],
+            "valid_images": len(valid_images),
+            "images": valid_images,
             "columns": list(df.columns),
         }
 
