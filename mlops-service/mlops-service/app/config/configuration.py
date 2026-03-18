@@ -3,19 +3,19 @@ from pathlib import Path
 
 from app.constants import CONFIG_FILE_PATH, PARAMS_FILE_PATH, SCHEMA_FILE_PATH
 from app.entity.config_entity import (
-    DataIngestionConfig,
-    DLModelEvaluationConfig,
-    DLModelTrainerConfig,
-    DLMonitoringConfig,
-    DLPreprocessingConfig,
-    HuggingFaceIngestionConfig,
-    MLModelEvaluationConfig,
-    MLModelTrainerConfig,
-    MLMonitoringConfig,
-    MLPreprocessingConfig,
+    ClinicalCleaningConfig,
+    ClinicalIngestionConfig,
+    ClinicalModelEvaluationConfig,
+    ClinicalModelTrainerConfig,
+    ClinicalMonitoringConfig,
+    ClinicalTransformationConfig,
+    ImagingCleaningConfig,
+    ImagingIngestionConfig,
+    ImagingModelEvaluationConfig,
+    ImagingModelTrainerConfig,
+    ImagingMonitoringConfig,
+    ImagingTransformationConfig,
     MonitoringConfig,
-    PreprocessingConfig,
-    SamayaIngestionConfig,
 )
 from app.utils.common import create_directories, read_yaml
 
@@ -32,100 +32,113 @@ class ConfigurationManager:
         self.schema = read_yaml(schema_path)
         create_directories([Path(self.config.artifacts_root)])
 
-    def get_data_ingestion_config(self) -> DataIngestionConfig:
+    def get_imaging_ingestion_config(self) -> ImagingIngestionConfig:
         cfg = self.config.data_ingestion
         create_directories([Path(cfg.root_dir)])
-        return DataIngestionConfig(
+        return ImagingIngestionConfig(
             root_dir=Path(cfg.root_dir),
-            huggingface=HuggingFaceIngestionConfig(
-                root_dir=Path(cfg.root_dir),
-                dataset_name=cfg.huggingface.dataset_name,
-                train_split=cfg.huggingface.train_split,
-                test_split=cfg.huggingface.test_split,
-                max_samples=cfg.huggingface.get("max_samples", None),
-            ),
-            samaya=SamayaIngestionConfig(
-                images_dir=Path(cfg.samaya.images_dir),
-                reports_csv=Path(cfg.samaya.reports_csv),
-                reports_json=Path(cfg.samaya.reports_json),
-            ),
+            dataset_name=cfg.huggingface.dataset_name,
+            train_split=cfg.huggingface.train_split,
+            max_samples=cfg.huggingface.get("max_samples", None),
         )
 
-    def get_preprocessing_config(self) -> PreprocessingConfig:
-        cfg = self.config.preprocessing
+    def get_imaging_cleaning_config(self) -> ImagingCleaningConfig:
+        cfg = self.config.data_ingestion
+        return ImagingCleaningConfig(
+            root_dir=Path(cfg.root_dir),
+            source_dir=Path(cfg.root_dir),
+        )
+
+    def get_imaging_transformation_config(self) -> ImagingTransformationConfig:
+        cfg = self.config.data_transformation.imaging
         create_directories([
             Path(cfg.root_dir),
-            Path(cfg.dl.train_csv).parent,
-            Path(cfg.ml.train_csv).parent,
+            Path(cfg.train_csv).parent,
         ])
-        return PreprocessingConfig(
+        return ImagingTransformationConfig(
             root_dir=Path(cfg.root_dir),
-            dl=DLPreprocessingConfig(
-                root_dir=Path(cfg.root_dir),
-                source_dir=Path(cfg.dl.source_dir),
-                image_size=cfg.dl.image_size,
-                train_csv=Path(cfg.dl.train_csv),
-                test_csv=Path(cfg.dl.test_csv),
-                samaya_csv=Path(cfg.dl.samaya_csv),
-            ),
-            ml=MLPreprocessingConfig(
-                root_dir=Path(cfg.root_dir),
-                source_csv=Path(cfg.ml.source_csv),
-                train_csv=Path(cfg.ml.train_csv),
-                test_csv=Path(cfg.ml.test_csv),
-                feature_file=Path(cfg.ml.feature_file),
-            ),
+            source_dir=Path(self.config.data_ingestion.root_dir),
+            image_size=cfg.image_size,
+            train_csv=Path(cfg.train_csv),
+            test_csv=Path(cfg.test_csv),
+            samaya_csv=Path(cfg.samaya_csv),
         )
 
-    def get_dl_model_trainer_config(self) -> DLModelTrainerConfig:
-        cfg = self.config.dl_model
+    def get_imaging_model_trainer_config(self) -> ImagingModelTrainerConfig:
+        cfg = self.config.imaging_model
         create_directories([Path(cfg.root_dir)])
-        return DLModelTrainerConfig(
+        return ImagingModelTrainerConfig(
             root_dir=Path(cfg.root_dir),
             model_name=cfg.model_name,
             pretrained=cfg.pretrained,
             checkpoint_path=Path(cfg.checkpoint_path),
-            finetuned_checkpoint_path=Path(cfg.finetuned_checkpoint_path),
         )
 
-    def get_ml_model_trainer_config(self) -> MLModelTrainerConfig:
-        cfg = self.config.ml_model
+    def get_imaging_model_evaluation_config(self) -> ImagingModelEvaluationConfig:
+        cfg = self.config.model_evaluation.imaging
+        mlflow_cfg = self.config.mlflow
         create_directories([Path(cfg.root_dir)])
-        return MLModelTrainerConfig(
+        return ImagingModelEvaluationConfig(
+            root_dir=Path(cfg.root_dir),
+            test_csv=Path(cfg.test_csv),
+            samaya_csv=Path(self.config.data_transformation.imaging.samaya_csv),
+            model_path=Path(cfg.model_path),
+            metric_file=Path(cfg.metric_file),
+            mlflow_uri=os.environ.get("MLFLOW_TRACKING_URI", ""),
+            experiment_name=mlflow_cfg.experiment_name,
+            run_name=mlflow_cfg.imaging_run_name,
+        )
+
+    def get_clinical_ingestion_config(self) -> ClinicalIngestionConfig:
+        cfg = self.config.data_ingestion.samaya
+        return ClinicalIngestionConfig(
+            reports_csv=Path(cfg.reports_csv),
+            reports_json=Path(cfg.reports_json),
+            images_dir=Path(cfg.images_dir),
+        )
+
+    def get_clinical_cleaning_config(self) -> ClinicalCleaningConfig:
+        cfg = self.config.data_transformation.clinical
+        return ClinicalCleaningConfig(
+            root_dir=Path(cfg.root_dir),
+        )
+
+    def get_clinical_transformation_config(self) -> ClinicalTransformationConfig:
+        cfg = self.config.data_transformation.clinical
+        create_directories([
+            Path(cfg.root_dir),
+            Path(cfg.train_csv).parent,
+        ])
+        return ClinicalTransformationConfig(
+            root_dir=Path(cfg.root_dir),
+            source_csv=Path(self.config.data_ingestion.samaya.reports_csv),
+            train_csv=Path(cfg.train_csv),
+            test_csv=Path(cfg.test_csv),
+            feature_file=Path(cfg.feature_file),
+        )
+
+    def get_clinical_model_trainer_config(self) -> ClinicalModelTrainerConfig:
+        cfg = self.config.clinical_model
+        create_directories([Path(cfg.root_dir)])
+        return ClinicalModelTrainerConfig(
             root_dir=Path(cfg.root_dir),
             model_name=cfg.model_name,
             checkpoint_path=Path(cfg.checkpoint_path),
             feature_importance_path=Path(cfg.feature_importance_path),
         )
 
-    def get_dl_model_evaluation_config(self) -> DLModelEvaluationConfig:
-        cfg = self.config.model_evaluation.dl
+    def get_clinical_model_evaluation_config(self) -> ClinicalModelEvaluationConfig:
+        cfg = self.config.model_evaluation.clinical
         mlflow_cfg = self.config.mlflow
         create_directories([Path(cfg.root_dir)])
-        return DLModelEvaluationConfig(
-            root_dir=Path(cfg.root_dir),
-            test_csv=Path(cfg.test_csv),
-            model_path=Path(cfg.model_path),
-            finetuned_model_path=Path(cfg.finetuned_model_path),
-            metric_file=Path(cfg.metric_file),
-            finetuned_metric_file=Path(cfg.finetuned_metric_file),
-            mlflow_uri=os.environ.get("MLFLOW_TRACKING_URI", ""),
-            experiment_name=mlflow_cfg.experiment_name,
-            run_name=mlflow_cfg.dl_run_name,
-        )
-
-    def get_ml_model_evaluation_config(self) -> MLModelEvaluationConfig:
-        cfg = self.config.model_evaluation.ml
-        mlflow_cfg = self.config.mlflow
-        create_directories([Path(cfg.root_dir)])
-        return MLModelEvaluationConfig(
+        return ClinicalModelEvaluationConfig(
             root_dir=Path(cfg.root_dir),
             test_csv=Path(cfg.test_csv),
             model_path=Path(cfg.model_path),
             metric_file=Path(cfg.metric_file),
             mlflow_uri=os.environ.get("MLFLOW_TRACKING_URI", ""),
             experiment_name=mlflow_cfg.experiment_name,
-            run_name=mlflow_cfg.ml_run_name,
+            run_name=mlflow_cfg.clinical_run_name,
         )
 
     def get_monitoring_config(self) -> MonitoringConfig:
@@ -133,19 +146,19 @@ class ConfigurationManager:
         create_directories([Path(cfg.reports_dir)])
         return MonitoringConfig(
             reports_dir=Path(cfg.reports_dir),
-            dl=DLMonitoringConfig(
+            imaging=ImagingMonitoringConfig(
                 reports_dir=Path(cfg.reports_dir),
-                drift_report=Path(cfg.dl.drift_report),
-                classification_report=Path(cfg.dl.classification_report),
-                reference_csv=Path(cfg.dl.reference_csv),
-                current_csv=Path(cfg.dl.current_csv),
+                drift_report=Path(cfg.imaging.drift_report),
+                classification_report=Path(cfg.imaging.classification_report),
+                reference_csv=Path(cfg.imaging.reference_csv),
+                current_csv=Path(cfg.imaging.current_csv),
             ),
-            ml=MLMonitoringConfig(
+            clinical=ClinicalMonitoringConfig(
                 reports_dir=Path(cfg.reports_dir),
-                drift_report=Path(cfg.ml.drift_report),
-                classification_report=Path(cfg.ml.classification_report),
-                reference_csv=Path(cfg.ml.reference_csv),
-                current_csv=Path(cfg.ml.current_csv),
+                drift_report=Path(cfg.clinical.drift_report),
+                classification_report=Path(cfg.clinical.classification_report),
+                reference_csv=Path(cfg.clinical.reference_csv),
+                current_csv=Path(cfg.clinical.current_csv),
             ),
             prometheus_port=cfg.prometheus_port,
         )

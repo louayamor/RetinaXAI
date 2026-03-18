@@ -1,49 +1,38 @@
 from loguru import logger
-
-from app.components.data_ingestion import DataIngestion
-from app.components.preprocessing import MLPreprocessing
-from app.components.ml_model_trainer import MLModelTrainer
-from app.components.ml_model_evaluation import MLModelEvaluation
 from app.config.configuration import ConfigurationManager
+from app.pipeline.imaging.stage_01_data_ingestion import run as imaging_ingest
+from app.pipeline.imaging.stage_02_data_cleaning import run as imaging_clean
+from app.pipeline.imaging.stage_03_data_transformation import run as imaging_transform
+from app.pipeline.imaging.stage_04_model_trainer import run as imaging_train
+from app.pipeline.imaging.stage_05_model_evaluation import run as imaging_evaluate
+from app.pipeline.clinical.stage_01_data_ingestion import run as clinical_ingest
+from app.pipeline.clinical.stage_02_data_cleaning import run as clinical_clean
+from app.pipeline.clinical.stage_03_data_transformation import run as clinical_transform
+from app.pipeline.clinical.stage_04_model_trainer import run as clinical_train
+from app.pipeline.clinical.stage_05_model_evaluation import run as clinical_evaluate
 
 
-STAGE_1 = "Data Ingestion"
-STAGE_2 = "ML Preprocessing"
-STAGE_3 = "ML Model Training"
-STAGE_4 = "ML Model Evaluation"
+class TrainingPipeline:
+    def run_imaging(self):
+        logger.info("=== imaging pipeline started ===")
+        imaging_ingest()
+        imaging_clean()
+        imaging_transform()
+        imaging_train()
+        imaging_evaluate()
+        logger.info("=== imaging pipeline complete ===")
 
-
-class MLTrainingPipeline:
-    def __init__(self, manager: ConfigurationManager):
-        self.manager = manager
-
-    def run_stage_1(self):
-        logger.info(f">>> ml stage: {STAGE_1} started")
-        cfg = self.manager.get_data_ingestion_config()
-        DataIngestion(cfg).run()
-        logger.info(f">>> ml stage: {STAGE_1} complete")
-
-    def run_stage_2(self):
-        logger.info(f">>> ml stage: {STAGE_2} started")
-        cfg = self.manager.get_preprocessing_config()
-        MLPreprocessing(cfg.ml).run()
-        logger.info(f">>> ml stage: {STAGE_2} complete")
-
-    def run_stage_3(self):
-        logger.info(f">>> ml stage: {STAGE_3} started")
-        cfg = self.manager.get_ml_model_trainer_config()
-        prep_cfg = self.manager.get_preprocessing_config()
-        MLModelTrainer(cfg, prep_cfg.ml).train()
-        logger.info(f">>> ml stage: {STAGE_3} complete")
-
-    def run_stage_4(self):
-        logger.info(f">>> ml stage: {STAGE_4} started")
-        cfg = self.manager.get_ml_model_evaluation_config()
-        MLModelEvaluation(cfg).evaluate()
-        logger.info(f">>> ml stage: {STAGE_4} complete")
+    def run_clinical(self):
+        logger.info("=== clinical pipeline started ===")
+        clinical_ingest()
+        clinical_clean()
+        clinical_transform()
+        clinical_train()
+        clinical_evaluate()
+        logger.info("=== clinical pipeline complete ===")
 
     def run(self):
-        self.run_stage_1()
-        self.run_stage_2()
-        self.run_stage_3()
-        self.run_stage_4()
+        logger.info("=== unified training pipeline started ===")
+        self.run_imaging()
+        self.run_clinical()
+        logger.info("=== unified training pipeline complete ===")

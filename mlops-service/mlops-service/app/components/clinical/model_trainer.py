@@ -1,0 +1,2 @@
+class ClinicalModelTrainer:
+    pass

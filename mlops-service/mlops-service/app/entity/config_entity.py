@@ -4,30 +4,21 @@ from typing import Optional
 
 
 @dataclass(frozen=True)
-class HuggingFaceIngestionConfig:
+class ImagingIngestionConfig:
     root_dir: Path
     dataset_name: str
     train_split: str
-    test_split: str
     max_samples: Optional[int]
 
 
 @dataclass(frozen=True)
-class SamayaIngestionConfig:
-    images_dir: Path
-    reports_csv: Path
-    reports_json: Path
-
-
-@dataclass(frozen=True)
-class DataIngestionConfig:
+class ImagingCleaningConfig:
     root_dir: Path
-    huggingface: HuggingFaceIngestionConfig
-    samaya: SamayaIngestionConfig
+    source_dir: Path
 
 
 @dataclass(frozen=True)
-class DLPreprocessingConfig:
+class ImagingTransformationConfig:
     root_dir: Path
     source_dir: Path
     image_size: int
@@ -37,7 +28,39 @@ class DLPreprocessingConfig:
 
 
 @dataclass(frozen=True)
-class MLPreprocessingConfig:
+class ImagingModelTrainerConfig:
+    root_dir: Path
+    model_name: str
+    pretrained: bool
+    checkpoint_path: Path
+
+
+@dataclass(frozen=True)
+class ImagingModelEvaluationConfig:
+    root_dir: Path
+    test_csv: Path
+    samaya_csv: Path
+    model_path: Path
+    metric_file: Path
+    mlflow_uri: str
+    experiment_name: str
+    run_name: str
+
+
+@dataclass(frozen=True)
+class ClinicalIngestionConfig:
+    reports_csv: Path
+    reports_json: Path
+    images_dir: Path
+
+
+@dataclass(frozen=True)
+class ClinicalCleaningConfig:
+    root_dir: Path
+
+
+@dataclass(frozen=True)
+class ClinicalTransformationConfig:
     root_dir: Path
     source_csv: Path
     train_csv: Path
@@ -46,23 +69,7 @@ class MLPreprocessingConfig:
 
 
 @dataclass(frozen=True)
-class PreprocessingConfig:
-    root_dir: Path
-    dl: DLPreprocessingConfig
-    ml: MLPreprocessingConfig
-
-
-@dataclass(frozen=True)
-class DLModelTrainerConfig:
-    root_dir: Path
-    model_name: str
-    pretrained: bool
-    checkpoint_path: Path
-    finetuned_checkpoint_path: Path
-
-
-@dataclass(frozen=True)
-class MLModelTrainerConfig:
+class ClinicalModelTrainerConfig:
     root_dir: Path
     model_name: str
     checkpoint_path: Path
@@ -70,20 +77,7 @@ class MLModelTrainerConfig:
 
 
 @dataclass(frozen=True)
-class DLModelEvaluationConfig:
-    root_dir: Path
-    test_csv: Path
-    model_path: Path
-    finetuned_model_path: Path
-    metric_file: Path
-    finetuned_metric_file: Path
-    mlflow_uri: str
-    experiment_name: str
-    run_name: str
-
-
-@dataclass(frozen=True)
-class MLModelEvaluationConfig:
+class ClinicalModelEvaluationConfig:
     root_dir: Path
     test_csv: Path
     model_path: Path
@@ -94,7 +88,7 @@ class MLModelEvaluationConfig:
 
 
 @dataclass(frozen=True)
-class DLMonitoringConfig:
+class ImagingMonitoringConfig:
     reports_dir: Path
     drift_report: Path
     classification_report: Path
@@ -103,7 +97,7 @@ class DLMonitoringConfig:
 
 
 @dataclass(frozen=True)
-class MLMonitoringConfig:
+class ClinicalMonitoringConfig:
     reports_dir: Path
     drift_report: Path
     classification_report: Path
@@ -114,6 +108,6 @@ class MLMonitoringConfig:
 @dataclass(frozen=True)
 class MonitoringConfig:
     reports_dir: Path
-    dl: DLMonitoringConfig
-    ml: MLMonitoringConfig
+    imaging: ImagingMonitoringConfig
+    clinical: ClinicalMonitoringConfig
     prometheus_port: int

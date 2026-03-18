@@ -5,73 +5,67 @@ data_ingestion:
   huggingface:
     dataset_name: bumbledeep/eyepacs
     train_split: train
-    test_split: train
     max_samples: 5000
   samaya:
     images_dir: artifacts/ocr/output/images
     reports_csv: artifacts/ocr/output/reports.csv
     reports_json: artifacts/ocr/output/reports.json
 
-preprocessing:
-  root_dir: artifacts/data/processed
-  dl:
-    source_dir: artifacts/data/raw
+data_transformation:
+  imaging:
+    root_dir: artifacts/data/processed/imaging
     image_size: 224
-    train_csv: artifacts/data/processed/dl/train.csv
-    test_csv: artifacts/data/processed/dl/test.csv
-    samaya_csv: artifacts/data/processed/dl/samaya.csv
-  ml:
-    source_csv: artifacts/ocr/output/reports.csv
-    train_csv: artifacts/data/processed/ml/train.csv
-    test_csv: artifacts/data/processed/ml/test.csv
-    feature_file: artifacts/data/processed/ml/features.json
+    train_csv: artifacts/data/processed/imaging/train.csv
+    test_csv: artifacts/data/processed/imaging/test.csv
+    samaya_csv: artifacts/data/processed/imaging/samaya.csv
+  clinical:
+    root_dir: artifacts/data/processed/clinical
+    train_csv: artifacts/data/processed/clinical/train.csv
+    test_csv: artifacts/data/processed/clinical/test.csv
+    feature_file: artifacts/data/processed/clinical/features.json
 
-dl_model:
-  root_dir: artifacts/model/dl
+imaging_model:
+  root_dir: artifacts/model/imaging
   model_name: efficientnet_b3
   pretrained: true
-  checkpoint_path: artifacts/model/dl/model.pth
-  finetuned_checkpoint_path: artifacts/model/dl/model_finetuned.pth
+  checkpoint_path: artifacts/model/imaging/model.pth
 
-ml_model:
-  root_dir: artifacts/model/ml
+clinical_model:
+  root_dir: artifacts/model/clinical
   model_name: xgboost
-  checkpoint_path: artifacts/model/ml/model.pkl
-  feature_importance_path: artifacts/model/ml/feature_importance.json
+  checkpoint_path: artifacts/model/clinical/model.pkl
+  feature_importance_path: artifacts/model/clinical/feature_importance.json
 
 model_evaluation:
-  dl:
-    root_dir: artifacts/model/dl
-    test_csv: artifacts/data/processed/dl/test.csv
-    model_path: artifacts/model/dl/model.pth
-    finetuned_model_path: artifacts/model/dl/model_finetuned.pth
-    metric_file: artifacts/model/dl/metrics.json
-    finetuned_metric_file: artifacts/model/dl/metrics_finetuned.json
-  ml:
-    root_dir: artifacts/model/ml
-    test_csv: artifacts/data/processed/ml/test.csv
-    model_path: artifacts/model/ml/model.pkl
-    metric_file: artifacts/model/ml/metrics.json
+  imaging:
+    root_dir: artifacts/model/imaging
+    test_csv: artifacts/data/processed/imaging/test.csv
+    model_path: artifacts/model/imaging/model.pth
+    metric_file: artifacts/model/imaging/metrics.json
+  clinical:
+    root_dir: artifacts/model/clinical
+    test_csv: artifacts/data/processed/clinical/test.csv
+    model_path: artifacts/model/clinical/model.pkl
+    metric_file: artifacts/model/clinical/metrics.json
 
 monitoring:
   reports_dir: artifacts/monitoring
-  dl:
-    drift_report: artifacts/monitoring/dl_drift_report.html
-    classification_report: artifacts/monitoring/dl_classification_report.html
-    reference_csv: artifacts/data/processed/dl/train.csv
-    current_csv: artifacts/data/processed/dl/test.csv
-  ml:
-    drift_report: artifacts/monitoring/ml_drift_report.html
-    classification_report: artifacts/monitoring/ml_classification_report.html
-    reference_csv: artifacts/data/processed/ml/train.csv
-    current_csv: artifacts/data/processed/ml/test.csv
+  imaging:
+    drift_report: artifacts/monitoring/imaging_drift_report.html
+    classification_report: artifacts/monitoring/imaging_classification_report.html
+    reference_csv: artifacts/data/processed/imaging/train.csv
+    current_csv: artifacts/data/processed/imaging/test.csv
+  clinical:
+    drift_report: artifacts/monitoring/clinical_drift_report.html
+    classification_report: artifacts/monitoring/clinical_classification_report.html
+    reference_csv: artifacts/data/processed/clinical/train.csv
+    current_csv: artifacts/data/processed/clinical/test.csv
   prometheus_port: 9090
 
 mlflow:
   experiment_name: retinaxai-dr-classification
-  dl_run_name: efficientnet_b3_eyepacs
-  dl_finetune_run_name: efficientnet_b3_samaya_finetuned
-  ml_run_name: xgboost_clinical
+  imaging_run_name: efficientnet_b3_eyepacs
+  clinical_run_name: xgboost_clinical
 
 inter_service:
   llmops_url: ${LLMOPS_SERVICE_URL}
