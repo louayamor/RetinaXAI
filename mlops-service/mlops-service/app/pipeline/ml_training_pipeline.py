@@ -1,6 +1,5 @@
 from loguru import logger
 
-from app.components.data_ingestion import DataIngestion
 from app.components.ml_preprocessing import MLPreprocessing
 from app.components.ml_model_trainer import MLModelTrainer
 from app.components.ml_model_evaluation import MLModelEvaluation
@@ -19,6 +18,7 @@ class MLTrainingPipeline:
 
     def run_stage_1(self):
         logger.info(f">>> ml stage: {STAGE_1} started")
+        from app.components.data_ingestion import DataIngestion
         cfg = self.manager.get_data_ingestion_config()
         DataIngestion(cfg).run()
         logger.info(f">>> ml stage: {STAGE_1} complete")

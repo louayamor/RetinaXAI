@@ -1,7 +1,7 @@
 from loguru import logger
 
 from app.components.data_ingestion import DataIngestion
-from app.components.dl_preprocessing import DLPreprocessing
+from app.components.preprocessing import DLPreprocessing
 from app.components.dl_model_trainer import DLModelTrainer
 from app.components.dl_model_evaluation import DLModelEvaluation
 from app.config.configuration import ConfigurationManager

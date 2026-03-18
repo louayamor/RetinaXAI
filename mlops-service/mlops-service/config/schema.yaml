@@ -1,10 +1,10 @@
-target_column: clinical_npdr_grade
+target_column: label_code
 
 classes:
   0: No DR
-  1: Mild NPDR
-  2: Moderate NPDR
-  3: Severe NPDR
+  1: Mild
+  2: Moderate
+  3: Severe
   4: Proliferative DR
 
 class_weights:
@@ -15,18 +15,20 @@ class_weights:
   4: 3.0
 
 dl_dataset:
-  name: OctoMed/Messidor2
+  name: bumbledeep/eyepacs
   source: huggingface
   image_column: image
-  label_column: label
+  label_column: label_code
   splits:
     - train
-    - test
+  train_test_split:
+    test_size: 0.2
+    seed: 42
   columns:
     image:
       type: image
       required: true
-    label:
+    label_code:
       type: integer
       required: true
       min: 0
@@ -35,12 +37,16 @@ dl_dataset:
 ml_dataset:
   source: samaya
   label_column: clinical_npdr_grade
+  label_mapping:
+    mild: 1
+    moderate: 2
+    severe: 3
+  present_classes: [1, 2, 3]
   columns:
     clinical_npdr_grade:
-      type: integer
+      type: string
       required: true
-      min: 0
-      max: 4
+      values: [mild, moderate, severe]
     thickness_center_fovea:
       type: float
       required: true
@@ -94,3 +100,10 @@ ml_dataset:
     meta_image_quality:
       type: string
       required: false
+
+samaya_fine_tuning:
+  freeze_backbone: true
+  class_weights:
+    1: 4.0
+    2: 2.0
+    3: 8.0

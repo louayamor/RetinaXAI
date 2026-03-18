@@ -1,0 +1,108 @@
+stages:
+  data_ingestion:
+    cmd: python main.py --stage ingest
+    deps:
+      - main.py
+      - app/components/data_ingestion.py
+      - app/config/configuration.py
+      - app/entity/config_entity.py
+      - config/config.yaml
+      - artifacts/ocr/output/reports.csv
+      - artifacts/ocr/output/images
+    outs:
+      - artifacts/data/raw/huggingface/train
+      - artifacts/data/raw/huggingface/test
+    always_changed: false
+
+  dl_preprocessing:
+    cmd: python main.py --stage preprocess --pipeline dl
+    deps:
+      - main.py
+      - app/components/preprocessing.py
+      - app/config/configuration.py
+      - config/config.yaml
+      - config/params.yaml
+      - artifacts/data/raw/huggingface/train
+      - artifacts/data/raw/huggingface/test
+      - artifacts/ocr/output/reports.csv
+      - artifacts/ocr/output/images
+    outs:
+      - artifacts/data/processed/dl/train.csv
+      - artifacts/data/processed/dl/test.csv
+      - artifacts/data/processed/dl/samaya.csv
+      - artifacts/data/processed/images
+
+  ml_preprocessing:
+    cmd: python main.py --stage preprocess --pipeline ml
+    deps:
+      - main.py
+      - app/components/ml_preprocessing.py
+      - app/config/configuration.py
+      - config/config.yaml
+      - config/params.yaml
+      - artifacts/ocr/output/reports.csv
+    outs:
+      - artifacts/data/processed/ml/train.csv
+      - artifacts/data/processed/ml/test.csv
+      - artifacts/data/processed/ml/features.json
+
+  dl_training:
+    cmd: python main.py --stage train --pipeline dl
+    deps:
+      - main.py
+      - app/components/model_trainer.py
+      - app/config/configuration.py
+      - config/config.yaml
+      - config/params.yaml
+      - artifacts/data/processed/dl/train.csv
+      - artifacts/data/processed/dl/test.csv
+      - artifacts/data/processed/dl/samaya.csv
+    outs:
+      - artifacts/model/dl/model.pth
+    metrics:
+      - artifacts/model/dl/metrics.json:
+          cache: false
+
+  ml_training:
+    cmd: python main.py --stage train --pipeline ml
+    deps:
+      - main.py
+      - app/components/ml_model_trainer.py
+      - app/config/configuration.py
+      - config/config.yaml
+      - config/params.yaml
+      - artifacts/data/processed/ml/train.csv
+      - artifacts/data/processed/ml/features.json
+    outs:
+      - artifacts/model/ml/model.pkl
+    metrics:
+      - artifacts/model/ml/metrics.json:
+          cache: false
+
+  dl_evaluation:
+    cmd: python main.py --stage evaluate --pipeline dl
+    deps:
+      - main.py
+      - app/components/model_evaluation.py
+      - app/config/configuration.py
+      - config/config.yaml
+      - config/params.yaml
+      - artifacts/model/dl/model.pth
+      - artifacts/data/processed/dl/test.csv
+    metrics:
+      - artifacts/model/dl/metrics.json:
+          cache: false
+
+  ml_evaluation:
+    cmd: python main.py --stage evaluate --pipeline ml
+    deps:
+      - main.py
+      - app/components/ml_model_evaluation.py
+      - app/config/configuration.py
+      - config/config.yaml
+      - config/params.yaml
+      - artifacts/model/ml/model.pkl
+      - artifacts/data/processed/ml/test.csv
+    metrics:
+      - artifacts/model/ml/metrics.json:
+          cache: false
