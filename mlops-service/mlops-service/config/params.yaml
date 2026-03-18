@@ -1,15 +1,15 @@
 dl_training:
   epochs: 30
-  batch_size: 32
+  batch_size: 8
   learning_rate: 0.0001
   weight_decay: 0.0001
-  num_workers: 4
-  early_stopping_patience: 5
+  num_workers: 2
+  early_stopping_patience: 8
   scheduler: cosine
   num_classes: 5
   dropout: 0.3
   seed: 42
-  freeze_backbone: false
+  freeze_blocks: 3
 
 dl_fine_tuning:
   epochs: 20
@@ -17,7 +17,7 @@ dl_fine_tuning:
   learning_rate: 0.001
   weight_decay: 0.0001
   num_workers: 2
-  early_stopping_patience: 5
+  early_stopping_patience: 8
   scheduler: cosine
   num_classes: 5
   dropout: 0.3
