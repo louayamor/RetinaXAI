@@ -4,6 +4,7 @@ from loguru import logger
 
 from app.api.routes import health, train, status, metrics, predict
 from app.api.dependencies import get_settings
+from monitoring.prometheus_metrics import start_metrics_server
 
 
 @asynccontextmanager
@@ -11,6 +12,7 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     logger.info(f"starting {settings.app_name} v{settings.app_version}")
     logger.info(f"environment: {settings.app_env}")
+    start_metrics_server(port=settings.prometheus_metrics_port)
     yield
     logger.info("shutting down mlops service")
 
