@@ -36,7 +36,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install ruff
-        run: pip install ruff>=0.4.0
+        run: pip install "ruff>=0.4.0"
 
       - name: Lint
         run: ruff check app/ monitoring/ main.py
@@ -116,7 +116,7 @@ jobs:
     name: DVC Pipeline
     runs-on: ubuntu-latest
     needs: test
-    if: github.event_name == 'workflow_dispatch' && inputs.run_dvc == 'true'
+    if: github.event_name == 'workflow_dispatch' && inputs.run_dvc == true
     container:
       image: ghcr.io/${{ github.repository_owner }}/retinaxai-mlops:latest
       credentials:
