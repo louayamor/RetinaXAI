@@ -1,7 +1,8 @@
-import argparse
 import os
 from pathlib import Path
+from typing import Callable, Dict
 
+import argparse
 import dagshub
 import mlflow
 from dotenv import load_dotenv
@@ -15,24 +16,14 @@ from app.pipeline.imaging.stage_02_data_cleaning import run as img_clean
 from app.pipeline.imaging.stage_03_data_transformation import run as img_transform
 from app.pipeline.imaging.stage_04_model_trainer import run as img_train
 from app.pipeline.imaging.stage_05_model_evaluation import run as img_evaluate
+
 from app.pipeline.clinical.stage_01_data_ingestion import run as clin_ingest
 from app.pipeline.clinical.stage_02_data_cleaning import run as clin_clean
 from app.pipeline.clinical.stage_03_data_transformation import run as clin_transform
 from app.pipeline.clinical.stage_04_model_trainer import run as clin_train
 from app.pipeline.clinical.stage_05_model_evaluation import run as clin_evaluate
 
-
-def configure_mlflow():
-    dagshub.init(
-        repo_owner="louayamor",
-        repo_name="retinaxai",
-        mlflow=True,
-    )
-    mlflow.set_experiment("retinaxai-dr-classification")
-    logger.info("mlflow configured via dagshub")
-
-
-IMAGING_STAGES = {
+IMAGING_PIPELINE: Dict[str, Callable] = {
     "ingest": img_ingest,
     "clean": img_clean,
     "transform": img_transform,
@@ -40,7 +31,7 @@ IMAGING_STAGES = {
     "evaluate": img_evaluate,
 }
 
-CLINICAL_STAGES = {
+CLINICAL_PIPELINE: Dict[str, Callable] = {
     "ingest": clin_ingest,
     "clean": clin_clean,
     "transform": clin_transform,
@@ -48,40 +39,94 @@ CLINICAL_STAGES = {
     "evaluate": clin_evaluate,
 }
 
+PIPELINE_ORDER = ["ingest", "clean", "transform", "train", "evaluate"]
 
-def run_pipeline(stage: str, pipeline: str):
+def configure_mlflow() -> None:
+    dagshub.init(
+        repo_owner="louayamor",
+        repo_name="retinaxai",
+        mlflow=True,
+    )
+    mlflow.set_experiment("retinaxai-dr-classification")
+    logger.info("MLflow configured via DagsHub")
+
+def run_stage(stage: str, pipeline: Dict[str, Callable]) -> None:
+    if stage not in pipeline:
+        raise ValueError(f"Invalid stage: {stage}")
+    logger.info(f"Running stage: {stage}")
+    pipeline[stage]()
+
+
+def run_full_pipeline(pipeline: Dict[str, Callable]) -> None:
+    for stage in PIPELINE_ORDER:
+        run_stage(stage, pipeline)
+
+
+def run_pipeline(stage: str, target: str) -> None:
     if stage in ("train", "evaluate", "all"):
         configure_mlflow()
 
-    if stage == "all":
-        if pipeline in ("imaging", "both"):
-            for fn in IMAGING_STAGES.values():
-                fn()
-        if pipeline in ("clinical", "both"):
-            for fn in CLINICAL_STAGES.values():
-                fn()
-    else:
-        if pipeline in ("imaging", "both"):
-            IMAGING_STAGES[stage]()
-        if pipeline in ("clinical", "both"):
-            CLINICAL_STAGES[stage]()
+    targets = []
+    if target in ("imaging", "both"):
+        targets.append(("imaging", IMAGING_PIPELINE))
+    if target in ("clinical", "both"):
+        targets.append(("clinical", CLINICAL_PIPELINE))
 
+    for name, pipe in targets:
+        logger.info(f"Executing {name} pipeline")
 
-if __name__ == "__main__":
+        if stage == "all":
+            run_full_pipeline(pipe)
+        else:
+            run_stage(stage, pipe)
+
+def serve() -> None:
+    import uvicorn
+    from app.api.app import app
+    from app.config.settings import Settings
+
+    settings = Settings()
+
+    logger.info(
+        f"Starting API server at {settings.app_host}:{settings.app_port}"
+    )
+
+    uvicorn.run(
+        "app.api.app:app",
+        host=settings.app_host,
+        port=settings.app_port,
+        reload=True,
+    )
+
+def main():
     parser = argparse.ArgumentParser(description="RetinaXAI MLOps Service")
-    parser.add_argument(
+
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    pipeline_parser = subparsers.add_parser("pipeline")
+    pipeline_parser.add_argument(
         "--stage",
         type=str,
         choices=["ingest", "clean", "transform", "train", "evaluate", "all"],
         default="all",
-        help="pipeline stage to run",
     )
-    parser.add_argument(
+    pipeline_parser.add_argument(
         "--pipeline",
         type=str,
         choices=["imaging", "clinical", "both"],
         default="both",
-        help="which sub-pipeline to run",
     )
+
+    subparsers.add_parser("serve")
+
     args = parser.parse_args()
-    run_pipeline(args.stage, args.pipeline)
+
+    if args.command == "pipeline":
+        run_pipeline(args.stage, args.pipeline)
+
+    elif args.command == "serve":
+        serve()
+
+
+if __name__ == "__main__":
+    main()
