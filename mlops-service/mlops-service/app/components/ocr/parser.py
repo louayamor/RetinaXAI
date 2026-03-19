@@ -68,7 +68,7 @@ def parse_thickness(text: str) -> RetinalThickness:
     return RetinalThickness(
         average_thickness=_float(_find(r"Average Thickness[^\d]*(\d+\.?\d*)", text)),
         center_thickness=_float(_find(r"Center Thickness[^\d]*(\d+\.?\d*)", text)),
-        total_volume_mm3=_float(_find(r"Total Volume[^\d]*(\d+\.?\d*)", text)),
+        total_volume_mm3=_float(_find(r"Total Volume\s*\([^)]+\)\s*(\d+\.\d+)", text)),
         center_fovea=_float(_find(r"Center(?:ed)?\s+(?:Thickness)?\s*[:\(]?\s*(\d+)", text)),
         inner_superior=305.0 if "305" in text else None,
         inner_nasal=322.0 if "322" in text else None,
