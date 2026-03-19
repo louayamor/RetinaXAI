@@ -1,7 +1,6 @@
 import json
 import random
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import torch
@@ -9,7 +8,6 @@ import yaml
 from box import ConfigBox
 from box.exceptions import BoxValueError
 from loguru import logger
-
 
 def read_yaml(path: Path) -> ConfigBox:
     try:

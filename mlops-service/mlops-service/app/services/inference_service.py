@@ -7,7 +7,6 @@ import timm
 import torch
 import torch.nn as nn
 from loguru import logger
-from pathlib import Path
 from PIL import Image
 from torchvision import transforms
 

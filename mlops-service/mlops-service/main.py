@@ -11,17 +11,17 @@ from loguru import logger
 load_dotenv()
 os.chdir(Path(__file__).parent)
 
-from app.pipeline.imaging.stage_01_data_ingestion import run as img_ingest
-from app.pipeline.imaging.stage_02_data_cleaning import run as img_clean
-from app.pipeline.imaging.stage_03_data_transformation import run as img_transform
-from app.pipeline.imaging.stage_04_model_trainer import run as img_train
-from app.pipeline.imaging.stage_05_model_evaluation import run as img_evaluate
+from app.pipeline.imaging.stage_01_data_ingestion import run as img_ingest # noqa: E402
+from app.pipeline.imaging.stage_02_data_cleaning import run as img_clean # noqa: E402
+from app.pipeline.imaging.stage_03_data_transformation import run as img_transform # noqa: E402
+from app.pipeline.imaging.stage_04_model_trainer import run as img_train # noqa: E402
+from app.pipeline.imaging.stage_05_model_evaluation import run as img_evaluate # noqa: E402
 
-from app.pipeline.clinical.stage_01_data_ingestion import run as clin_ingest
-from app.pipeline.clinical.stage_02_data_cleaning import run as clin_clean
-from app.pipeline.clinical.stage_03_data_transformation import run as clin_transform
-from app.pipeline.clinical.stage_04_model_trainer import run as clin_train
-from app.pipeline.clinical.stage_05_model_evaluation import run as clin_evaluate
+from app.pipeline.clinical.stage_01_data_ingestion import run as clin_ingest # noqa: E402
+from app.pipeline.clinical.stage_02_data_cleaning import run as clin_clean # noqa: E402
+from app.pipeline.clinical.stage_03_data_transformation import run as clin_transform # noqa: E402
+from app.pipeline.clinical.stage_04_model_trainer import run as clin_train # noqa: E402
+from app.pipeline.clinical.stage_05_model_evaluation import run as clin_evaluate # noqa: E402
 
 IMAGING_PIPELINE: Dict[str, Callable] = {
     "ingest": img_ingest,
@@ -82,7 +82,6 @@ def run_pipeline(stage: str, target: str) -> None:
 
 def serve() -> None:
     import uvicorn
-    from app.api.app import app
     from app.config.settings import Settings
 
     settings = Settings()

@@ -1,5 +1,4 @@
 from loguru import logger
-from app.config.configuration import ConfigurationManager
 from app.pipeline.imaging.stage_01_data_ingestion import run as imaging_ingest
 from app.pipeline.imaging.stage_02_data_cleaning import run as imaging_clean
 from app.pipeline.imaging.stage_03_data_transformation import run as imaging_transform
