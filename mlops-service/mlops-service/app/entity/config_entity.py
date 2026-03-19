@@ -52,6 +52,7 @@ class ClinicalIngestionConfig:
     reports_csv: Path
     reports_json: Path
     images_dir: Path
+    raw_csv: Path
 
 
 @dataclass(frozen=True)

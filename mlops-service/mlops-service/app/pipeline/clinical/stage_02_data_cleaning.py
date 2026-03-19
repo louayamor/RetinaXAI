@@ -1,15 +1,16 @@
 from loguru import logger
-from app.config.configuration import ConfigurationManager
-from app.components.clinical.data_ingestion import ClinicalDataIngestion
+
 from app.components.clinical.data_cleaning import ClinicalDataCleaning
+from app.config.configuration import ConfigurationManager
+
+STAGE_NAME = "Clinical Data Cleaning"
 
 
 def run():
-    logger.info(">>> stage 02: clinical data cleaning started")
+    logger.info(f">>> stage 02: {STAGE_NAME} started")
     manager = ConfigurationManager()
-    df = ClinicalDataIngestion(manager.get_clinical_ingestion_config()).run()
-    ClinicalDataCleaning(manager.get_clinical_cleaning_config()).run(df)
-    logger.info(">>> stage 02: clinical data cleaning complete")
+    ClinicalDataCleaning(manager.get_clinical_cleaning_config()).run()
+    logger.info(f">>> stage 02: {STAGE_NAME} complete")
 
 
 if __name__ == "__main__":
