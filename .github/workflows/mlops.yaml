@@ -31,6 +31,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: pip
+          cache-dependency-path: mlops-service/requirements-ci.txt
 
       - name: Install ruff
         run: pip install "ruff>=0.4.0"
@@ -55,9 +57,17 @@ jobs:
           cache: pip
           cache-dependency-path: mlops-service/requirements-ci.txt
 
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-ci-${{ hashFiles('mlops-service/requirements-ci.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-ci-
+
       - name: Install CI dependencies
         working-directory: mlops-service
-        run: pip install -r requirements-ci.txt && pip install -e .
+        run: pip install -r requirements-ci.txt && pip install --no-deps -e .
 
       - name: Run tests
         working-directory: mlops-service/mlops-service
@@ -99,6 +109,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
@@ -132,6 +150,14 @@ jobs:
           dvc remote modify dagshub --local auth basic
           dvc remote modify dagshub --local user louayamor
           dvc remote modify dagshub --local password $DAGSHUB_TOKEN
+
+      - name: Cache DVC artifacts
+        uses: actions/cache@v4
+        with:
+          path: mlops-service/mlops-service/.dvc/cache
+          key: ${{ runner.os }}-dvc-${{ hashFiles('mlops-service/mlops-service/dvc.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-dvc-
 
       - name: Pull DVC artifacts
         working-directory: mlops-service/mlops-service
