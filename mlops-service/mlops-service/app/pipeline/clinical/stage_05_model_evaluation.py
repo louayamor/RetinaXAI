@@ -1,13 +1,16 @@
 from loguru import logger
-from app.config.configuration import ConfigurationManager
+
 from app.components.clinical.model_evaluation import ClinicalModelEvaluation
+from app.config.configuration import ConfigurationManager
+
+STAGE_NAME = "Clinical Model Evaluation"
 
 
 def run():
-    logger.info(">>> stage 05: clinical model evaluation started")
+    logger.info(f">>> stage 05: {STAGE_NAME} started")
     manager = ConfigurationManager()
     ClinicalModelEvaluation(manager.get_clinical_model_evaluation_config()).evaluate()
-    logger.info(">>> stage 05: clinical model evaluation complete")
+    logger.info(f">>> stage 05: {STAGE_NAME} complete")
 
 
 if __name__ == "__main__":
