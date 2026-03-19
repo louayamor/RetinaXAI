@@ -91,10 +91,12 @@ class ConfigurationManager:
 
     def get_clinical_ingestion_config(self) -> ClinicalIngestionConfig:
         cfg = self.config.data_ingestion.samaya
+        trans_cfg = self.config.data_transformation.clinical
         return ClinicalIngestionConfig(
             reports_csv=Path(cfg.reports_csv),
             reports_json=Path(cfg.reports_json),
             images_dir=Path(cfg.images_dir),
+            raw_csv=Path(trans_cfg.raw_csv),
         )
 
     def get_clinical_cleaning_config(self) -> ClinicalCleaningConfig:
