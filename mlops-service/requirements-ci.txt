@@ -8,3 +8,4 @@ python-dotenv>=1.0.0
 loguru>=0.7.0
 python-box>=7.1.1
 PyYAML>=6.0
+numpy>=1.25
