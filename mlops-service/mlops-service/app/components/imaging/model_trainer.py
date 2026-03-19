@@ -114,7 +114,7 @@ class ImagingModelTrainer:
         labels = [int(dataset.df.iloc[i]["label"]) for i in range(len(dataset))]
         class_counts = np.bincount(labels, minlength=self.params.dl_training.num_classes)
         class_weights = 1.0 / (class_counts + 1e-6)
-        sample_weights = [class_weights[l] for l in labels]
+        sample_weights = [class_weights[lbl] for lbl in labels]
         return WeightedRandomSampler(
             weights=sample_weights,
             num_samples=len(sample_weights),

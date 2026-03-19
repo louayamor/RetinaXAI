@@ -1,4 +1,3 @@
-import cv2
 import numpy as np
 import yaml
 from pathlib import Path
