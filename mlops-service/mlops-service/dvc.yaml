@@ -1,6 +1,6 @@
 stages:
   imaging_ingestion:
-    cmd: python main.py --stage ingest --pipeline imaging
+    cmd: python main.py pipeline --stage ingest --pipeline imaging
     deps:
       - main.py
       - app/components/imaging/data_ingestion.py
@@ -11,7 +11,7 @@ stages:
       - artifacts/data/raw/huggingface/train
 
   imaging_cleaning:
-    cmd: python main.py --stage clean --pipeline imaging
+    cmd: python main.py pipeline --stage clean --pipeline imaging
     deps:
       - main.py
       - app/components/imaging/data_cleaning.py
@@ -22,7 +22,7 @@ stages:
       - artifacts/data/raw/huggingface/train_clean
 
   imaging_transformation:
-    cmd: python main.py --stage transform --pipeline imaging
+    cmd: python main.py pipeline --stage transform --pipeline imaging
     deps:
       - main.py
       - app/components/imaging/data_transformation.py
@@ -39,7 +39,7 @@ stages:
       - artifacts/data/processed/imaging/images
 
   imaging_training:
-    cmd: python main.py --stage train --pipeline imaging
+    cmd: python main.py pipeline --stage train --pipeline imaging
     deps:
       - main.py
       - app/components/imaging/model_trainer.py
@@ -50,12 +50,9 @@ stages:
       - artifacts/data/processed/imaging/test.csv
     outs:
       - artifacts/model/imaging/model.pth
-    metrics:
-      - artifacts/model/imaging/metrics.json:
-          cache: false
 
   imaging_evaluation:
-    cmd: python main.py --stage evaluate --pipeline imaging
+    cmd: python main.py pipeline --stage evaluate --pipeline imaging
     deps:
       - main.py
       - app/components/imaging/model_evaluation.py
@@ -70,7 +67,7 @@ stages:
           cache: false
 
   clinical_ingestion:
-    cmd: python main.py --stage ingest --pipeline clinical
+    cmd: python main.py pipeline --stage ingest --pipeline clinical
     deps:
       - main.py
       - app/components/clinical/data_ingestion.py
@@ -81,7 +78,7 @@ stages:
       - artifacts/data/processed/clinical/raw.csv
 
   clinical_cleaning:
-    cmd: python main.py --stage clean --pipeline clinical
+    cmd: python main.py pipeline --stage clean --pipeline clinical
     deps:
       - main.py
       - app/components/clinical/data_cleaning.py
@@ -93,7 +90,7 @@ stages:
       - artifacts/data/processed/clinical/cleaned.csv
 
   clinical_transformation:
-    cmd: python main.py --stage transform --pipeline clinical
+    cmd: python main.py pipeline --stage transform --pipeline clinical
     deps:
       - main.py
       - app/components/clinical/data_transformation.py
@@ -108,7 +105,7 @@ stages:
       - artifacts/data/processed/clinical/features.json
 
   clinical_training:
-    cmd: python main.py --stage train --pipeline clinical
+    cmd: python main.py pipeline --stage train --pipeline clinical
     deps:
       - main.py
       - app/components/clinical/model_trainer.py
@@ -120,12 +117,9 @@ stages:
     outs:
       - artifacts/model/clinical/model.pkl
       - artifacts/model/clinical/feature_importance.json
-    metrics:
-      - artifacts/model/clinical/metrics.json:
-          cache: false
 
   clinical_evaluation:
-    cmd: python main.py --stage evaluate --pipeline clinical
+    cmd: python main.py pipeline --stage evaluate --pipeline clinical
     deps:
       - main.py
       - app/components/clinical/model_evaluation.py
