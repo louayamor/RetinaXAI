@@ -1,4 +1,4 @@
-/data
-/model
-/ocr
-monitoring/
+*
+
+!.gitignore
+!*.dvc
