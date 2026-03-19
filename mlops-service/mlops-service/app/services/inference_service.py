@@ -1,5 +1,6 @@
 import io
 import pickle
+import time
 import numpy as np
 import pandas as pd
 import timm
@@ -14,6 +15,7 @@ from app.api.schemas import ClinicalFeatures
 from app.config.settings import Settings
 from app.utils.common import load_json, read_yaml
 from app.constants import PARAMS_FILE_PATH, SCHEMA_FILE_PATH
+from monitoring.prometheus_metrics import INFERENCE_LATENCY
 
 
 DR_CLASSES = {0: "No DR", 1: "Mild", 2: "Moderate", 3: "Severe", 4: "Proliferative DR"}
@@ -68,6 +70,7 @@ class InferenceService:
         ])
 
     def predict_imaging(self, image_bytes: bytes) -> dict:
+        start = time.time()
         model = self._load_imaging_model()
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         tf = self._build_transform()
@@ -80,6 +83,8 @@ class InferenceService:
         pred_class = int(np.argmax(probs))
         confidence = float(probs[pred_class])
 
+        INFERENCE_LATENCY.labels(model="efficientnet_b3").observe(time.time() - start)
+
         return {
             "predicted_grade": pred_class,
             "predicted_label": DR_CLASSES[pred_class],
@@ -91,13 +96,12 @@ class InferenceService:
         }
 
     def predict_clinical(self, features: ClinicalFeatures) -> dict:
+        start = time.time()
         model, feature_meta = self._load_clinical_model()
         label_offset = feature_meta.get("label_offset", 0)
         feature_cols = feature_meta.get("feature_cols", [])
 
-        label_mapping = dict(self.schema.ml_dataset.label_mapping)
         from sklearn.preprocessing import LabelEncoder
-
         feature_dict = features.model_dump()
         row = {}
         for col in feature_cols:
@@ -115,6 +119,8 @@ class InferenceService:
         probs = model.predict_proba(X)[0]
 
         risk_labels = {1: "Mild NPDR", 2: "Moderate NPDR", 3: "Severe NPDR"}
+
+        INFERENCE_LATENCY.labels(model="xgboost_clinical").observe(time.time() - start)
 
         return {
             "predicted_grade": pred_original,
