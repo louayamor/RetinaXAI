@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from loguru import logger
 
-from app.api.routes import health, train, status, metrics, predict
+from app.api.routes import health, train, status, metrics, predict, reports
 from app.api.dependencies import get_settings
 from monitoring.prometheus_metrics import start_metrics_server
 
@@ -30,6 +30,7 @@ def create_app() -> FastAPI:
     app.include_router(status.router, tags=["status"])
     app.include_router(metrics.router, tags=["metrics"])
     app.include_router(predict.router, tags=["predict"])
+    app.include_router(reports.router, tags=["monitoring"])
 
     return app
 

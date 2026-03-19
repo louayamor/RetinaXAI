@@ -20,6 +20,7 @@ from app.components.imaging.model_trainer import RetinalDataset
 from app.entity.config_entity import ImagingModelEvaluationConfig
 from app.utils.common import read_yaml, save_json
 from app.constants import PARAMS_FILE_PATH, SCHEMA_FILE_PATH
+from monitoring.prometheus_metrics import QUADRATIC_WEIGHTED_KAPPA
 
 
 class ImagingModelEvaluation:
@@ -171,6 +172,15 @@ class ImagingModelEvaluation:
             "eyepacs_test": test_metrics,
             "samaya_validation": samaya_metrics,
         }
+
+        QUADRATIC_WEIGHTED_KAPPA.labels(
+            pipeline="imaging", split="eyepacs_test"
+        ).set(test_metrics["quadratic_weighted_kappa"])
+
+        if samaya_metrics:
+            QUADRATIC_WEIGHTED_KAPPA.labels(
+                pipeline="imaging", split="samaya_validation"
+            ).set(samaya_metrics["quadratic_weighted_kappa"])
 
         save_json(self.config.metric_file, full_metrics)
         logger.info(f"metrics saved: {self.config.metric_file}")

@@ -15,6 +15,7 @@ import numpy as np
 from app.entity.config_entity import ImagingModelTrainerConfig, ImagingTransformationConfig
 from app.utils.common import read_yaml, set_seed
 from app.constants import PARAMS_FILE_PATH, SCHEMA_FILE_PATH
+from monitoring.prometheus_metrics import BEST_VAL_ACCURACY, EPOCH_TRAIN_LOSS
 
 
 class RetinalDataset(Dataset):
@@ -210,6 +211,7 @@ class ImagingModelTrainer:
                 train_acc = train_correct / train_total
                 val_acc = val_correct / val_total
                 avg_loss = train_loss / train_total
+                EPOCH_TRAIN_LOSS.labels(pipeline="imaging").observe(avg_loss)
                 lr = scheduler.get_last_lr()[0]
 
                 mlflow.log_metrics({
@@ -231,6 +233,7 @@ class ImagingModelTrainer:
                     best_val_acc = val_acc
                     patience_counter = 0
                     torch.save(model.state_dict(), checkpoint_path)
+                    BEST_VAL_ACCURACY.labels(pipeline="imaging").set(best_val_acc)
                     mlflow.pytorch.log_model(model, artifact_path="model")
                     logger.info(f"checkpoint saved: val_acc={val_acc:.4f}")
                 else:

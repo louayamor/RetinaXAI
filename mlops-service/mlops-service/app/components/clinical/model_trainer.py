@@ -13,6 +13,7 @@ from xgboost import XGBClassifier
 from app.entity.config_entity import ClinicalModelTrainerConfig, ClinicalTransformationConfig
 from app.utils.common import read_yaml, save_json
 from app.constants import PARAMS_FILE_PATH, SCHEMA_FILE_PATH
+from monitoring.prometheus_metrics import BEST_VAL_ACCURACY
 
 
 class ClinicalModelTrainer:
@@ -107,6 +108,7 @@ class ClinicalModelTrainer:
             test_preds = model.predict(X_test)
             train_acc = accuracy_score(y_train, train_preds)
             test_acc = accuracy_score(y_test, test_preds)
+            BEST_VAL_ACCURACY.labels(pipeline="clinical").set(test_acc)
 
             mlflow.log_metrics({
                 "train_accuracy": round(train_acc, 4),
