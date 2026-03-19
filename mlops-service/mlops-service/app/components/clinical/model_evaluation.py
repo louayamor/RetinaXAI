@@ -16,6 +16,7 @@ from xgboost import XGBClassifier
 from app.entity.config_entity import ClinicalModelEvaluationConfig
 from app.utils.common import load_json, read_yaml, save_json
 from app.constants import PARAMS_FILE_PATH, SCHEMA_FILE_PATH
+from monitoring.prometheus_metrics import QUADRATIC_WEIGHTED_KAPPA
 
 
 class ClinicalModelEvaluation:
@@ -106,6 +107,10 @@ class ClinicalModelEvaluation:
                 for k, v in zip(*np.unique(y_test, return_counts=True))
             },
         }
+
+        QUADRATIC_WEIGHTED_KAPPA.labels(
+            pipeline="clinical", split="test"
+        ).set(metrics["quadratic_weighted_kappa"])
 
         save_json(self.config.metric_file, metrics)
         logger.info(f"metrics saved: {self.config.metric_file}")
