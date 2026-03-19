@@ -54,6 +54,7 @@ yarn-error.log
 pnpm-lock.yaml
 package-lock.json
 .env
+.env.local
 .envrc
 *.dockerignore
 docker-compose.override.yml
@@ -71,4 +72,21 @@ frontend-service/docs/
 shared/
 research/
 
+# mlops artifacts (tracked by DVC)
+mlops-service/mlops-service/artifacts/data/
+mlops-service/mlops-service/artifacts/model/
+mlops-service/mlops-service/artifacts/monitoring/
+
+# DVC local credentials (never commit)
+.dvc/config.local
+**/dvc/config.local
+
+# DVC lock (commit this — DO NOT ignore)
+# dvc.lock
+
+# mlops logs
+mlops-service/mlops-service/logs/
+
+# llmops artifacts (for when we build it)
+llmops-service/artifacts/
 
