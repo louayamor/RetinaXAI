@@ -1,0 +1,115 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: retinaxai-postgres
+    environment:
+      POSTGRES_USER: retinaxai
+      POSTGRES_PASSWORD: retinaxai_secret
+      POSTGRES_DB: retinaxai
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U retinaxai"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - retinaxai-network
+
+  backend-service:
+    build:
+      context: ../../backend-service/backend-service
+      dockerfile: Dockerfile
+    container_name: retinaxai-backend
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgresql+asyncpg://retinaxai:retinaxai_secret@postgres:5432/retinaxai
+      SECRET_KEY: change-me-in-production
+      ML_SERVICE_URL: http://mlops-service:8001
+      LLM_SERVICE_URL: http://llmops-service:8002
+      ML_SERVICE_API_KEY: ml-api-key
+      LLM_SERVICE_API_KEY: llm-api-key
+      CORS_ORIGINS: '["http://localhost:3000"]'
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../../shared:/home/louay/RetinaXAI/shared
+      - ../../backend-service/backend-service:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - retinaxai-network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  mlops-service:
+    build:
+      context: ../../mlops-service
+      dockerfile: Dockerfile
+    container_name: retinaxai-mlops
+    environment:
+      MLFLOW_TRACKING_URI: ""
+      SHARED_DIR: /home/louay/RetinaXAI/shared
+      FUNDUS_DIR: /home/louay/RetinaXAI/shared/uploads/fundus
+      OCT_DIR: /home/louay/RetinaXAI/shared/uploads/oct
+      OUTPUT_DIR: /home/louay/RetinaXAI/shared/outputs
+      GRADCAM_DIR: /home/louay/RetinaXAI/shared/outputs/gradcam
+      MODEL_DIR: /home/louay/RetinaXAI/shared/models
+      IMAGING_MODEL_PATH: /home/louay/RetinaXAI/shared/models/imaging/model.pth
+      CLINICAL_MODEL_PATH: /home/louay/RetinaXAI/shared/models/clinical/model.pkl
+    ports:
+      - "8001:8001"
+    volumes:
+      - ../../shared:/home/louay/RetinaXAI/shared
+    depends_on:
+      - backend-service
+    networks:
+      - retinaxai-network
+    command: uvicorn app.api.main:app --host 0.0.0.0 --port 8001
+
+  llmops-service:
+    build:
+      context: ../../llmops-service
+      dockerfile: Dockerfile
+    container_name: retinaxai-llmops
+    environment:
+      BACKEND_SERVICE_URL: http://backend-service:8000
+      CHROMA_PATH: /home/louay/RetinaXAI/shared/artifacts/chroma
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: llama2
+    ports:
+      - "8002:8002"
+    volumes:
+      - ../../shared:/home/louay/RetinaXAI/shared
+    depends_on:
+      - backend-service
+    networks:
+      - retinaxai-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8002
+
+  frontend-service:
+    build:
+      context: ../../frontend-service
+      dockerfile: Dockerfile
+    container_name: retinaxai-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend-service
+    networks:
+      - retinaxai-network
+
+volumes:
+  postgres_data:
+
+networks:
+  retinaxai-network:
+    driver: bridge

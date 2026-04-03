@@ -90,3 +90,4 @@ mlops-service/mlops-service/logs/
 # llmops artifacts (for when we build it)
 llmops-service/artifacts/
 
+/.skills
