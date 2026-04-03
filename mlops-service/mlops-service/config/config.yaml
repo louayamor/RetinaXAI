@@ -71,3 +71,11 @@ mlflow:
 inter_service:
   llmops_url: ${LLMOPS_SERVICE_URL}
   timeout_seconds: 30
+
+ocr_pipeline:
+  input_dir: /home/louay/RetinaXAI/shared/ocr_reports
+  output_dir: artifacts/ocr/output
+  json_output: artifacts/ocr/output/reports.json
+  csv_output: artifacts/ocr/output/reports.csv
+  images_dir: artifacts/ocr/output/images
+  regions_config: config/regions.yaml

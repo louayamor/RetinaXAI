@@ -16,9 +16,9 @@ class Settings(BaseSettings):
     SHARED_DIR: Path = Path("/home/louay/RetinaXAI/shared")
     OUTPUT_DIR: Path = Path("/home/louay/RetinaXAI/shared/outputs")
     GRADCAM_DIR: Path = Path("/home/louay/RetinaXAI/shared/outputs/gradcam")
-    ARTIFACT_DIR: Path = Path("/home/louay/RetinaXAI/shared/artifacts")
+    VECTORSTORE_DIR: Path = Path("/home/louay/RetinaXAI/shared/vectorstore")
 
-    chroma_path: Path = Path("/home/louay/RetinaXAI/shared/artifacts/chroma")
+    chroma_path: Path = Path("/home/louay/RetinaXAI/shared/vectorstore/chroma")
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama2"
 

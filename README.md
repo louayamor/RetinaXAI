@@ -42,7 +42,7 @@ It combines **MLOps pipelines** for image-based diagnostics with **LLMOps** for 
 │  ├── uploads/oct/      ← OCT Scans                    │                 │
 │  ├── outputs/gradcam/  ← Visualizations               │                 │
 │  ├── models/           ← Model weights                │                 │
-│  └── artifacts/        ← ChromaDB, artifacts          │                 │
+│  └── vectorstore/      ← ChromaDB                     │                 │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -69,7 +69,7 @@ retinaxai/
 │   ├── uploads/           # Raw input images
 │   ├── outputs/           # Generated artifacts
 │   ├── models/            # Trained model weights
-│   └── artifacts/         # ChromaDB, intermediate data
+│   └── vectorstore/       # ChromaDB vector embeddings
 ├── infra/                 # Docker, Kubernetes configs
 │   ├── docker-compose.yml
 │   └── k8s/
@@ -85,6 +85,7 @@ retinaxai/
 | Raw images | `shared/uploads/` | Large binaries |
 | Grad-CAM outputs | `shared/outputs/` | Generated artifacts |
 | Model weights | `shared/models/` | Large files |
+| Vector embeddings | `shared/vectorstore/` | ChromaDB collection |
 | Predictions | PostgreSQL | Structured, queryable |
 | Reports | PostgreSQL | Audit trail, searchable |
 | Patient records | PostgreSQL | Relational data |

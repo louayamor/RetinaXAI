@@ -78,7 +78,7 @@ services:
     container_name: retinaxai-llmops
     environment:
       BACKEND_SERVICE_URL: http://backend-service:8000
-      CHROMA_PATH: /home/louay/RetinaXAI/shared/artifacts/chroma
+      CHROMA_PATH: /home/louay/RetinaXAI/shared/vectorstore/chroma
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       OLLAMA_MODEL: llama2
     ports:

@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     OUTPUT_DIR: Path = Path("/home/louay/RetinaXAI/shared/outputs")
     GRADCAM_DIR: Path = Path("/home/louay/RetinaXAI/shared/outputs/gradcam")
     MODEL_DIR: Path = Path("/home/louay/RetinaXAI/shared/models")
-    ARTIFACT_DIR: Path = Path("/home/louay/RetinaXAI/shared/artifacts")
+    VECTORSTORE_DIR: Path = Path("/home/louay/RetinaXAI/shared/vectorstore")
 
     imaging_model_path: Path = Path("/home/louay/RetinaXAI/shared/models/imaging/model.pth")
     clinical_model_path: Path = Path("/home/louay/RetinaXAI/shared/models/clinical/model.pkl")

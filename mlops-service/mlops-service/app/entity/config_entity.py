@@ -112,3 +112,13 @@ class MonitoringConfig:
     imaging: ImagingMonitoringConfig
     clinical: ClinicalMonitoringConfig
     prometheus_port: int
+
+
+@dataclass(frozen=True)
+class OCRPipelineConfig:
+    input_dir: Path
+    output_dir: Path
+    json_output: Path
+    csv_output: Path
+    images_dir: Path
+    regions_config: dict
