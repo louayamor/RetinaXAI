@@ -136,7 +136,7 @@ class ClinicalModelTrainer:
             })
             logger.info(f"feature importance saved: {self.config.feature_importance_path}")
 
-            mlflow.sklearn.log_model(model, name="clinical_model")
+            mlflow.sklearn.log_model(model, name="clinical_model", serialization_format="skops")
             mlflow.log_artifact(str(self.config.feature_importance_path))
 
         logger.info("=" * 60)
