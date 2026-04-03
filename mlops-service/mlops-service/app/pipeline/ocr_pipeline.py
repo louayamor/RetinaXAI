@@ -38,7 +38,7 @@ class OCRPipeline:
         text = run_ocr(preprocessed)
         report = parse_report(text, source_file=image_path.name)
 
-        patient_id = report.patient.patient_id or image_path.parent.name
+        patient_id = image_path.parent.name
 
         if self._is_patient_processed(patient_id):
             logger.info(f"SKIPPED: {image_path.name} | patient {patient_id} already processed")
