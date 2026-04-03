@@ -91,3 +91,4 @@ mlops-service/mlops-service/logs/
 llmops-service/artifacts/
 
 /.skills
+AGENTS.md
