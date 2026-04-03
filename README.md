@@ -11,110 +11,197 @@
 
 ## Project Overview
 
-**RetinaXAI** is a modular AI platform designed for **automated diabetic retinopathy detection and analysis**.  
-It combines **MLOps pipelines** for image-based diagnostics with **LLMOps** for generating contextual medical insights.  
-
-The platform includes:
-
-- **FastAPI backend**: Handles admin and patient management, JWT authentication, and service orchestration  
-- **Next.js frontend**: Responsive dashboards and interfaces for clinicians and patients  
-- **MLOps service**: Preprocessing, training, and inference pipelines for medical imaging  
-- **LLMOps service**: RAG-style LLM pipelines for medical report generation  
-- **Infrastructure**: Docker Compose and Kubernetes manifests for scalable deployment  
+**RetinaXAI** is a modular AI platform designed for **automated diabetic retinopathy detection and analysis**.
+It combines **MLOps pipelines** for image-based diagnostics with **LLMOps** for generating contextual medical insights.
 
 ---
 
-## Features
+## Architecture
 
-- Upload and manage patient data and medical images  
-- Automated image analysis for diabetic retinopathy  
-- Contextual medical report generation using LLMs  
-- Modular microservices architecture for independent development  
-- CI/CD-ready monorepo for rapid iteration  
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           RetinaXAI Architecture                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐              │
+│  │   Frontend   │────▶│   Backend    │────▶│  PostgreSQL  │              │
+│  │  (Next.js)   │     │  (FastAPI)   │     │  (Database)  │              │
+│  │   :3000      │     │    :8000     │     │    :5432     │              │
+│  └──────────────┘     └──────┬───────┘     └──────────────┘              │
+│                              │                                             │
+│            ┌─────────────────┼─────────────────┐                         │
+│            │                 │                 │                          │
+│            ▼                 ▼                 ▼                          │
+│  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐            │
+│  │  MLOps Svc   │     │  LLMOps Svc  │     │   Shared/    │            │
+│  │   :8001      │     │    :8002     │     │   (Blobs)    │            │
+│  └──────────────┘     └──────────────┘     └──────────────┘            │
+│                                                         │                 │
+│  shared/                                               │                 │
+│  ├── uploads/fundus/   ← Images                       │                 │
+│  ├── uploads/oct/      ← OCT Scans                    │                 │
+│  ├── outputs/gradcam/  ← Visualizations               │                 │
+│  ├── models/           ← Model weights                │                 │
+│  └── artifacts/        ← ChromaDB, artifacts          │                 │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Data Flow
+
+1. **Upload**: Frontend → Backend saves image to `shared/uploads/`
+2. **Predict**: Backend → MLOps reads image, returns prediction
+3. **Store**: Backend → PostgreSQL stores structured prediction record
+4. **Generate**: Backend → LLMOps generates report from prediction
+5. **Output**: MLOps → Grad-CAM saved to `shared/outputs/`
 
 ---
 
-## Tech Stack
-
-| Layer           | Technology |
-|-----------------|------------|
-| Backend         | FastAPI, Python, Pydantic |
-| Frontend        | Next.js, TypeScript, Tailwind CSS |
-| Machine Learning| Python, TensorFlow / PyTorch, MLflow, DVC |
-| LLMOps          | LangChain, FAISS, HuggingFace Transformers |
-| Infrastructure  | Docker, Docker Compose, Kubernetes, NGINX |
-| Database        | PostgreSQL / SQLite / Firebase |
-
----
-
-## Folder Structure (Monorepo)
+## Folder Structure
 
 ```
 retinaxai/
-├── mlops-service/
-├── llmops-service/
-├── web-backend/
-├── frontend/
-├── infra/
+├── backend-service/        # FastAPI REST API (port 8000)
+├── frontend-service/       # Next.js dashboard (port 3000)
+├── mlops-service/         # ML training & inference (port 8001)
+├── llmops-service/        # RAG/LLM report generation (port 8002)
+├── shared/                # Shared blob storage
+│   ├── uploads/           # Raw input images
+│   ├── outputs/           # Generated artifacts
+│   ├── models/            # Trained model weights
+│   └── artifacts/         # ChromaDB, intermediate data
+├── infra/                 # Docker, Kubernetes configs
 │   ├── docker-compose.yml
-│   ├── k8s/
-│   └── scripts/
+│   └── k8s/
 └── README.md
 ```
 
 ---
 
+## Storage Strategy
+
+| Data Type | Storage | Reason |
+|-----------|---------|--------|
+| Raw images | `shared/uploads/` | Large binaries |
+| Grad-CAM outputs | `shared/outputs/` | Generated artifacts |
+| Model weights | `shared/models/` | Large files |
+| Predictions | PostgreSQL | Structured, queryable |
+| Reports | PostgreSQL | Audit trail, searchable |
+| Patient records | PostgreSQL | Relational data |
+
+**Database is source of truth. File system holds blobs.**
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Backend | FastAPI, Python, Pydantic v2, SQLAlchemy |
+| Frontend | Next.js 16, TypeScript, Tailwind CSS, shadcn/ui |
+| ML | PyTorch, timm, XGBoost, MLflow, DVC |
+| LLM | LangChain, ChromaDB, Ollama |
+| Database | PostgreSQL 16 |
+| Infrastructure | Docker, Docker Compose, Kubernetes |
+
+---
+
 ## Getting Started
 
-### Clone the repository
+### Docker Compose (Recommended)
+
 ```bash
-git clone https://github.com/louayamor/retinaxai.git
-cd retinaxai
+cd infra/infra
+docker-compose up -d
 ```
 
-### Backend
+Services will be available at:
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000
+- MLOps API: http://localhost:8001
+- LLMOps API: http://localhost:8002
+- API Docs: http://localhost:8000/docs
+
+### Manual Setup
+
 ```bash
-cd web-backend
+# Backend
+cd backend-service/backend-service
+python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload
-```
 
-### Frontend
-```bash
-cd frontend
+# MLOps
+cd mlops-service
+python3.12 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.api.main:app --reload --port 8001
+
+# LLMOps
+cd llmops-service
+python3.12 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8002
+
+# Frontend
+cd frontend-service
 npm install
 npm run dev
 ```
 
-### MLOps / LLMOps Services
-```bash
-cd mlops-service
-pip install -r requirements.txt
-python main.py
+---
 
-cd llmops-service
-pip install -r requirements.txt
-python main.py
+## Environment Variables
+
+### Backend (`backend-service/.env`)
+```env
+DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/retinaxai
+SECRET_KEY=your-secret-key
+ML_SERVICE_URL=http://localhost:8001
+LLM_SERVICE_URL=http://localhost:8002
+ML_SERVICE_API_KEY=your-ml-api-key
+LLM_SERVICE_API_KEY=your-llm-api-key
+```
+
+### MLOps (`mlops-service/.env`)
+```env
+SHARED_DIR=/home/louay/RetinaXAI/shared
+FUNDUS_DIR=/home/louay/RetinaXAI/shared/uploads/fundus
+MODEL_DIR=/home/louay/RetinaXAI/shared/models
 ```
 
 ---
 
 ## Contributing
 
-1. Create a branch from `dev` for your feature  
-2. Implement your feature in the relevant service  
-3. Open a pull request to `dev`  
-4. Ensure tests pass and code is linted  
+1. Create a branch from `dev` for your feature
+2. Implement your feature in the relevant service
+3. Open a pull request to `dev`
+4. Ensure tests pass and code is linted
+
+### Branch Naming
+```
+feat/backend-scan-endpoint
+fix/mlops-ordinal-loss
+chore/infra-postgres-healthcheck
+```
+
+### Commit Format
+```
+<type>(<scope>): <description>
+
+feat(mlops): add ordinal transformation stage
+fix(backend): resolve JWT expiration handling
+```
 
 ---
 
 ## License
 
-This project is licensed under the MIT License.  
+This project is licensed under the MIT License.
 
 ---
 
 ## Contact
 
 **Louay Amor** – [GitHub](https://github.com/louayamor) – [Email](mailto:amor.louay20@gmail.com)
-

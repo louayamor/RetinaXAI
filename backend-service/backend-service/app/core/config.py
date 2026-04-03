@@ -1,5 +1,7 @@
 from functools import lru_cache
+from pathlib import Path
 from typing import List
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -20,7 +22,12 @@ class Settings(BaseSettings):
     DATABASE_POOL_SIZE: int = 10
     DATABASE_MAX_OVERFLOW: int = 20
 
-    UPLOAD_DIR: str = "uploads/mri"
+    SHARED_DIR: Path = Path("/home/louay/RetinaXAI/shared")
+    UPLOAD_DIR: Path = Path("/home/louay/RetinaXAI/shared/uploads")
+    FUNDUS_DIR: Path = Path("/home/louay/RetinaXAI/shared/uploads/fundus")
+    OCT_DIR: Path = Path("/home/louay/RetinaXAI/shared/uploads/oct")
+    OUTPUT_DIR: Path = Path("/home/louay/RetinaXAI/shared/outputs")
+    GRADCAM_DIR: Path = Path("/home/louay/RetinaXAI/shared/outputs/gradcam")
 
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
@@ -48,6 +55,11 @@ class Settings(BaseSettings):
             import json
             return json.loads(v)
         return v
+
+    def ensure_dirs(self) -> None:
+        for dir_path in [self.FUNDUS_DIR, self.OCT_DIR, self.GRADCAM_DIR]:
+            dir_path.mkdir(parents=True, exist_ok=True)
+
 
 @lru_cache
 def get_settings() -> Settings:

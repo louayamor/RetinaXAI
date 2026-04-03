@@ -1,12 +1,13 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi import APIRouter, Depends, Query, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser
 from app.db.session import get_db
 from app.mri_scans.service import MRIScanService
+from app.models.mri_scan import Modality
 from app.schemas.common import MessageResponse
 from app.schemas.mri_scan_schema import MRIScanRead
 
@@ -20,9 +21,10 @@ async def upload_scans(
     db: Annotated[AsyncSession, Depends(get_db)],
     left_scan: UploadFile = File(...),
     right_scan: UploadFile = File(...),
+    modality: Modality = Query(default=Modality.FUNDUS),
 ):
     service = MRIScanService(db)
-    return await service.upload(patient_id, left_scan, right_scan)
+    return await service.upload(patient_id, left_scan, right_scan, modality.value)
 
 
 @router.get("/patients/{patient_id}/scans", response_model=list[MRIScanRead])
