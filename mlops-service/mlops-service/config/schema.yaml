@@ -38,15 +38,17 @@ ml_dataset:
   source: samaya
   label_column: clinical_npdr_grade
   label_mapping:
+    no_dr: 0
     mild: 1
     moderate: 2
     severe: 3
-  present_classes: [1, 2, 3]
+    proliferative: 4
+  present_classes: [0, 1, 2, 3, 4]
   columns:
     clinical_npdr_grade:
       type: string
       required: true
-      values: [mild, moderate, severe]
+      values: [no_dr, mild, moderate, severe, proliferative]
     thickness_center_fovea:
       type: float
       required: true

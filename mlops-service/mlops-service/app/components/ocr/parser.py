@@ -55,9 +55,12 @@ def parse_metadata(text: str, source_file: str = "") -> ReportMetadata:
 
 
 def parse_patient(text: str) -> PatientInfo:
+    gender = _find(r"Gender[:\s]*(Male|Female)", text)
+    if gender:
+        gender = "M" if gender == "Male" else "F"
     return PatientInfo(
         patient_id=_find(r"ID[:\s]*([\w\d]+)", text),
-        gender=_find(r"Gender[:\s]*(Male|Female)", text),
+        gender=gender,
         dob=_find(r"DOB[:\s]*(\d{2}/\d{2}/\d{4})", text),
         age=_int(_find(r"Age[:\s]*(\d+)", text)),
         ethnicity=_find(r"Ethnicity[:\s]*([^\n]+)", text),

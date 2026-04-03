@@ -7,8 +7,8 @@ from app.db.base import Base, TimestampMixin, UUIDMixin
 
 
 class Gender(str, enum.Enum):
-    MALE = "male"
-    FEMALE = "female"
+    M = "M"
+    F = "F"
 
 
 class Patient(Base, UUIDMixin, TimestampMixin):
@@ -21,6 +21,7 @@ class Patient(Base, UUIDMixin, TimestampMixin):
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
     medical_record_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
+    ocr_patient_id: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
 
     mri_scans = relationship("MRIScan", back_populates="patient", cascade="all, delete-orphan")
     predictions = relationship("Prediction", back_populates="patient", cascade="all, delete-orphan")
