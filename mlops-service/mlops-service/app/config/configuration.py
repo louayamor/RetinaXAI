@@ -170,14 +170,14 @@ class ConfigurationManager:
         cfg = self.config.ocr_pipeline
         regions = read_yaml(Path(cfg.regions_config))
         create_directories([
-            Path(cfg.output_dir),
-            Path(cfg.images_dir),
+            Path(str(cfg.output_dir)),
+            Path(str(cfg.images_dir)),
         ])
         return OCRPipelineConfig(
-            input_dir=Path(cfg.input_dir),
-            output_dir=Path(cfg.output_dir),
-            json_output=Path(cfg.json_output),
-            csv_output=Path(cfg.csv_output),
-            images_dir=Path(cfg.images_dir),
+            input_dir=Path(str(cfg.input_dir)),
+            output_dir=Path(str(cfg.output_dir)),
+            json_output=Path(str(cfg.json_output)),
+            csv_output=Path(str(cfg.csv_output)),
+            images_dir=Path(str(cfg.images_dir)),
             regions_config=regions.get("regions", {}),
         )

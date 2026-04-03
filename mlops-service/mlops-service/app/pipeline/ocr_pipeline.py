@@ -28,6 +28,10 @@ class OCRPipeline:
     def __init__(self):
         self.config = ConfigurationManager().get_ocr_pipeline_config()
 
+    def _is_patient_processed(self, patient_id: str) -> bool:
+        patient_dir = self.config.images_dir / patient_id
+        return patient_dir.exists() and any(patient_dir.iterdir())
+
     def _process_single(self, image_path: Path) -> OCTReport:
         color = load_color_image(image_path)
         preprocessed = load_and_preprocess(image_path)
@@ -35,6 +39,11 @@ class OCRPipeline:
         report = parse_report(text, source_file=image_path.name)
 
         patient_id = report.patient.patient_id or image_path.parent.name
+
+        if self._is_patient_processed(patient_id):
+            logger.info(f"SKIPPED: {image_path.name} | patient {patient_id} already processed")
+            return None
+
         crops = extract_regions(color, self.config.regions_config)
         region_data = export_regions(crops, self.config.images_dir, patient_id)
 
@@ -47,10 +56,18 @@ class OCRPipeline:
     def run(self) -> list[OCTReport]:
         input_dir = self.config.input_dir
         images = []
+        skipped = 0
 
         for patient_dir in sorted(input_dir.iterdir()):
             if not patient_dir.is_dir():
                 continue
+            patient_id = patient_dir.name
+
+            if self._is_patient_processed(patient_id):
+                logger.info(f"SKIPPED: patient {patient_id} already processed")
+                skipped += 1
+                continue
+
             found = (
                 list(patient_dir.glob("*.jpg")) +
                 list(patient_dir.glob("*.JPG")) +
@@ -59,15 +76,17 @@ class OCRPipeline:
             images.extend(found)
 
         if not images:
-            logger.error(f"No images found under {input_dir}")
+            logger.warning(f"No new images to process | skipped={skipped}")
             return []
 
-        logger.info(f"OCR pipeline started | total_images={len(images)}")
+        logger.info(f"OCR pipeline started | total={len(images)} | skipped={skipped}")
         reports = []
 
         for img_path in images:
             try:
                 report = self._process_single(img_path)
+                if report is None:
+                    continue
                 reports.append(report)
                 logger.info(f"OK: {img_path.name} | regions={len(report.images)}")
             except Exception as e:
