@@ -28,9 +28,12 @@ class OCRPipeline:
     def __init__(self):
         self.config = ConfigurationManager().get_ocr_pipeline_config()
 
-    def _is_patient_processed(self, patient_id: str) -> bool:
+    def _is_patient_eye_processed(self, patient_id: str, eye: str) -> bool:
         patient_dir = self.config.images_dir / patient_id
-        return patient_dir.exists() and any(patient_dir.iterdir())
+        if not patient_dir.exists() or not any(patient_dir.iterdir()):
+            return False
+        eye_folder = patient_dir / eye
+        return eye_folder.exists() and any(eye_folder.iterdir())
 
     def _process_single(self, image_path: Path) -> OCTReport:
         color = load_color_image(image_path)
@@ -39,13 +42,14 @@ class OCRPipeline:
         report = parse_report(text, source_file=image_path.name)
 
         patient_id = image_path.parent.name
+        eye = "OD" if "OD" in image_path.name else "OS"
 
-        if self._is_patient_processed(patient_id):
-            logger.info(f"SKIPPED: {image_path.name} | patient {patient_id} already processed")
+        if self._is_patient_eye_processed(patient_id, eye):
+            logger.info(f"SKIPPED: {image_path.name} | patient {patient_id} eye {eye} already processed")
             return None
 
         crops = extract_regions(color, self.config.regions_config)
-        region_data = export_regions(crops, self.config.images_dir, patient_id)
+        region_data = export_regions(crops, self.config.images_dir, patient_id, eye)
 
         report.images = {
             name: RegionImage(png_path=d["png_path"], base64_png=d["base64_png"])
@@ -56,16 +60,9 @@ class OCRPipeline:
     def run(self) -> list[OCTReport]:
         input_dir = self.config.input_dir
         images = []
-        skipped = 0
 
         for patient_dir in sorted(input_dir.iterdir()):
             if not patient_dir.is_dir():
-                continue
-            patient_id = patient_dir.name
-
-            if self._is_patient_processed(patient_id):
-                logger.info(f"SKIPPED: patient {patient_id} already processed")
-                skipped += 1
                 continue
 
             found = (
@@ -76,10 +73,10 @@ class OCRPipeline:
             images.extend(found)
 
         if not images:
-            logger.warning(f"No new images to process | skipped={skipped}")
+            logger.warning("No images to process")
             return []
 
-        logger.info(f"OCR pipeline started | total={len(images)} | skipped={skipped}")
+        logger.info(f"OCR pipeline started | total={len(images)}")
         reports = []
 
         for img_path in images:
