@@ -10,7 +10,6 @@ import {
 import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 import RenderResults from './render-result';
-import useThemeSwitching from './use-theme-switching';
 import { useFilteredNavItems } from '@/hooks/use-nav';
 
 export default function KBar({ children }: { children: React.ReactNode }) {
@@ -63,8 +62,6 @@ export default function KBar({ children }: { children: React.ReactNode }) {
   );
 }
 const KBarComponent = ({ children }: { children: React.ReactNode }) => {
-  useThemeSwitching();
-
   return (
     <>
       <KBarPortal>
