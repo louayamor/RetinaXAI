@@ -18,6 +18,8 @@ async def get_current_user(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> User:
     payload = decode_token(token)
+    if payload.token_type != "access":
+        raise UnauthorizedException()
     user = await db.get(User, uuid.UUID(payload.sub))
     if not user or not user.is_active:
         raise UnauthorizedException()
