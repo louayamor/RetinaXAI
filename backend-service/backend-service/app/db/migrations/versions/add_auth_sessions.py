@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 
 revision: str = 'add_auth_sessions'
-down_revision: Union[str, None] = '96e2434a5f94'
+down_revision: Union[str, None] = 'add_ocr_patient_id'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

@@ -9,6 +9,7 @@ from app.core.exceptions import AppException
 from app.core.logging import setup_logging
 from app.core.middleware.cors import add_cors_middleware
 from app.core.middleware.request_id import RequestIDMiddleware
+from app.core.middleware.rate_limit import RateLimitMiddleware
 
 
 @asynccontextmanager
@@ -28,6 +29,7 @@ def create_app() -> FastAPI:
 
     add_cors_middleware(app)
     app.add_middleware(RequestIDMiddleware)
+    app.add_middleware(RateLimitMiddleware, max_requests=10, window_seconds=60)
 
     app.include_router(api_router)
 
