@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 
 const PUBLIC_PATHS = ['/auth/login', '/auth/register', '/auth'];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
   const token = request.cookies.get('rxa_access_token')?.value;
@@ -18,9 +18,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard/overview', request.url));
   }
 
-  const response = NextResponse.next();
-  response.cookies.set('active_theme', 'retinaxai', { path: '/' });
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {

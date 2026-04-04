@@ -1,32 +1,25 @@
 import Link from 'next/link';
 import UserAuthForm from './user-auth-form';
-import { InteractiveGrid } from './interactive-grid';
 
 export default function SignUpView() {
   return (
     <div className='relative h-screen flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0'>
       <div className='relative hidden h-full flex-col bg-muted p-10 text-white lg:flex dark:border-r'>
-        <div className='absolute inset-0 bg-zinc-900' />
-        <InteractiveGrid />
+        <div className='absolute inset-0'>
+          <img
+            src='https://images.unsplash.com/photo-1551076805-e1869033e561?w=1200&q=80'
+            alt='RetinaXAI Technology'
+            className='h-full w-full object-cover opacity-30'
+          />
+          <div className='absolute inset-0 bg-gradient-to-t from-[#0a2e3e] via-[#0a2e3e]/80 to-transparent' />
+        </div>
         <div className='relative z-20 flex items-center text-lg font-medium'>
-          <svg
-            xmlns='http://www.w3.org/2000/svg'
-            viewBox='0 0 24 24'
-            fill='none'
-            stroke='currentColor'
-            strokeWidth='2'
-            strokeLinecap='round'
-            strokeLinejoin='round'
-            className='mr-2 h-6 w-6'
-          >
-            <circle cx='12' cy='12' r='10' />
-            <circle cx='12' cy='12' r='4' />
-            <line x1='12' y1='2' x2='12' y2='6' />
-            <line x1='12' y1='18' x2='12' y2='22' />
-            <line x1='2' y1='12' x2='6' y2='12' />
-            <line x1='18' y1='12' x2='22' y2='12' />
-          </svg>
-          RetinaXAI
+          <img
+            src='https://www.samayahospital.ae/home/images/logo.png'
+            alt='Samaya Specialized Center'
+            className='mr-3 h-8 w-auto'
+          />
+          <span className='text-[#20bdbe]'>RetinaXAI</span>
         </div>
         <div className='relative z-20 mt-auto'>
           <blockquote className='space-y-2'>
@@ -34,7 +27,9 @@ export default function SignUpView() {
               &ldquo;Join the clinical frontier. Start running explainable DR
               predictions in minutes.&rdquo;
             </p>
-            <footer className='text-sm'>Doctor Registration</footer>
+            <footer className='text-sm text-[#20bdbe]/80'>
+              Doctor Registration
+            </footer>
           </blockquote>
         </div>
       </div>
@@ -53,7 +48,7 @@ export default function SignUpView() {
             Already have an account?{' '}
             <Link
               href='/auth/login'
-              className='underline underline-offset-4 hover:text-primary'
+              className='underline underline-offset-4 hover:text-[#20bdbe]'
             >
               Sign in
             </Link>
