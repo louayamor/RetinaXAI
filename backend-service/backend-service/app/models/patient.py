@@ -26,3 +26,4 @@ class Patient(Base, UUIDMixin, TimestampMixin):
     mri_scans = relationship("MRIScan", back_populates="patient", cascade="all, delete-orphan")
     predictions = relationship("Prediction", back_populates="patient", cascade="all, delete-orphan")
     reports = relationship("Report", back_populates="patient", cascade="all, delete-orphan")
+    oct_reports = relationship("OCTReport", back_populates="patient", cascade="all, delete-orphan")
