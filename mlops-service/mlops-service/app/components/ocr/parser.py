@@ -94,7 +94,18 @@ def _extract_comments(text: str) -> str:
 
 def parse_clinical(text: str) -> ClinicalFindings:
     comments = _extract_comments(text)
+    
+    # Look for NPDR grades
     npdr_match = _find(r"(mild|moderate|severe|very severe)\s+NPDR", comments)
+    
+    # Look for PDR (Proliferative DR - grade 4)
+    if not npdr_match:
+        if re.search(r"\bPDR\b|proliferative diabetic retinopathy", comments, re.IGNORECASE):
+            if re.search(r"regressed\s+PDR", comments, re.IGNORECASE):
+                npdr_match = "proliferative"
+            else:
+                npdr_match = "proliferative"
+    
     erm_match = bool(re.search(r"\bERM\b|epiretinal membrane", comments, re.IGNORECASE))
     residual_erm = bool(re.search(r"residual\s+ERM", comments, re.IGNORECASE))
 
