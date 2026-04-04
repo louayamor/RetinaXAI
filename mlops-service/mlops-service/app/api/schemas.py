@@ -74,6 +74,24 @@ class ClinicalFeatures(BaseModel):
     meta_image_quality: Optional[str] = None
 
 
+class MLPredictHttpRequest(BaseModel):
+    model_name: str
+    model_version: str
+    patient_age: int
+    patient_gender: str
+    left_scan_path: Optional[str] = None
+    right_scan_path: Optional[str] = None
+    left_scan: str
+    right_scan: str
+    features: dict
+
+
 class PredictResponse(BaseModel):
-    imaging: dict = Field(description="DR grade and confidence from EfficientNet-B3")
-    clinical: dict = Field(description="Risk score from XGBoost clinical model")
+    prediction: dict = Field(
+        description="Primary imaging prediction with clinical metadata"
+    )
+    confidence_score: float = Field(
+        description="Confidence score from imaging model (0-1)"
+    )
+    model_name: str = Field(description="Model used for primary prediction")
+    model_version: str = Field(description="Model version")
