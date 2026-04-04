@@ -20,11 +20,20 @@ export function saveTokens(pair: TokenPair): void {
   document.cookie = `${TOKEN_KEY}=${pair.access_token}; path=/; SameSite=Lax`;
 }
 
+export function syncTokenCookie(token: string | null): void {
+  if (typeof window === 'undefined') return;
+  if (!token) {
+    document.cookie = `${TOKEN_KEY}=; path=/; max-age=0`;
+    return;
+  }
+  document.cookie = `${TOKEN_KEY}=${token}; path=/; SameSite=Lax`;
+}
+
 export function clearTokens(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_KEY);
-  document.cookie = `${TOKEN_KEY}=; path=/; max-age=0`;
+  syncTokenCookie(null);
 }
 
 export function getAccessToken(): string | null {

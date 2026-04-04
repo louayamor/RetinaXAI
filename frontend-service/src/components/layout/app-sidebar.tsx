@@ -68,8 +68,6 @@ export default function AppSidebar() {
     setUser(parseUserFromToken(token));
   }, []);
 
-  React.useEffect(() => {}, [isOpen]);
-
   function handleLogout() {
     clearTokens();
     router.push('/auth/login');

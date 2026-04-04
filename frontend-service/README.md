@@ -113,7 +113,7 @@ src/
 
 ### Prerequisites
 
-- Node.js 20+ or Bun
+- Bun (recommended) or Node.js 20+
 - RetinaXAI backend service running on `http://localhost:8000`
 
 ### Installation
@@ -123,7 +123,6 @@ git clone https://github.com/louayamor/retinaxai.git
 cd retinaxai/frontend-service
 
 bun install
-
 ```
 
 ### Environment Variables
@@ -142,14 +141,16 @@ bun dev
 
 Open `http://localhost:3000`. The app will redirect to `/auth` if no JWT token is present.
 
+If you prefer Node.js, run `npm install` and `npm run dev`.
+
 ---
 
 ## Authentication
 
-This service uses **JWT Bearer token authentication** against the FastAPI backend — no third-party auth provider.
+This service uses **JWT Bearer token authentication** against the FastAPI backend only.
 
 - Login sends `application/x-www-form-urlencoded` as required by FastAPI's `OAuth2PasswordRequestForm`
-- Access token stored in `localStorage`, sent as `Authorization: Bearer <token>` on all API requests
+- Access token is stored in `localStorage` and mirrored to a cookie for middleware redirects
 - `middleware.ts` enforces protected routes at the Edge — unauthenticated requests are redirected to `/auth`
 
 ---

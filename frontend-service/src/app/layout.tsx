@@ -16,8 +16,8 @@ const META_THEME_COLORS = {
 };
 
 export const metadata: Metadata = {
-  title: 'Next Shadcn',
-  description: 'Basic dashboard with Next.js and Shadcn'
+  title: 'RetinaXAI',
+  description: 'Diabetic retinopathy platform for imaging, OCR, and reporting'
 };
 
 export const viewport: Viewport = {
