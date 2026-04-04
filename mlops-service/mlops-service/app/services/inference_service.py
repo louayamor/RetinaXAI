@@ -29,10 +29,14 @@ class InferenceService:
         self._imaging_model = None
         self._clinical_model = None
         self._feature_meta = None
+        self._clinical_encoders = None
+        self._clinical_numeric_medians = None
 
     def _load_imaging_model(self) -> nn.Module:
         if self._imaging_model is not None:
             return self._imaging_model
+        if not self.settings.imaging_model_path.exists():
+            raise FileNotFoundError(f"imaging model not found: {self.settings.imaging_model_path}")
         p = self.params.dl_training
         model = timm.create_model(
             "efficientnet_b3",
@@ -52,11 +56,17 @@ class InferenceService:
     def _load_clinical_model(self):
         if self._clinical_model is not None:
             return self._clinical_model, self._feature_meta
+        if not self.settings.clinical_model_path.exists():
+            raise FileNotFoundError(f"clinical model not found: {self.settings.clinical_model_path}")
+        if not self.settings.clinical_feature_importance_path.exists():
+            raise FileNotFoundError(f"clinical feature metadata not found: {self.settings.clinical_feature_importance_path}")
         with open(self.settings.clinical_model_path, "rb") as f:
             model = pickle.load(f)
         feature_meta = load_json(self.settings.clinical_feature_importance_path)
         self._clinical_model = model
         self._feature_meta = feature_meta
+        self._clinical_encoders = feature_meta.get("categorical_encoders", {}) or {}
+        self._clinical_numeric_medians = feature_meta.get("numeric_medians", {}) or {}
         logger.info("clinical model loaded for inference")
         return model, feature_meta
 
@@ -97,27 +107,36 @@ class InferenceService:
     def predict_clinical(self, features: ClinicalFeatures) -> dict:
         start = time.time()
         model, feature_meta = self._load_clinical_model()
+        feature_meta = feature_meta or {}
         label_offset = feature_meta.get("label_offset", 0)
         feature_cols = feature_meta.get("feature_cols", [])
+        if not feature_cols:
+            raise ValueError("clinical feature metadata is missing feature_cols")
+        categorical_encoders = self._clinical_encoders or {}
+        numeric_medians = self._clinical_numeric_medians or {}
 
-        from sklearn.preprocessing import LabelEncoder
         feature_dict = features.model_dump()
         row = {}
         for col in feature_cols:
             val = feature_dict.get(col)
-            if col in ["patient_gender", "meta_eye", "clinical_edema", "clinical_erm_status", "meta_image_quality"]:
-                le = LabelEncoder()
-                le.fit(["unknown", "M", "F", "OD", "OS", "present", "absent", "residual", "poor", "adequate", "good"])
-                row[col] = le.transform([val if val is not None else "unknown"])[0]
+            if col in categorical_encoders:
+                classes = categorical_encoders[col]
+                normalized = "unknown" if val is None else str(val)
+                if normalized not in classes:
+                    normalized = "unknown" if "unknown" in classes else classes[0]
+                row[col] = classes.index(normalized)
             else:
-                row[col] = val if val is not None else 0.0
+                if val is None:
+                    row[col] = float(numeric_medians.get(col, 0.0))
+                else:
+                    row[col] = float(val)
 
         X = pd.DataFrame([row])[feature_cols].values
         pred_0indexed = int(model.predict(X)[0])
         pred_original = pred_0indexed + label_offset
         probs = model.predict_proba(X)[0]
 
-        risk_labels = {1: "Mild NPDR", 2: "Moderate NPDR", 3: "Severe NPDR"}
+        risk_labels = {0: "No DR", 1: "Mild NPDR", 2: "Moderate NPDR", 3: "Severe NPDR", 4: "Proliferative DR"}
 
         INFERENCE_LATENCY.labels(model="xgboost_clinical").observe(time.time() - start)
 

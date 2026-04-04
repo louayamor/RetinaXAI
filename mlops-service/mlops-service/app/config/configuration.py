@@ -52,6 +52,7 @@ class ConfigurationManager:
 
     def get_imaging_transformation_config(self) -> ImagingTransformationConfig:
         cfg = self.config.data_transformation.imaging
+        samaya_cfg = self.config.data_ingestion.samaya
         create_directories([
             Path(cfg.root_dir),
             Path(cfg.train_csv).parent,
@@ -59,6 +60,8 @@ class ConfigurationManager:
         return ImagingTransformationConfig(
             root_dir=Path(cfg.root_dir),
             source_dir=Path(self.config.data_ingestion.root_dir),
+            samaya_reports_csv=Path(samaya_cfg.reports_csv),
+            samaya_images_dir=Path(samaya_cfg.images_dir),
             image_size=cfg.image_size,
             train_csv=Path(cfg.train_csv),
             test_csv=Path(cfg.test_csv),
@@ -122,12 +125,14 @@ class ConfigurationManager:
 
     def get_clinical_model_trainer_config(self) -> ClinicalModelTrainerConfig:
         cfg = self.config.clinical_model
+        trans_cfg = self.config.data_transformation.clinical
         create_directories([Path(cfg.root_dir)])
         return ClinicalModelTrainerConfig(
             root_dir=Path(cfg.root_dir),
             model_name=cfg.model_name,
             checkpoint_path=Path(cfg.checkpoint_path),
             feature_importance_path=Path(cfg.feature_importance_path),
+            feature_file=Path(trans_cfg.feature_file),
         )
 
     def get_clinical_model_evaluation_config(self) -> ClinicalModelEvaluationConfig:

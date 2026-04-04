@@ -129,11 +129,18 @@ class ClinicalModelTrainer:
                 pickle.dump(model, f)
             logger.info(f"model saved: {self.config.checkpoint_path}")
 
-            save_json(self.config.feature_importance_path, {
+            feature_meta = {
                 "feature_importance": feature_importance_sorted,
                 "label_offset": label_offset,
                 "feature_cols": feature_cols,
-            })
+                "categorical_encoders": categorical_encoders,
+                "numeric_medians": {
+                    col: float(df[col].median())
+                    for col in feature_cols
+                    if col in df.columns and pd.api.types.is_numeric_dtype(df[col])
+                },
+            }
+            save_json(self.config.feature_importance_path, feature_meta)
             logger.info(f"feature importance saved: {self.config.feature_importance_path}")
 
             mlflow.sklearn.log_model(model, name="clinical_model", serialization_format="skops")
