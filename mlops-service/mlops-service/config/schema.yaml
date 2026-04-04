@@ -8,11 +8,11 @@ classes:
   4: Proliferative DR
 
 class_weights:
-  0: 1.0
-  1: 2.0
-  2: 2.0
-  3: 3.0
-  4: 3.0
+  0: 1.0   # No DR (if present in data)
+  1: 3.0   # Mild (9.8% - minority)
+  2: 2.0   # Moderate (35.4%)
+  3: 4.0   # Severe (11.0% - minority)
+  4: 1.5   # Proliferative (43.9% - majority)
 
 dl_dataset:
   name: bumbledeep/eyepacs

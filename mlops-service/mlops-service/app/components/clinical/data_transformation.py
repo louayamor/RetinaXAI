@@ -30,6 +30,12 @@ class ClinicalDataTransformation:
         df["label"] = df["clinical_npdr_grade"].map(label_mapping).astype(int)
         logger.info(f"label encoding applied: {label_mapping}")
 
+        label_offset = int(df["label"].min())
+        if label_offset != 0:
+            df["label"] = df["label"] - label_offset
+        else:
+            label_offset = 0
+
         numeric_features = list(self.params.ml_training.features.numeric)
         categorical_features = list(self.params.ml_training.features.categorical)
         all_features = numeric_features + categorical_features
@@ -39,11 +45,13 @@ class ClinicalDataTransformation:
         if missing_features:
             logger.warning(f"features not in CSV, skipping: {missing_features}")
 
+        categorical_encoders = {}
         for col in categorical_features:
             if col in df.columns:
                 df[col] = df[col].fillna("unknown")
                 le = LabelEncoder()
                 df[col] = le.fit_transform(df[col].astype(str))
+                categorical_encoders[col] = le.classes_.tolist()
 
         for col in numeric_features:
             if col in df.columns:
@@ -75,5 +83,12 @@ class ClinicalDataTransformation:
             "missing_features": list(missing_features),
             "train_samples": len(train_df),
             "test_samples": len(test_df),
+            "label_offset": label_offset,
+            "categorical_encoders": categorical_encoders,
+            "numeric_medians": {
+                col: float(df[col].median())
+                for col in numeric_features
+                if col in df.columns
+            },
         })
         logger.info("clinical data transformation complete")

@@ -28,14 +28,14 @@ class OCRPipeline:
     def __init__(self):
         self.config = ConfigurationManager().get_ocr_pipeline_config()
 
-    def _is_patient_eye_processed(self, patient_id: str, eye: str) -> bool:
-        patient_dir = self.config.images_dir / patient_id
-        if not patient_dir.exists() or not any(patient_dir.iterdir()):
-            return False
-        eye_folder = patient_dir / eye
-        return eye_folder.exists() and any(eye_folder.iterdir())
+    def _report_key(self, image_path: Path) -> str:
+        return image_path.stem.replace(" ", "_").replace("__", "_")
 
-    def _process_single(self, image_path: Path) -> OCTReport:
+    def _is_report_processed(self, patient_id: str, eye: str, report_key: str) -> bool:
+        report_dir = self.config.images_dir / patient_id / eye / report_key
+        return report_dir.exists() and any(report_dir.iterdir())
+
+    def _process_single(self, image_path: Path):
         color = load_color_image(image_path)
         preprocessed = load_and_preprocess(image_path)
         text = run_ocr(preprocessed)
@@ -43,13 +43,14 @@ class OCRPipeline:
 
         patient_id = image_path.parent.name
         eye = "OD" if "OD" in image_path.name else "OS"
+        report_key = self._report_key(image_path)
 
-        if self._is_patient_eye_processed(patient_id, eye):
-            logger.info(f"SKIPPED: {image_path.name} | patient {patient_id} eye {eye} already processed")
+        if self._is_report_processed(patient_id, eye, report_key):
+            logger.info(f"SKIPPED: {image_path.name} | patient {patient_id} eye {eye} report {report_key} already processed")
             return None
 
         crops = extract_regions(color, self.config.regions_config)
-        region_data = export_regions(crops, self.config.images_dir, patient_id, eye)
+        region_data = export_regions(crops, self.config.images_dir, patient_id, report_key, eye)
 
         report.images = {
             name: RegionImage(png_path=d["png_path"], base64_png=d["base64_png"])

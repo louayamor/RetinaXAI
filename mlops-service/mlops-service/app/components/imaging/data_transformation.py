@@ -18,7 +18,7 @@ class ImagingDataTransformation:
         self.params = read_yaml(PARAMS_FILE_PATH)
         self.schema = read_yaml(SCHEMA_FILE_PATH)
 
-    def _resize_and_save(self, img: Image.Image, path: Path) -> None:
+    def _resize_and_save(self, img, path: Path) -> None:
         img.convert("RGB").resize(
             (self.config.image_size, self.config.image_size)
         ).save(path)
@@ -50,8 +50,12 @@ class ImagingDataTransformation:
             for i, idx in enumerate(split_indices, 1):
                 sample = ds[idx]
                 img = sample["image"]
-                if not isinstance(img, Image.Image):
-                    img = Image.open(io.BytesIO(img["bytes"]))
+                if isinstance(img, dict):
+                    raw_bytes = img.get("bytes")
+                    if raw_bytes is not None:
+                        img = Image.open(io.BytesIO(raw_bytes))
+                elif not isinstance(img, Image.Image):
+                    continue
                 img_path = output_dir / f"{idx}.png"
                 self._resize_and_save(img, img_path)
                 records.append({
@@ -67,7 +71,7 @@ class ImagingDataTransformation:
 
     def _transform_samaya(self) -> None:
         label_mapping = dict(self.schema.ml_dataset.label_mapping)
-        source_csv = Path("artifacts/ocr/output/reports.csv")
+        source_csv = self.config.samaya_reports_csv
 
         if not source_csv.exists():
             logger.warning(f"samaya reports CSV not found: {source_csv}")
@@ -76,7 +80,7 @@ class ImagingDataTransformation:
         df = pd.read_csv(source_csv)
         df = df.dropna(subset=["clinical_npdr_grade", "image_fundus_infrared_path"])
         df = df.drop_duplicates(subset=["image_fundus_infrared_path"], keep="first")
-        df["label"] = df["clinical_npdr_grade"].map(label_mapping)
+        df["label"] = df["clinical_npdr_grade"].replace(label_mapping)
         df = df.dropna(subset=["label"])
         df["label"] = df["label"].astype(int)
 
@@ -91,7 +95,7 @@ class ImagingDataTransformation:
         total = len(df)
 
         for i, (_, row) in enumerate(df.iterrows(), 1):
-            src_path = Path(row["image_fundus_infrared_path"])
+            src_path = Path(str(row["image_fundus_infrared_path"]))
             if not src_path.exists():
                 skipped += 1
                 continue

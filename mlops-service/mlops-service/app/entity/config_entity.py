@@ -21,6 +21,8 @@ class ImagingCleaningConfig:
 class ImagingTransformationConfig:
     root_dir: Path
     source_dir: Path
+    samaya_reports_csv: Path
+    samaya_images_dir: Path
     image_size: int
     train_csv: Path
     test_csv: Path
@@ -75,6 +77,7 @@ class ClinicalModelTrainerConfig:
     model_name: str
     checkpoint_path: Path
     feature_importance_path: Path
+    feature_file: Path
 
 
 @dataclass(frozen=True)
