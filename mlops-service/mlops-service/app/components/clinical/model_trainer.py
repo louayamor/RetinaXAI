@@ -11,7 +11,7 @@ from sklearn.utils.class_weight import compute_sample_weight
 from xgboost import XGBClassifier
 
 from app.entity.config_entity import ClinicalModelTrainerConfig, ClinicalTransformationConfig
-from app.utils.common import read_yaml, save_json
+from app.utils.common import load_json, read_yaml, save_json
 from app.constants import PARAMS_FILE_PATH, SCHEMA_FILE_PATH
 from monitoring.prometheus_metrics import BEST_VAL_ACCURACY
 
@@ -78,6 +78,8 @@ class ClinicalModelTrainer:
         model = self._build_model()
         xgb_cfg = self.params.ml_training.xgboost
         p = self.params.ml_training
+        feature_meta = load_json(self.config.feature_file) if self.config.feature_file.exists() else {}
+        categorical_encoders = feature_meta.get("categorical_encoders", {}) if feature_meta else {}
 
         with mlflow.start_run(run_name=self.params.get("mlflow", {}).get("clinical_run_name", "xgboost_clinical")):
             mlflow.log_params({
@@ -135,15 +137,15 @@ class ClinicalModelTrainer:
                 "feature_cols": feature_cols,
                 "categorical_encoders": categorical_encoders,
                 "numeric_medians": {
-                    col: float(df[col].median())
+                    col: float(train_df[col].dropna().median())
                     for col in feature_cols
-                    if col in df.columns and pd.api.types.is_numeric_dtype(df[col])
+                    if col in train_df.columns and pd.api.types.is_numeric_dtype(train_df[col]) and not train_df[col].dropna().empty
                 },
             }
             save_json(self.config.feature_importance_path, feature_meta)
             logger.info(f"feature importance saved: {self.config.feature_importance_path}")
 
-            mlflow.sklearn.log_model(model, name="clinical_model", serialization_format="skops")
+            mlflow.log_artifact(str(self.config.feature_importance_path))
             mlflow.log_artifact(str(self.config.feature_importance_path))
 
         logger.info("=" * 60)
