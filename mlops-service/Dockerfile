@@ -10,21 +10,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PYTHONDONTWRITEBYTECODE=1
+
+
+FROM base AS deps
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 
 FROM base AS builder
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
-
-
-FROM base AS runtime
-
-COPY --from=builder /install /usr/local
-
+COPY --from=deps /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=deps /usr/local/bin /usr/local/bin
 COPY . .
 
 RUN addgroup --system appgroup && \
