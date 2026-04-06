@@ -8,8 +8,8 @@ ENV NODE_ENV=production \
 
 FROM base AS deps
 
-COPY package.json package-lock.json* ./
-RUN npm ci
+COPY package.json ./
+RUN npm install --legacy-peer-deps
 
 
 FROM base AS builder
