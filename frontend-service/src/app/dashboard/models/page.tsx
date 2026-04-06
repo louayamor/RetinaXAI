@@ -316,7 +316,7 @@ export default function ModelsPage() {
           <CardContent>
             <div className='flex items-center gap-3'>
               <div className='h-3 w-3 rounded-full bg-green-500 animate-pulse' />
-              <span className='text-sm'>Running on port 8001</span>
+              <span className='text-sm'>Operational</span>
             </div>
             <Separator className='my-4' />
             <div className='grid grid-cols-2 gap-4 text-sm'>
