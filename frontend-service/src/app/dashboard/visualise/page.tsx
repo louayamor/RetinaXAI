@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/auth';
 import PageContainer from '@/components/layout/page-container';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import Image from 'next/image';
 import {
   BarChart,
   Bar,
@@ -108,10 +109,12 @@ export default function VisualisePage() {
       {/* Hero */}
       <div className='relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0a2e3e] via-[#0d3a4c] to-[#104a5e] p-10 text-white'>
         <div className='absolute right-0 top-0 h-full w-1/3 opacity-10'>
-          <img
+          <Image
             src='https://images.unsplash.com/photo-1551076805-e1869033e561?w=800&q=80'
             alt='Data Visualization'
-            className='h-full w-full object-cover'
+            fill
+            className='object-cover'
+            unoptimized
           />
         </div>
         <div className='relative z-10'>

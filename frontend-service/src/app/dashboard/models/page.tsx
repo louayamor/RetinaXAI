@@ -22,6 +22,7 @@ import {
   Legend,
 } from 'recharts';
 import { Loader2, Play, RefreshCw } from 'lucide-react';
+import Image from 'next/image';
 
 const MLOPS_BASE = 'http://localhost:8001';
 
@@ -130,10 +131,12 @@ export default function ModelsPage() {
       {/* Hero */}
       <div className='relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0a2e3e] via-[#0d3a4c] to-[#104a5e] p-10 text-white'>
         <div className='absolute right-0 top-0 h-full w-1/3 opacity-10'>
-          <img
+          <Image
             src='https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800&q=80'
             alt='Model Performance'
-            className='h-full w-full object-cover'
+            fill
+            className='object-cover'
+            unoptimized
           />
         </div>
         <div className='relative z-10'>

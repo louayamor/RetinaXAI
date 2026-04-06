@@ -15,6 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import Image from 'next/image';
 
 interface Patient {
   id: string;
@@ -66,10 +67,12 @@ export default function PatientsPage() {
       {/* Hero */}
       <div className='relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0a2e3e] via-[#0d3a4c] to-[#104a5e] p-10 text-white'>
         <div className='absolute right-0 top-0 h-full w-1/3 opacity-10'>
-          <img
+          <Image
             src='https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&q=80'
             alt='Patient Care'
-            className='h-full w-full object-cover'
+            fill
+            className='object-cover'
+            unoptimized
           />
         </div>
         <div className='relative z-10'>

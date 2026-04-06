@@ -3,6 +3,7 @@
 import PageContainer from '@/components/layout/page-container';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText } from 'lucide-react';
+import Image from 'next/image';
 
 export default function ReportsPage() {
   return (
@@ -11,10 +12,12 @@ export default function ReportsPage() {
       {/* Hero */}
       <div className='relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0a2e3e] via-[#0d3a4c] to-[#104a5e] p-10 text-white'>
         <div className='absolute right-0 top-0 h-full w-1/3 opacity-10'>
-          <img
+          <Image
             src='https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800&q=80'
             alt='Clinical Reports'
-            className='h-full w-full object-cover'
+            fill
+            className='object-cover'
+            unoptimized
           />
         </div>
         <div className='relative z-10'>
