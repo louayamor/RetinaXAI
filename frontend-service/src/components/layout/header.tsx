@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { SidebarTrigger } from '../ui/sidebar';
 import { Separator } from '../ui/separator';
 import { Breadcrumbs } from '../breadcrumbs';
@@ -18,10 +19,13 @@ export default function Header() {
         <div className='hidden md:flex'>
           <SearchInput />
         </div>
-        <img
+        <Image
           src='https://www.samayahospital.ae/home/images/logo.png'
           alt='Samaya Specialized Center'
+          width={48}
+          height={48}
           className='h-12 w-auto'
+          unoptimized
         />
         <UserNav />
       </div>

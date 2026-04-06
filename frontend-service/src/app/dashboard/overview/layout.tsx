@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { IconTrendingDown, IconTrendingUp, IconEye, IconUsers, IconActivity, IconBrain } from '@tabler/icons-react';
+import Image from 'next/image';
 import React from 'react';
 
 export default function OverViewLayout({
@@ -25,18 +26,23 @@ export default function OverViewLayout({
         {/* Hero Section */}
         <div className='relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0a2e3e] via-[#0d3a4c] to-[#104a5e] p-10 text-white'>
           <div className='absolute right-0 top-0 h-full w-1/3 opacity-10'>
-            <img
+            <Image
               src='https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&q=80'
               alt='Medical Technology'
-              className='h-full w-full object-cover'
+              fill
+              className='object-cover'
+              unoptimized
             />
           </div>
           <div className='relative z-10'>
             <div className='flex items-center gap-3 mb-4'>
-              <img
+              <Image
                 src='https://www.samayahospital.ae/home/images/logo.png'
                 alt='Samaya Logo'
+                width={32}
+                height={32}
                 className='h-8 w-auto brightness-0 invert'
+                unoptimized
               />
               <span className='text-lg font-medium text-[#20bdbe]'>|</span>
               <span className='text-lg font-medium'>RetinaXAI</span>

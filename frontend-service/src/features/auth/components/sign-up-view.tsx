@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import UserAuthForm from './user-auth-form';
 
 export default function SignUpView() {
@@ -6,18 +7,23 @@ export default function SignUpView() {
     <div className='relative h-screen flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0'>
       <div className='relative hidden h-full flex-col bg-muted p-10 text-white lg:flex dark:border-r'>
         <div className='absolute inset-0'>
-          <img
+          <Image
             src='https://images.unsplash.com/photo-1551076805-e1869033e561?w=1200&q=80'
             alt='RetinaXAI Technology'
+            fill
             className='h-full w-full object-cover opacity-30'
+            unoptimized
           />
           <div className='absolute inset-0 bg-gradient-to-t from-[#0a2e3e] via-[#0a2e3e]/80 to-transparent' />
         </div>
         <div className='relative z-20 flex items-center text-lg font-medium'>
-          <img
+          <Image
             src='https://www.samayahospital.ae/home/images/logo.png'
             alt='Samaya Specialized Center'
+            width={32}
+            height={32}
             className='mr-3 h-8 w-auto'
+            unoptimized
           />
           <span className='text-[#20bdbe]'>RetinaXAI</span>
         </div>

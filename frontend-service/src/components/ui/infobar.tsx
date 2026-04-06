@@ -155,7 +155,7 @@ function InfobarProvider({
         setIsPathnameChanging(false);
       }, 200);
     }
-  }, [pathname, contentPathname]);
+  }, [pathname, contentPathname, setOpen]);
 
   // Update setContent to also track pathname
   const handleSetContent = React.useCallback(
