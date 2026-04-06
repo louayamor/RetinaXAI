@@ -1,119 +1,120 @@
 [data-theme='retinaxai'] {
-  --background: oklch(0.985 0.005 180);
-  --foreground: oklch(0.18 0.02 195);
+  /* Samaya Hospital Brand Colors */
+  --background: oklch(0.99 0.003 180);
+  --foreground: oklch(0.16 0.025 195);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.02 195);
+  --card-foreground: oklch(0.16 0.025 195);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.02 195);
+  --popover-foreground: oklch(0.16 0.025 195);
   --primary: oklch(0.72 0.14 185);
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.94 0.015 185);
-  --secondary-foreground: oklch(0.2 0.05 185);
-  --muted: oklch(0.96 0.008 185);
-  --muted-foreground: oklch(0.52 0.02 185);
+  --secondary: oklch(0.95 0.01 185);
+  --secondary-foreground: oklch(0.18 0.04 185);
+  --muted: oklch(0.96 0.005 185);
+  --muted-foreground: oklch(0.48 0.02 185);
   --accent: oklch(0.76 0.12 80);
-  --accent-foreground: oklch(0.18 0.04 80);
-  --destructive: oklch(0.63 0.19 23.03);
+  --accent-foreground: oklch(0.16 0.04 80);
+  --destructive: oklch(0.58 0.2 23.03);
   --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.91 0.008 185);
-  --input: oklch(0.94 0.008 185);
+  --border: oklch(0.92 0.005 185);
+  --input: oklch(0.95 0.005 185);
   --ring: oklch(0.72 0.14 185);
   --chart-1: oklch(0.72 0.14 185);
   --chart-2: oklch(0.76 0.12 80);
-  --chart-3: oklch(0.62 0.12 160);
-  --chart-4: oklch(0.68 0.1 230);
-  --chart-5: oklch(0.63 0.19 23.03);
-  --sidebar: oklch(0.14 0.03 195);
-  --sidebar-foreground: oklch(0.97 0.008 185);
+  --chart-3: oklch(0.58 0.15 160);
+  --chart-4: oklch(0.65 0.12 230);
+  --chart-5: oklch(0.58 0.2 23.03);
+  --sidebar: oklch(0.12 0.035 195);
+  --sidebar-foreground: oklch(0.97 0.005 185);
   --sidebar-primary: oklch(0.72 0.14 185);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.22 0.04 195);
-  --sidebar-accent-foreground: oklch(0.97 0.008 185);
-  --sidebar-border: oklch(0.24 0.03 195);
+  --sidebar-accent: oklch(0.2 0.04 195);
+  --sidebar-accent-foreground: oklch(0.97 0.005 185);
+  --sidebar-border: oklch(0.22 0.035 195);
   --sidebar-ring: oklch(0.72 0.14 185);
   --font-sans: 'Jost', sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: 'Jost', monospace;
-  --radius: 0.625rem;
+  --radius: 0.75rem;
   --shadow-x: 0px;
-  --shadow-y: 2px;
-  --shadow-blur: 8px;
-  --shadow-spread: 0px;
+  --shadow-y: 4px;
+  --shadow-blur: 16px;
+  --shadow-spread: -2px;
   --shadow-opacity: 0.06;
   --shadow-color: hsl(185 30% 15%);
-  --shadow-2xs: 0px 1px 2px 0px hsl(185 30% 15% / 0.04);
-  --shadow-xs: 0px 1px 3px 0px hsl(185 30% 15% / 0.06);
-  --shadow-sm: 0px 1px 4px 0px hsl(185 30% 15% / 0.06),
-    0px 1px 2px -1px hsl(185 30% 15% / 0.06);
-  --shadow: 0px 2px 6px 0px hsl(185 30% 15% / 0.06),
+  --shadow-2xs: 0px 2px 4px 0px hsl(185 30% 15% / 0.04);
+  --shadow-xs: 0px 2px 6px 0px hsl(185 30% 15% / 0.06);
+  --shadow-sm: 0px 2px 8px 0px hsl(185 30% 15% / 0.06),
     0px 1px 3px -1px hsl(185 30% 15% / 0.06);
-  --shadow-md: 0px 2px 8px 0px hsl(185 30% 15% / 0.08),
-    0px 2px 4px -1px hsl(185 30% 15% / 0.08);
-  --shadow-lg: 0px 4px 12px 0px hsl(185 30% 15% / 0.08),
-    0px 4px 6px -1px hsl(185 30% 15% / 0.08);
-  --shadow-xl: 0px 8px 24px 0px hsl(185 30% 15% / 0.1),
-    0px 8px 10px -1px hsl(185 30% 15% / 0.1);
-  --shadow-2xl: 0px 12px 36px 0px hsl(185 30% 15% / 0.15);
+  --shadow: 0px 4px 12px 0px hsl(185 30% 15% / 0.06),
+    0px 2px 4px -2px hsl(185 30% 15% / 0.06);
+  --shadow-md: 0px 4px 16px 0px hsl(185 30% 15% / 0.08),
+    0px 2px 6px -2px hsl(185 30% 15% / 0.08);
+  --shadow-lg: 0px 8px 24px 0px hsl(185 30% 15% / 0.08),
+    0px 4px 8px -4px hsl(185 30% 15% / 0.08);
+  --shadow-xl: 0px 12px 36px 0px hsl(185 30% 15% / 0.1),
+    0px 8px 12px -6px hsl(185 30% 15% / 0.1);
+  --shadow-2xl: 0px 16px 48px 0px hsl(185 30% 15% / 0.15);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 }
 
 [data-theme='retinaxai'].dark {
-  --background: oklch(0.14 0.02 195);
-  --foreground: oklch(0.97 0.008 185);
-  --card: oklch(0.18 0.02 195);
-  --card-foreground: oklch(0.97 0.008 185);
-  --popover: oklch(0.18 0.02 195);
-  --popover-foreground: oklch(0.97 0.008 185);
+  --background: oklch(0.12 0.025 195);
+  --foreground: oklch(0.97 0.005 185);
+  --card: oklch(0.16 0.025 195);
+  --card-foreground: oklch(0.97 0.005 185);
+  --popover: oklch(0.16 0.025 195);
+  --popover-foreground: oklch(0.97 0.005 185);
   --primary: oklch(0.72 0.14 185);
-  --primary-foreground: oklch(0.1 0.02 195);
-  --secondary: oklch(0.24 0.03 195);
-  --secondary-foreground: oklch(0.97 0.008 185);
-  --muted: oklch(0.24 0.02 195);
-  --muted-foreground: oklch(0.65 0.02 185);
-  --accent: oklch(0.72 0.12 80);
-  --accent-foreground: oklch(0.14 0.03 80);
-  --destructive: oklch(0.69 0.2 23.91);
+  --primary-foreground: oklch(0.08 0.02 195);
+  --secondary: oklch(0.22 0.03 195);
+  --secondary-foreground: oklch(0.97 0.005 185);
+  --muted: oklch(0.22 0.02 195);
+  --muted-foreground: oklch(0.62 0.02 185);
+  --accent: oklch(0.76 0.12 80);
+  --accent-foreground: oklch(0.12 0.03 80);
+  --destructive: oklch(0.64 0.2 23.91);
   --destructive-foreground: oklch(0 0 0);
-  --border: oklch(0.26 0.03 195);
-  --input: oklch(0.28 0.03 195);
+  --border: oklch(0.24 0.03 195);
+  --input: oklch(0.26 0.03 195);
   --ring: oklch(0.72 0.14 185);
   --chart-1: oklch(0.72 0.14 185);
-  --chart-2: oklch(0.72 0.12 80);
-  --chart-3: oklch(0.62 0.12 160);
-  --chart-4: oklch(0.68 0.1 230);
-  --chart-5: oklch(0.69 0.2 23.91);
-  --sidebar: oklch(0.1 0.02 195);
-  --sidebar-foreground: oklch(0.97 0.008 185);
+  --chart-2: oklch(0.76 0.12 80);
+  --chart-3: oklch(0.58 0.15 160);
+  --chart-4: oklch(0.65 0.12 230);
+  --chart-5: oklch(0.64 0.2 23.91);
+  --sidebar: oklch(0.08 0.02 195);
+  --sidebar-foreground: oklch(0.97 0.005 185);
   --sidebar-primary: oklch(0.72 0.14 185);
-  --sidebar-primary-foreground: oklch(0.1 0.02 195);
-  --sidebar-accent: oklch(0.2 0.03 195);
-  --sidebar-accent-foreground: oklch(0.97 0.008 185);
-  --sidebar-border: oklch(0.22 0.03 195);
+  --sidebar-primary-foreground: oklch(0.08 0.02 195);
+  --sidebar-accent: oklch(0.18 0.03 195);
+  --sidebar-accent-foreground: oklch(0.97 0.005 185);
+  --sidebar-border: oklch(0.2 0.03 195);
   --sidebar-ring: oklch(0.72 0.14 185);
   --font-sans: 'Jost', sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: 'Jost', monospace;
-  --radius: 0.625rem;
+  --radius: 0.75rem;
   --shadow-x: 0px;
-  --shadow-y: 2px;
-  --shadow-blur: 8px;
-  --shadow-spread: 0px;
+  --shadow-y: 4px;
+  --shadow-blur: 16px;
+  --shadow-spread: -2px;
   --shadow-opacity: 0.25;
   --shadow-color: hsl(185 30% 5%);
-  --shadow-2xs: 0px 1px 2px 0px hsl(185 30% 5% / 0.1);
-  --shadow-xs: 0px 1px 3px 0px hsl(185 30% 5% / 0.15);
-  --shadow-sm: 0px 2px 4px 0px hsl(185 30% 5% / 0.25),
-    0px 1px 2px -1px hsl(185 30% 5% / 0.25);
-  --shadow: 0px 2px 6px 0px hsl(185 30% 5% / 0.25),
-    0px 1px 3px -1px hsl(185 30% 5% / 0.25);
-  --shadow-md: 0px 4px 8px 0px hsl(185 30% 5% / 0.25),
-    0px 2px 4px -1px hsl(185 30% 5% / 0.25);
-  --shadow-lg: 0px 8px 16px 0px hsl(185 30% 5% / 0.25),
-    0px 4px 6px -1px hsl(185 30% 5% / 0.25);
-  --shadow-xl: 0px 12px 24px 0px hsl(185 30% 5% / 0.25),
-    0px 8px 10px -1px hsl(185 30% 5% / 0.25);
-  --shadow-2xl: 0px 16px 40px 0px hsl(185 30% 5% / 0.4);
+  --shadow-2xs: 0px 2px 4px 0px hsl(185 30% 5% / 0.1);
+  --shadow-xs: 0px 2px 6px 0px hsl(185 30% 5% / 0.15);
+  --shadow-sm: 0px 4px 8px 0px hsl(185 30% 5% / 0.25),
+    0px 2px 4px -2px hsl(185 30% 5% / 0.25);
+  --shadow: 0px 4px 12px 0px hsl(185 30% 5% / 0.25),
+    0px 2px 4px -2px hsl(185 30% 5% / 0.25);
+  --shadow-md: 0px 8px 16px 0px hsl(185 30% 5% / 0.25),
+    0px 4px 6px -3px hsl(185 30% 5% / 0.25);
+  --shadow-lg: 0px 12px 24px 0px hsl(185 30% 5% / 0.25),
+    0px 6px 8px -4px hsl(185 30% 5% / 0.25);
+  --shadow-xl: 0px 16px 40px 0px hsl(185 30% 5% / 0.25),
+    0px 8px 12px -6px hsl(185 30% 5% / 0.25);
+  --shadow-2xl: 0px 20px 56px 0px hsl(185 30% 5% / 0.4);
 }
 
 [data-theme='retinaxai'] {

@@ -10,6 +10,46 @@ export const navItems: NavItem[] = [
     items: []
   },
   {
+    title: 'Visualise',
+    url: '/dashboard/visualise',
+    icon: 'chart',
+    isActive: false,
+    shortcut: ['v', 'v'],
+    items: []
+  },
+  {
+    title: 'Patients',
+    url: '/dashboard/patients',
+    icon: 'user',
+    isActive: false,
+    shortcut: ['p', 'p'],
+    items: []
+  },
+  {
+    title: 'Predictions',
+    url: '/dashboard/predictions',
+    icon: 'media',
+    isActive: false,
+    shortcut: ['d', 'd'],
+    items: []
+  },
+  {
+    title: 'Reports',
+    url: '/dashboard/reports',
+    icon: 'post',
+    isActive: false,
+    shortcut: ['r', 'r'],
+    items: []
+  },
+  {
+    title: 'Models',
+    url: '/dashboard/models',
+    icon: 'settings',
+    isActive: false,
+    shortcut: ['m', 'm'],
+    items: []
+  },
+  {
     title: 'Account',
     url: '#',
     icon: 'account',
