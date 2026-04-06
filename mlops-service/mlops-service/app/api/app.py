@@ -1,8 +1,9 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from loguru import logger
 
-from app.api.routes import health, train, status, metrics, predict, reports
+from app.api.routes import health, train, status, metrics, predict  # reports temporarily disabled
 from app.api.dependencies import get_settings
 from monitoring.prometheus_metrics import start_metrics_server
 
@@ -25,12 +26,20 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000", "http://localhost:3001"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
     app.include_router(health.router, tags=["health"])
     app.include_router(train.router, tags=["training"])
     app.include_router(status.router, tags=["status"])
     app.include_router(metrics.router, tags=["metrics"])
     app.include_router(predict.router, tags=["predict"])
-    app.include_router(reports.router, tags=["monitoring"])
+    # app.include_router(reports.router, tags=["monitoring"])  # temporarily disabled (evidently dep conflict)
 
     return app
 

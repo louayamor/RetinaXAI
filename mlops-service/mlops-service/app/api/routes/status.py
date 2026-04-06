@@ -15,8 +15,9 @@ def get_status(job_id: str):
 
 @router.get("/status", response_model=StatusResponse)
 def get_latest_status():
-    from app.services.training_service import _job_store
-    if not _job_store:
+    from app.services.training_service import get_latest_job
+    latest = get_latest_job()
+    if not latest:
         return StatusResponse(
             job_id=None,
             pipeline=None,
@@ -25,5 +26,4 @@ def get_latest_status():
             completed_at=None,
             error=None,
         )
-    latest = list(_job_store.values())[-1]
     return StatusResponse(**latest)

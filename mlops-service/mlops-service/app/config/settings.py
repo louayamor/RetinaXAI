@@ -18,18 +18,21 @@ class Settings(BaseSettings):
     backend_service_url: str = "http://backend-service:8000"
     timeout_seconds: int = 30
 
-    SHARED_DIR: Path = Path("/home/louay/RetinaXAI/shared")
-    UPLOAD_DIR: Path = Path("/home/louay/RetinaXAI/shared/uploads")
-    FUNDUS_DIR: Path = Path("/home/louay/RetinaXAI/shared/uploads/fundus")
-    OCT_DIR: Path = Path("/home/louay/RetinaXAI/shared/uploads/oct")
-    OUTPUT_DIR: Path = Path("/home/louay/RetinaXAI/shared/outputs")
-    GRADCAM_DIR: Path = Path("/home/louay/RetinaXAI/shared/outputs/gradcam")
-    MODEL_DIR: Path = Path("/home/louay/RetinaXAI/shared/models")
-    VECTORSTORE_DIR: Path = Path("/home/louay/RetinaXAI/shared/vectorstore")
+    shared_dir: Path = Path("/home/louay/RetinaXAI/shared")
+    upload_dir: Path = Path("/home/louay/RetinaXAI/shared/uploads")
+    fundus_dir: Path = Path("/home/louay/RetinaXAI/shared/uploads/fundus")
+    oct_dir: Path = Path("/home/louay/RetinaXAI/shared/uploads/oct")
+    output_dir: Path = Path("/home/louay/RetinaXAI/shared/outputs")
+    gradcam_dir: Path = Path("/home/louay/RetinaXAI/shared/outputs/gradcam")
+    model_dir: Path = Path("/home/louay/RetinaXAI/shared/models")
+    vectorstore_dir: Path = Path("/home/louay/RetinaXAI/shared/vectorstore")
 
     imaging_model_path: Path = Path("/home/louay/RetinaXAI/shared/models/imaging/model.pth")
     clinical_model_path: Path = Path("/home/louay/RetinaXAI/shared/models/clinical/model.pkl")
     clinical_feature_importance_path: Path = Path("/home/louay/RetinaXAI/shared/models/clinical/feature_importance.json")
+
+    imaging_metrics_path: Path = Path("artifacts/model/imaging/metrics.json")
+    clinical_metrics_path: Path = Path("artifacts/model/clinical/metrics.json")
 
     prometheus_metrics_port: int = 9091
 

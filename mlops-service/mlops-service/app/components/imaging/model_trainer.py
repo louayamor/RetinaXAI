@@ -234,7 +234,11 @@ class ImagingModelTrainer:
                     patience_counter = 0
                     torch.save(model.state_dict(), checkpoint_path)
                     BEST_VAL_ACCURACY.labels(pipeline="imaging").set(best_val_acc)
-                    mlflow.pytorch.log_model(model, name="imaging_model", export_model=True)
+                    input_example = np.random.rand(1, 3, 224, 224).astype(np.float32)
+                    mlflow.pytorch.log_model(
+                        model, name="imaging_model", export_model=True,
+                        input_example=input_example
+                    )
                     logger.info(f"checkpoint saved: val_acc={val_acc:.4f}")
                 else:
                     patience_counter += 1
