@@ -9,7 +9,7 @@ ENV NODE_ENV=production \
 FROM base AS deps
 
 COPY package.json ./
-RUN npm install --legacy-peer-deps
+RUN npm install --legacy-peer-deps --ignore-scripts
 
 
 FROM base AS builder
