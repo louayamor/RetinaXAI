@@ -58,6 +58,20 @@ jobs:
         working-directory: backend-service
         run: pip install -r requirements.txt
 
+      - name: Create test env file
+        working-directory: backend-service/backend-service
+        run: |
+          cat > .env << EOF
+          APP_ENV=development
+          APP_NAME=retinaxai-backend
+          DATABASE_URL=postgresql+asyncpg://test:test@localhost:5432/test_db
+          SECRET_KEY=test-secret-key
+          ML_SERVICE_URL=http://localhost:8001
+          ML_SERVICE_API_KEY=test-api-key
+          LLM_SERVICE_URL=http://localhost:8002
+          LLM_SERVICE_API_KEY=test-api-key
+          EOF
+
       - name: Run tests
         working-directory: backend-service/backend-service
         run: pytest tests/ -v --tb=short
