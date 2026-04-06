@@ -1,8 +1,16 @@
 import numpy as np
+import yaml
 from pathlib import Path
 from app.components.ocr.region_detector import extract_regions
 
-REGIONS_CONFIG = Path(__file__).parent.parent.parent / "config" / "regions.yaml"
+REGIONS_CONFIG_PATH = Path(__file__).parent.parent.parent / "config" / "regions.yaml"
+
+def _load_config():
+    with open(REGIONS_CONFIG_PATH) as f:
+        data = yaml.safe_load(f)
+        return data.get("regions", data)
+
+REGIONS_CONFIG = _load_config()
 
 
 def test_extract_regions_keys(dummy_image):

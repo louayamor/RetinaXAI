@@ -11,7 +11,7 @@ def test_parse_metadata(sample_text):
 
 def test_parse_patient(sample_text):
     patient = parse_patient(sample_text)
-    assert patient.gender == "Male"
+    assert patient.gender == "M"
     assert patient.age == 70
     assert patient.dob == "01/01/1956"
 
