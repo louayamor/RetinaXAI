@@ -24,7 +24,7 @@ import {
 import { Loader2, Play, RefreshCw } from 'lucide-react';
 import Image from 'next/image';
 
-const MLOPS_BASE = 'http://localhost:8001';
+const MLOPS_BASE = process.env.NEXT_PUBLIC_MLOPS_URL || 'http://localhost:8001';
 
 interface Metrics {
   imaging?: {
