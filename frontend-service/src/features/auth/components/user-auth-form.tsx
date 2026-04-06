@@ -16,7 +16,7 @@ import {
   FormMessage
 } from '@/components/ui/form';
 import { loginUser, registerUser } from '@/lib/api';
-import { saveTokens, syncTokenCookie } from '@/lib/auth';
+import { saveTokens } from '@/lib/auth';
 
 const loginSchema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -57,7 +57,6 @@ export default function UserAuthForm({ mode }: UserAuthFormProps) {
     try {
       const tokens = await loginUser(values);
       saveTokens(tokens);
-      syncTokenCookie(tokens.access_token);
       router.push('/dashboard/overview');
     } catch (err: unknown) {
       const e = err as { message?: string; status?: number };
@@ -81,7 +80,6 @@ export default function UserAuthForm({ mode }: UserAuthFormProps) {
         password: values.password
       });
       saveTokens(tokens);
-      syncTokenCookie(tokens.access_token);
       router.push('/dashboard/overview');
     } catch (err: unknown) {
       const e = err as { message?: string; status?: number };

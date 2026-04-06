@@ -54,10 +54,14 @@ export interface AuthUser {
 
 export interface Patient {
   id: string;
-  username: string;
-  date_of_birth: string;
-  gender: 'male' | 'female' | 'other';
+  first_name: string;
+  last_name: string;
+  age: number;
+  gender: 'M' | 'F';
+  phone: string | null;
+  address: string | null;
   medical_record_number: string;
+  ocr_patient_id: string | null;
   created_at: string;
 }
 

@@ -12,30 +12,23 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { clearTokens, getAccessToken } from '@/lib/auth';
+import { clearTokens, getAccessToken, apiFetch } from '@/lib/auth';
 import { IconLogout, IconUserCircle } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 
-function parseUserFromToken(token: string | null): { username: string; email: string } | null {
-  if (!token) return null;
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return {
-      username: payload.sub ?? 'Doctor',
-      email: payload.email ?? ''
-    };
-  } catch {
-    return null;
-  }
+interface UserInfo {
+  username: string;
+  email: string;
 }
 
 export function UserNav() {
   const router = useRouter();
-  const [user, setUser] = useState<{ username: string; email: string } | null>(null);
+  const [user, setUser] = useState<UserInfo | null>(null);
 
   useEffect(() => {
-    const token = getAccessToken();
-    setUser(parseUserFromToken(token));
+    apiFetch<UserInfo>('/api/v1/users/me')
+      .then(setUser)
+      .catch(() => setUser(null));
   }, []);
 
   function handleLogout() {
