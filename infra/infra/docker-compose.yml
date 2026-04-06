@@ -27,6 +27,7 @@ services:
     container_name: retinaxai-backend
     environment:
       APP_ENV: development
+      RETINAXAI_BASE_DIR: /data/retinaxai
       DATABASE_URL: postgresql+asyncpg://retinaxai:retinaxai_secret@postgres:5432/retinaxai
       SECRET_KEY: change-me-in-production
       ML_SERVICE_URL: http://mlops-service:8001
@@ -37,7 +38,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ../../shared:/home/louay/RetinaXAI/shared
+      - retinaxai_shared:/data/retinaxai/shared
       - ../../backend-service/backend-service:/app
     depends_on:
       postgres:
@@ -52,19 +53,12 @@ services:
       dockerfile: Dockerfile
     container_name: retinaxai-mlops
     environment:
+      RETINAXAI_BASE_DIR: /data/retinaxai
       MLFLOW_TRACKING_URI: ""
-      SHARED_DIR: /home/louay/RetinaXAI/shared
-      FUNDUS_DIR: /home/louay/RetinaXAI/shared/uploads/fundus
-      OCT_DIR: /home/louay/RetinaXAI/shared/uploads/oct
-      OUTPUT_DIR: /home/louay/RetinaXAI/shared/outputs
-      GRADCAM_DIR: /home/louay/RetinaXAI/shared/outputs/gradcam
-      MODEL_DIR: /home/louay/RetinaXAI/shared/models
-      IMAGING_MODEL_PATH: /home/louay/RetinaXAI/shared/models/imaging/model.pth
-      CLINICAL_MODEL_PATH: /home/louay/RetinaXAI/shared/models/clinical/model.pkl
     ports:
       - "8001:8001"
     volumes:
-      - ../../shared:/home/louay/RetinaXAI/shared
+      - retinaxai_shared:/data/retinaxai/shared
     depends_on:
       - backend-service
     networks:
@@ -77,14 +71,14 @@ services:
       dockerfile: Dockerfile
     container_name: retinaxai-llmops
     environment:
+      RETINAXAI_BASE_DIR: /data/retinaxai
       BACKEND_SERVICE_URL: http://backend-service:8000
-      CHROMA_PATH: /home/louay/RetinaXAI/shared/vectorstore/chroma
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       OLLAMA_MODEL: llama2
     ports:
       - "8002:8002"
     volumes:
-      - ../../shared:/home/louay/RetinaXAI/shared
+      - retinaxai_shared:/data/retinaxai/shared
     depends_on:
       - backend-service
     networks:
@@ -109,6 +103,7 @@ services:
 
 volumes:
   postgres_data:
+  retinaxai_shared:
 
 networks:
   retinaxai-network:
