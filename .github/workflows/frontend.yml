@@ -35,7 +35,7 @@ jobs:
 
       - name: Lint
         working-directory: frontend-service
-        run: npm run lint
+        run: npm run lint -- src
 
   build:
     name: Build
