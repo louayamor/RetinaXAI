@@ -36,10 +36,10 @@ async def get_oct_stats(
 
     # Edema stats
     edema_count = await db.scalar(
-        select(func.count(OCTReport.id)).where(OCTReport.edema == True)
+        select(func.count(OCTReport.id)).where(OCTReport.edema)
     )
     no_edema_count = await db.scalar(
-        select(func.count(OCTReport.id)).where(OCTReport.edema == False)
+        select(func.count(OCTReport.id)).where(~OCTReport.edema)
     )
 
     # ERM stats
