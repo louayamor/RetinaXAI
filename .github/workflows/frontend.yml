@@ -35,7 +35,7 @@ jobs:
 
       - name: Lint
         working-directory: frontend-service
-        run: npx next lint .
+        run: npx eslint src --max-warnings 0
 
   build:
     name: Build
