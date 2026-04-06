@@ -137,3 +137,10 @@ async def cleanup_sessions(
     )
     await db.flush()
     return {"status": "ok"}
+
+
+@router.get("/me", response_model=UserRead)
+async def get_current_user(
+    user: CurrentUser,
+):
+    return user

@@ -26,7 +26,7 @@ export function UserNav() {
   const [user, setUser] = useState<UserInfo | null>(null);
 
   useEffect(() => {
-    apiFetch<UserInfo>('/api/v1/users/me')
+    apiFetch<UserInfo>('/api/v1/auth/me')
       .then(setUser)
       .catch(() => setUser(null));
   }, []);

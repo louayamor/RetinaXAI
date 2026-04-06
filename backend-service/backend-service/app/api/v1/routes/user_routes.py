@@ -23,23 +23,16 @@ async def create_patient(
     return await service.create(data)
 
 
-@router.get("/", response_model=dict)
+@router.get("/", response_model=list[PatientRead])
 async def list_patients(
     _: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
-    page: int = Query(1, ge=1),
-    size: int = Query(20, ge=1, le=100),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
 ):
     service = PatientService(db)
-    skip = (page - 1) * size
-    patients, total = await service.get_all(skip=skip, limit=size)
-    return {
-        "total": total,
-        "page": page,
-        "size": size,
-        "pages": (total + size - 1) // size,
-        "items": [PatientRead.model_validate(p) for p in patients],
-    }
+    patients, _ = await service.get_all(skip=skip, limit=limit)
+    return patients
 
 
 @router.get("/{patient_id}", response_model=PatientRead)

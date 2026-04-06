@@ -18,7 +18,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ENV NEXT_TURBOPACK=0
-RUN CI=true npm run build -- --no-cache
+RUN CI=true npm run build
 
 
 FROM base AS runtime

@@ -1,3 +1,5 @@
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 export const TOKEN_KEY = 'rxa_access_token';
 export const REFRESH_KEY = 'rxa_refresh_token';
 
@@ -53,7 +55,7 @@ async function doRefresh(): Promise<string | null> {
   if (!refresh) return null;
 
   try {
-    const res = await fetch('http://localhost:8000/api/v1/auth/refresh', {
+    const res = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: refresh }),
@@ -113,7 +115,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     throw new Error('Not authenticated');
   }
 
-  const res = await fetch(`http://localhost:8000${path}`, {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
@@ -130,7 +132,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
       throw new Error('Not authenticated');
     }
 
-    const retryRes = await fetch(`http://localhost:8000${path}`, {
+    const retryRes = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
       headers: {
         'Content-Type': 'application/json',
