@@ -2,10 +2,10 @@ node_modules/
 .next/
 .git/
 docs/
-src/
 *.log
 .env
 .env.local
 tsconfig.json
 postcss.config.js
 tailwind.config.ts
+components.json
