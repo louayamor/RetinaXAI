@@ -1,6 +1,12 @@
+import os
 from pathlib import Path
 
 from pydantic_settings import BaseSettings
+
+
+def _get_base_dir() -> str:
+    """Get base directory from environment or fallback to default."""
+    return os.environ.get("RETINAXAI_BASE_DIR", "/home/louay/RetinaXAI")
 
 
 class Settings(BaseSettings):
@@ -10,15 +16,19 @@ class Settings(BaseSettings):
     app_host: str = "0.0.0.0"
     app_port: int = 8002
 
+    # Inter-service
     backend_service_url: str = "http://backend-service:8000"
     timeout_seconds: int = 60
 
-    SHARED_DIR: Path = Path("/home/louay/RetinaXAI/shared")
-    OUTPUT_DIR: Path = Path("/home/louay/RetinaXAI/shared/outputs")
-    GRADCAM_DIR: Path = Path("/home/louay/RetinaXAI/shared/outputs/gradcam")
-    VECTORSTORE_DIR: Path = Path("/home/louay/RetinaXAI/shared/vectorstore")
+    # Storage paths - relative, resolved via RETINAXAI_BASE_DIR
+    SHARED_DIR: Path = Path("shared")
+    OUTPUT_DIR: Path = Path("shared/outputs")
+    GRADCAM_DIR: Path = Path("shared/outputs/gradcam")
+    VECTORSTORE_DIR: Path = Path("shared/vectorstore")
 
-    chroma_path: Path = Path("/home/louay/RetinaXAI/shared/vectorstore/chroma")
+    chroma_path: Path = Path("shared/vectorstore/chroma")
+
+    # Ollama
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama2"
 
@@ -28,6 +38,24 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         extra = "ignore"
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        self._resolve_paths()
+
+    def _resolve_paths(self):
+        """Resolve relative paths to absolute using RETINAXAI_BASE_DIR env var."""
+        base = Path(_get_base_dir())
+        
+        path_fields = [
+            "SHARED_DIR", "OUTPUT_DIR", "GRADCAM_DIR", 
+            "VECTORSTORE_DIR", "chroma_path"
+        ]
+        
+        for field in path_fields:
+            value = getattr(self, field)
+            if value and not Path(value).is_absolute():
+                setattr(self, field, base / value)
 
 
 settings = Settings()

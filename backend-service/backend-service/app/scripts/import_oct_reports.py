@@ -3,17 +3,19 @@
 Usage:
     cd backend-service/backend-service
     source .venv/bin/activate
-    python -m app.scripts.import_oct_reports
+    RETINAXAI_BASE_DIR=/path/to/retinaxai python -m app.scripts.import_oct_reports
 """
 
+import os
 import asyncio
 import uuid
 from pathlib import Path
 
 import asyncpg
 
-OCR_CSV = Path("/home/louay/RetinaXAI/mlops-service/mlops-service/artifacts/ocr/output/reports.csv")
-DATABASE_URL = "postgresql://louay:louay@localhost:5432/retinaxai_db"
+base_dir = os.environ.get("RETINAXAI_BASE_DIR", "/home/louay/RetinaXAI")
+OCR_CSV = Path(base_dir) / "mlops-service/mlops-service/artifacts/ocr/output/reports.csv"
+DATABASE_URL = "postgresql://retinaxai:retinaxai_secret@localhost:5432/retinaxai"
 
 THICKNESS_COLS = [
     "thickness_center_fovea",

@@ -73,7 +73,7 @@ inter_service:
   timeout_seconds: 30
 
 ocr_pipeline:
-  input_dir: /home/louay/RetinaXAI/shared/ocr_reports
+  input_dir: ${RETINAXAI_BASE_DIR:-/home/louay/RetinaXAI}/shared/ocr_reports
   output_dir: artifacts/ocr/output
   json_output: artifacts/ocr/output/reports.json
   csv_output: artifacts/ocr/output/reports.csv
