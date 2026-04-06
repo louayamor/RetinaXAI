@@ -24,7 +24,8 @@ def test_create_refresh_token_marks_type_refresh() -> None:
 
 
 @pytest.mark.asyncio
-async def test_refresh_rejects_access_token(db_session) -> None:
+async def test_refresh_rejects_access_token() -> None:
+    db_session = AsyncMock()
     token = create_access_token(uuid.uuid4())
 
     with pytest.raises(UnauthorizedException):
