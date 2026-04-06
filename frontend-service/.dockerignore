@@ -1,11 +1,23 @@
-node_modules/
+# Ignore only build outputs
 .next/
+out/
+
+# Ignore git and docs
 .git/
 docs/
+
+# Ignore logs and env files
 *.log
 .env
 .env.local
-tsconfig.json
-postcss.config.js
-tailwind.config.ts
-components.json
+.env.*.local
+
+# Ignore IDE and OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Keep config files needed for build (tsconfig, etc)
+# NOTE: These are needed for path resolution (@/* aliases)
