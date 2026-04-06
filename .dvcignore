@@ -1,6 +1,3 @@
-# Add patterns of files dvc should ignore, which could improve
-# the performance. Learn more at
-# https://dvc.org/doc/user-guide/dvcignore
-
-artifacts/ocr/
+# DVC ignore patterns - files that should NOT be versioned by DVC
+artifacts/ocr/output/reports.csv
 artifacts/monitoring/

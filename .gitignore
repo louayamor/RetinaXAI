@@ -76,6 +76,7 @@ research/
 mlops-service/mlops-service/artifacts/data/
 mlops-service/mlops-service/artifacts/model/
 mlops-service/mlops-service/artifacts/monitoring/
+mlops-service/mlops-service/artifacts/ocr/output/reports.csv
 
 # DVC local credentials (never commit)
 .dvc/config.local
