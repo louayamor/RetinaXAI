@@ -1,5 +1,7 @@
+import json
 import uuid
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 from loguru import logger
 
@@ -22,11 +24,38 @@ from monitoring.prometheus_metrics import (
     ACTIVE_TRAINING_JOBS,
 )
 
+_JOB_FILE = Path("artifacts/training_jobs.json")
 _job_store: dict = {}
+
+
+def _load_jobs() -> dict:
+    global _job_store
+    if _JOB_FILE.exists():
+        try:
+            with open(_JOB_FILE) as f:
+                _job_store = json.load(f)
+        except Exception:
+            _job_store = {}
+    return _job_store
+
+
+def _save_jobs() -> None:
+    _JOB_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with open(_JOB_FILE, "w") as f:
+        json.dump(_job_store, f, indent=2)
+
+
+_load_jobs()
 
 
 def get_job_status(job_id: str) -> Optional[dict]:
     return _job_store.get(job_id)
+
+
+def get_latest_job() -> Optional[dict]:
+    if not _job_store:
+        return None
+    return list(_job_store.values())[-1]
 
 
 def _configure_mlflow() -> None:
@@ -42,6 +71,7 @@ def _configure_mlflow() -> None:
 def run_pipeline_task(job_id: str, pipeline: str) -> None:
     _job_store[job_id]["status"] = "running"
     _job_store[job_id]["started_at"] = datetime.utcnow().isoformat()
+    _save_jobs()
 
     TRAINING_RUNS_TOTAL.labels(pipeline=pipeline).inc()
     ACTIVE_TRAINING_JOBS.inc()
@@ -67,12 +97,14 @@ def run_pipeline_task(job_id: str, pipeline: str) -> None:
 
         _job_store[job_id]["status"] = "completed"
         _job_store[job_id]["completed_at"] = datetime.utcnow().isoformat()
+        _save_jobs()
         logger.info(f"pipeline job completed: job_id={job_id}")
 
     except Exception as e:
         _job_store[job_id]["status"] = "failed"
         _job_store[job_id]["error"] = str(e)
         _job_store[job_id]["completed_at"] = datetime.utcnow().isoformat()
+        _save_jobs()
         logger.error(f"pipeline job failed: job_id={job_id} error={e}")
 
     finally:
@@ -89,4 +121,5 @@ def create_job(pipeline: str) -> str:
         "completed_at": None,
         "error": None,
     }
+    _save_jobs()
     return job_id
