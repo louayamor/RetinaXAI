@@ -9,14 +9,8 @@ logging.basicConfig(
 BASE_DIR = Path("llmops-service")
 
 dirs = [
-    "logs",
-    "logs/pipeline",
-    "logs/system",
-    "artifacts",
-    "artifacts/vectorstore",
-    "artifacts/model",
-    "config",
-    "tests",
+    "data",
+    "data/cache",
     "app",
     "app/api",
     "app/core",
@@ -24,6 +18,8 @@ dirs = [
     "app/prompts",
     "app/vectorstore",
     "app/utils",
+    "config",
+    "tests",
 ]
 
 for d in dirs:
