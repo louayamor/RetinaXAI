@@ -1,12 +1,21 @@
 import os
 from pathlib import Path
+from typing import Optional
 
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
 def _get_base_dir() -> str:
     """Get base directory from environment or fallback to default."""
     return os.environ.get("RETINAXAI_BASE_DIR", "/home/louay/RetinaXAI")
+
+
+class LLMProvider(str):
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    OLLAMA = "ollama"
+    MOCK = "mock"
 
 
 class Settings(BaseSettings):
@@ -28,7 +37,13 @@ class Settings(BaseSettings):
 
     chroma_path: Path = Path("shared/vectorstore/chroma")
 
-    # Ollama
+    # LLM Configuration
+    llm_provider: LLMProvider = LLMProvider.OPENAI
+    llm_model: str = "gpt-4o-mini"
+    llm_api_key: Optional[str] = Field(default=None, validation_alias="OPENAI_API_KEY")
+    llm_base_url: Optional[str] = None
+
+    # Ollama (fallback/local)
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama2"
 
