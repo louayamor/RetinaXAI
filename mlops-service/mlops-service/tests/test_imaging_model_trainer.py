@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import numpy as np
+
 from app.components.imaging import model_trainer as mt
 
 
@@ -108,8 +110,8 @@ def test_imaging_model_trainer_logs_model_with_cpu_example(monkeypatch, tmp_path
         mt.mlflow.pytorch.log_model(
             model.to("cpu"),
             name="imaging_model",
-            export_model=False,
-            input_example=mt.torch.zeros((1, 3, 224, 224), dtype=mt.torch.float32),
+            export_model=True,
+            input_example=np.zeros((1, 3, 224, 224), dtype=np.float32),
         )
         return checkpoint_path
 
@@ -118,6 +120,6 @@ def test_imaging_model_trainer_logs_model_with_cpu_example(monkeypatch, tmp_path
     result = mt.ImagingModelTrainer.train(trainer)
 
     assert result == trainer.config.checkpoint_path
-    assert captured["export_model"] is False
-    assert captured["input_example_type"] == "Tensor"
-    assert str(captured["input_example_dtype"]) == "torch.float32"
+    assert captured["export_model"] is True
+    assert captured["input_example_type"] == "ndarray"
+    assert str(captured["input_example_dtype"]) == "float32"
