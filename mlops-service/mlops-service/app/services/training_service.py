@@ -1,4 +1,5 @@
 import json
+import os
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -24,7 +25,7 @@ from monitoring.prometheus_metrics import (
     ACTIVE_TRAINING_JOBS,
 )
 
-_JOB_FILE = Path("artifacts/training_jobs.json")
+_JOB_FILE = Path(os.environ.get("TRAINING_JOBS_FILE", "artifacts/training_jobs.json"))
 _job_store: dict = {}
 
 

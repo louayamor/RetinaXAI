@@ -6,11 +6,16 @@ logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(message)s')
 BASE_DIR = Path("mlops-service")
 
 dirs = [
-    "logs",
-
+    "data",
+    "data/models",
+    "data/uploads",
+    "data/outputs",
+    "data/ocr_reports",
     "artifacts",
     "artifacts/model",
     "artifacts/data",
+    "artifacts/ocr",
+    "artifacts/ocr/output",
 
     "config",
     "research",
@@ -42,6 +47,10 @@ files = [
     "app/components/model_trainer.py",
     "app/components/model_evaluation.py",
     "app/components/inference.py",
+    "app/components/ocr/__init__.py",
+    "app/components/ocr/parser.py",
+    "app/components/ocr/region_detector.py",
+    "app/components/ocr/ocr_pipeline.py",
 
     "app/utils/__init__.py",
     "app/utils/common.py",
@@ -52,11 +61,15 @@ files = [
     "app/pipeline/__init__.py",
     "app/pipeline/training_pipeline.py",
     "app/pipeline/inference_pipeline.py",
+    "app/pipeline/imaging/__init__.py",
+    "app/pipeline/clinical/__init__.py",
+    "app/pipeline/ocr/__init__.py",
 
     "app/entity/__init__.py",
     "app/entity/config_entity.py",
 
     "app/constants/__init__.py",
+    "app/constants/constants.py",
 
     "config/config.yaml",
     "config/params.yaml",

@@ -1,7 +1,10 @@
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
+
+load_dotenv()
 
 
 def _get_base_dir() -> str:
@@ -26,24 +29,32 @@ class Settings(BaseSettings):
     backend_service_url: str = "http://backend-service:8000"
     timeout_seconds: int = 30
 
-    # Paths - use relative paths, resolved to absolute at runtime
-    # Override individual paths with env vars (e.g., SHARED_DIR, MODEL_DIR)
-    # Or set RETINAXAI_BASE_DIR to change the base for all paths
-    shared_dir: Path = Path("shared")
-    upload_dir: Path = Path("shared/uploads")
-    fundus_dir: Path = Path("shared/uploads/fundus")
-    oct_dir: Path = Path("shared/uploads/oct")
-    output_dir: Path = Path("shared/outputs")
-    gradcam_dir: Path = Path("shared/outputs/gradcam")
-    model_dir: Path = Path("shared/models")
-    vectorstore_dir: Path = Path("shared/vectorstore")
+    # Paths are injected via .env as absolute service-local locations.
+    data_dir: Path = Path()
+    upload_dir: Path = Path()
+    fundus_dir: Path = Path()
+    oct_dir: Path = Path()
+    output_dir: Path = Path()
+    gradcam_dir: Path = Path()
+    model_dir: Path = Path()
+    vectorstore_dir: Path = Path()
 
-    imaging_model_path: Path = Path("shared/models/imaging/model.pth")
-    clinical_model_path: Path = Path("shared/models/clinical/model.pkl")
-    clinical_feature_importance_path: Path = Path("shared/models/clinical/feature_importance.json")
+    imaging_model_path: Path = Path()
+    clinical_model_path: Path = Path()
+    clinical_feature_importance_path: Path = Path()
 
-    imaging_metrics_path: Path = Path("artifacts/model/imaging/metrics.json")
-    clinical_metrics_path: Path = Path("artifacts/model/clinical/metrics.json")
+    imaging_metrics_path: Path = Path()
+    clinical_metrics_path: Path = Path()
+
+    artifacts_root: Path = Path()
+    imaging_artifacts_dir: Path = Path()
+    clinical_artifacts_dir: Path = Path()
+    imaging_data_dir: Path = Path()
+    clinical_data_dir: Path = Path()
+    monitoring_dir: Path = Path()
+    training_jobs_file: Path = Path()
+    ocr_input_dir: Path = Path()
+    ocr_output_dir: Path = Path()
 
     prometheus_metrics_port: int = 9091
 
@@ -61,7 +72,7 @@ class Settings(BaseSettings):
         base = Path(_get_base_dir())
         
         path_fields = [
-            "shared_dir", "upload_dir", "fundus_dir", "oct_dir", 
+            "data_dir", "upload_dir", "fundus_dir", "oct_dir", 
             "output_dir", "gradcam_dir", "model_dir", "vectorstore_dir",
             "imaging_model_path", "clinical_model_path", 
             "clinical_feature_importance_path"

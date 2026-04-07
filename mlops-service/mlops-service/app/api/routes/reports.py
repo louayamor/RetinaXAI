@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+import os
 from pathlib import Path
 from loguru import logger
 
@@ -18,13 +19,13 @@ class ReportsResponse(BaseModel):
 
 @router.post("/reports", response_model=ReportsResponse)
 def generate_reports(settings: Settings = Depends(get_settings)):
-    reports_dir = Path("artifacts/monitoring")
+    reports_dir = Path(os.environ.get("MONITORING_DIR", "artifacts/monitoring"))
 
-    imaging_train = Path("artifacts/data/processed/imaging/train.csv")
-    imaging_test = Path("artifacts/data/processed/imaging/test.csv")
-    imaging_samaya = Path("artifacts/data/processed/imaging/samaya.csv")
-    clinical_train = Path("artifacts/data/processed/clinical/train.csv")
-    clinical_test = Path("artifacts/data/processed/clinical/test.csv")
+    imaging_train = Path(os.environ.get("IMAGING_TRAIN_CSV", "artifacts/data/processed/imaging/train.csv"))
+    imaging_test = Path(os.environ.get("IMAGING_TEST_CSV", "artifacts/data/processed/imaging/test.csv"))
+    imaging_samaya = Path(os.environ.get("IMAGING_SAMAYA_CSV", "artifacts/data/processed/imaging/samaya.csv"))
+    clinical_train = Path(os.environ.get("CLINICAL_TRAIN_CSV", "artifacts/data/processed/clinical/train.csv"))
+    clinical_test = Path(os.environ.get("CLINICAL_TEST_CSV", "artifacts/data/processed/clinical/test.csv"))
 
     missing = [
         str(p) for p in [imaging_train, imaging_test, clinical_train, clinical_test]
@@ -67,7 +68,7 @@ def generate_reports(settings: Settings = Depends(get_settings)):
 
 @router.get("/reports", response_model=ReportsResponse)
 def list_reports(settings: Settings = Depends(get_settings)):
-    reports_dir = Path("artifacts/monitoring")
+    reports_dir = Path(os.environ.get("MONITORING_DIR", "artifacts/monitoring"))
 
     if not reports_dir.exists():
         return ReportsResponse(generated=[], reports_dir=str(reports_dir))
