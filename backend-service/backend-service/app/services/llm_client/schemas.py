@@ -2,8 +2,13 @@ from pydantic import BaseModel
 
 
 class LLMReportRequest(BaseModel):
-    patient_age: int
-    patient_gender: str
+    patient: dict
+    prediction: dict
+    cleaned_summary: str
+    raw_ocr_text: str
+    report_type: str = "report"
+    language: str = "en"
+    tone: str = "clinical"
     model_name: str
     model_version: str
     prediction_output: dict

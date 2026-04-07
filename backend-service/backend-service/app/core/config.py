@@ -3,8 +3,11 @@ from functools import lru_cache
 from pathlib import Path
 from typing import List
 
+from dotenv import load_dotenv
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+load_dotenv()
 
 
 def _get_base_dir() -> str:
@@ -29,13 +32,15 @@ class Settings(BaseSettings):
     DATABASE_POOL_SIZE: int = 10
     DATABASE_MAX_OVERFLOW: int = 20
 
-    # Storage paths - use relative paths, resolved via RETINAXAI_BASE_DIR
-    SHARED_DIR: Path = Path("shared")
-    UPLOAD_DIR: Path = Path("shared/uploads")
-    FUNDUS_DIR: Path = Path("shared/uploads/fundus")
-    OCT_DIR: Path = Path("shared/uploads/oct")
-    OUTPUT_DIR: Path = Path("shared/outputs")
-    GRADCAM_DIR: Path = Path("shared/outputs/gradcam")
+    # Storage paths - backend owns its own local workspace
+    DATA_DIR: Path = Path()
+    UPLOAD_DIR: Path = Path()
+    FUNDUS_DIR: Path = Path()
+    OCT_DIR: Path = Path()
+    OUTPUT_DIR: Path = Path()
+    GRADCAM_DIR: Path = Path()
+    IMAGING_METRICS: Path = Path()
+    CLINICAL_METRICS: Path = Path()
 
     # Auth
     SECRET_KEY: str = "dev-secret-key-change-in-production"
@@ -60,24 +65,6 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "json"
-
-    def __init__(self, **data):
-        super().__init__(**data)
-        self._resolve_paths()
-
-    def _resolve_paths(self):
-        """Resolve relative paths to absolute using RETINAXAI_BASE_DIR env var."""
-        base = Path(_get_base_dir())
-        
-        path_fields = [
-            "SHARED_DIR", "UPLOAD_DIR", "FUNDUS_DIR", "OCT_DIR",
-            "OUTPUT_DIR", "GRADCAM_DIR"
-        ]
-        
-        for field in path_fields:
-            value = getattr(self, field)
-            if value and not Path(value).is_absolute():
-                setattr(self, field, base / value)
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

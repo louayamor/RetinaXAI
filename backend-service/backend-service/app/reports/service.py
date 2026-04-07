@@ -50,9 +50,35 @@ class ReportService:
         report = await self.repo.create(report)
 
         try:
+            cleaned_summary = ""
+            if prediction.output_payload:
+                cleaned_summary = str(
+                    prediction.output_payload.get("summary")
+                    or prediction.output_payload.get("description")
+                    or prediction.output_payload
+                )
+
             llm_request = LLMReportRequest(
-                patient_age=patient.age,
-                patient_gender=patient.gender.value,
+                patient={
+                    "id": str(patient.id),
+                    "first_name": patient.first_name,
+                    "last_name": patient.last_name,
+                    "age": patient.age,
+                    "gender": patient.gender.value,
+                    "medical_record_number": patient.medical_record_number,
+                    "ocr_patient_id": patient.ocr_patient_id,
+                },
+                prediction={
+                    "id": str(prediction.id),
+                    "model_name": prediction.model_name,
+                    "model_version": prediction.model_version,
+                    "confidence_score": prediction.confidence_score,
+                    "status": prediction.status.value,
+                    "output_payload": prediction.output_payload,
+                },
+                cleaned_summary=cleaned_summary,
+                raw_ocr_text=str(prediction.output_payload or ""),
+                report_type="prediction",
                 model_name=prediction.model_name,
                 model_version=prediction.model_version,
                 prediction_output=prediction.output_payload,
