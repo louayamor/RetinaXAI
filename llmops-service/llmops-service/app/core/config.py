@@ -1,9 +1,13 @@
 import os
+from enum import StrEnum
 from pathlib import Path
 from typing import Optional
 
+from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings
+
+load_dotenv()
 
 
 def _get_base_dir() -> str:
@@ -11,7 +15,7 @@ def _get_base_dir() -> str:
     return os.environ.get("RETINAXAI_BASE_DIR", "/home/louay/RetinaXAI")
 
 
-class LLMProvider(str):
+class LLMProvider(StrEnum):
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     OLLAMA = "ollama"
@@ -30,13 +34,9 @@ class Settings(BaseSettings):
     backend_service_url: str = "http://backend-service:8000"
     timeout_seconds: int = 60
 
-    # Storage paths - relative, resolved via RETINAXAI_BASE_DIR
-    SHARED_DIR: Path = Path("shared")
-    OUTPUT_DIR: Path = Path("shared/outputs")
-    GRADCAM_DIR: Path = Path("shared/outputs/gradcam")
-    VECTORSTORE_DIR: Path = Path("shared/vectorstore")
-
-    chroma_path: Path = Path("shared/vectorstore/chroma")
+    # Local storage only; LLMOps receives context from backend.
+    DATA_DIR: Path = Path()
+    CACHE_DIR: Path = Path()
 
     # LLM Configuration
     llm_provider: LLMProvider = LLMProvider.GITHUB
@@ -58,24 +58,5 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         extra = "ignore"
-
-    def __init__(self, **data):
-        super().__init__(**data)
-        self._resolve_paths()
-
-    def _resolve_paths(self):
-        """Resolve relative paths to absolute using RETINAXAI_BASE_DIR env var."""
-        base = Path(_get_base_dir())
-        
-        path_fields = [
-            "SHARED_DIR", "OUTPUT_DIR", "GRADCAM_DIR", 
-            "VECTORSTORE_DIR", "chroma_path"
-        ]
-        
-        for field in path_fields:
-            value = getattr(self, field)
-            if value and not Path(value).is_absolute():
-                setattr(self, field, base / value)
-
 
 settings = Settings()
