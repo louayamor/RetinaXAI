@@ -14,7 +14,10 @@ from pathlib import Path
 import asyncpg
 
 base_dir = os.environ.get("RETINAXAI_BASE_DIR", "/home/louay/RetinaXAI")
-OCR_CSV = Path(base_dir) / "mlops-service/mlops-service/artifacts/ocr/output/reports.csv"
+OCR_CSV = Path(base_dir) / os.environ.get(
+    "OCR_OUTPUT_CSV",
+    "mlops-service/mlops-service/artifacts/ocr/output/reports.csv",
+)
 DATABASE_URL = "postgresql://retinaxai:retinaxai_secret@localhost:5432/retinaxai"
 
 THICKNESS_COLS = [

@@ -6,12 +6,13 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser
+from app.core.config import settings
 from app.db.session import get_db
 
 router = APIRouter(prefix="/metrics", tags=["model_metrics"])
 
-IMAGING_METRICS = Path("artifacts/model/imaging/metrics.json")
-CLINICAL_METRICS = Path("artifacts/model/clinical/metrics.json")
+IMAGING_METRICS = settings.IMAGING_METRICS
+CLINICAL_METRICS = settings.CLINICAL_METRICS
 
 
 def _load_metrics(path: Path) -> dict | None:
