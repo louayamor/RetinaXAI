@@ -26,7 +26,7 @@ def test_parse_thickness(sample_text):
 def test_parse_clinical(sample_text):
     clinical = parse_clinical(sample_text)
     assert clinical.vitreous == "Normal"
-    assert clinical.edema == False
+    assert not clinical.edema
     assert clinical.npdr_grade == "mild"
     assert clinical.erm_status == "residual"
-    assert clinical.laser_marks == True
+    assert clinical.laser_marks

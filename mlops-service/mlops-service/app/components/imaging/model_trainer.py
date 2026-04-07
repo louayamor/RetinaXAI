@@ -1,3 +1,5 @@
+import copy
+
 import mlflow
 import mlflow.pytorch
 import timm
@@ -234,9 +236,10 @@ class ImagingModelTrainer:
                     patience_counter = 0
                     torch.save(model.state_dict(), checkpoint_path)
                     BEST_VAL_ACCURACY.labels(pipeline="imaging").set(best_val_acc)
-                    input_example = np.random.rand(1, 3, 224, 224).astype(np.float32)
+                    model_to_log = copy.deepcopy(model).to("cpu").eval()
+                    input_example = torch.zeros((1, 3, 224, 224), dtype=torch.float32)
                     mlflow.pytorch.log_model(
-                        model, name="imaging_model", export_model=False,
+                        model_to_log, name="imaging_model", export_model=False,
                         input_example=input_example
                     )
                     logger.info(f"checkpoint saved: val_acc={val_acc:.4f}")
