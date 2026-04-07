@@ -1,13 +1,13 @@
-import copy
-
 import mlflow
 import mlflow.pytorch
+import time
 import timm
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from loguru import logger
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 from torchvision import transforms
 import pandas as pd
@@ -123,6 +123,68 @@ class ImagingModelTrainer:
             replacement=True,
         )
 
+    def _log_best_model_to_mlflow(self, checkpoint_path: Path, num_classes: int) -> None:
+        if not checkpoint_path.exists():
+            logger.warning("best checkpoint missing; skipping mlflow model log")
+            return
+
+        mlflow_cfg = self.params.get("mlflow", {}) or {}
+        logger.info(f"preparing best checkpoint for mlflow: {checkpoint_path}")
+
+        # Rebuild a CPU model from the best checkpoint once to avoid
+        # expensive per-epoch deepcopy/logging overhead inside the train loop.
+        model = timm.create_model(
+            self.config.model_name,
+            pretrained=False,
+            num_classes=num_classes,
+            drop_rate=self.params.dl_training.dropout,
+        )
+        logger.info("loading checkpoint state_dict on cpu")
+        state_dict = torch.load(checkpoint_path, map_location="cpu")
+        model.load_state_dict(state_dict)
+        model.eval()
+
+        input_example = np.zeros((1, 3, 224, 224), dtype=np.float32)
+        timeout_seconds = int(mlflow_cfg.get("model_log_timeout_seconds", 300))
+        timeout_seconds = max(1, timeout_seconds)
+
+        logger.info(f"starting mlflow model upload (timeout={timeout_seconds}s)")
+        start_time = time.perf_counter()
+
+        def _upload_model() -> None:
+            try:
+                mlflow.pytorch.log_model(
+                    model,
+                    name="imaging_model",
+                    export_model=True,
+                    input_example=input_example,
+                )
+                logger.info("mlflow model logged with export_model=True")
+            except Exception as exc:
+                logger.warning(
+                    f"mlflow export_model=True failed ({type(exc).__name__}); "
+                    "falling back to export_model=False"
+                )
+                mlflow.pytorch.log_model(
+                    model,
+                    name="imaging_model",
+                    export_model=False,
+                    input_example=input_example,
+                )
+                logger.info("mlflow model logged with export_model=False fallback")
+
+        try:
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(_upload_model)
+                future.result(timeout=timeout_seconds)
+            elapsed = time.perf_counter() - start_time
+            logger.info(f"best imaging model logged to mlflow in {elapsed:.1f}s")
+        except FuturesTimeoutError:
+            elapsed = time.perf_counter() - start_time
+            logger.warning(
+                f"mlflow model upload timed out after {elapsed:.1f}s; skipping artifact log"
+            )
+
     def train(self) -> Path:
         set_seed(self.params.dl_training.seed)
         p = self.params.dl_training
@@ -236,12 +298,6 @@ class ImagingModelTrainer:
                     patience_counter = 0
                     torch.save(model.state_dict(), checkpoint_path)
                     BEST_VAL_ACCURACY.labels(pipeline="imaging").set(best_val_acc)
-                    model_to_log = copy.deepcopy(model).to("cpu").eval()
-                    input_example = torch.zeros((1, 3, 224, 224), dtype=torch.float32)
-                    mlflow.pytorch.log_model(
-                        model_to_log, name="imaging_model", export_model=False,
-                        input_example=input_example
-                    )
                     logger.info(f"checkpoint saved: val_acc={val_acc:.4f}")
                 else:
                     patience_counter += 1
@@ -250,6 +306,7 @@ class ImagingModelTrainer:
                         break
 
             mlflow.log_metric("best_val_acc", best_val_acc)
+            self._log_best_model_to_mlflow(checkpoint_path, p.num_classes)
 
         logger.info(f"training complete. best_val_acc={best_val_acc:.4f}")
         logger.info(f"model saved: {checkpoint_path}")

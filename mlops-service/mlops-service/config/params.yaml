@@ -89,3 +89,7 @@ evaluation:
       - roc_auc
       - f1_weighted
       - classification_report
+
+mlflow:
+  imaging_run_name: efficientnet_b3
+  model_log_timeout_seconds: 300
