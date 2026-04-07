@@ -15,6 +15,7 @@ class LLMProvider(str):
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     OLLAMA = "ollama"
+    GITHUB = "github"
     MOCK = "mock"
 
 
@@ -38,10 +39,14 @@ class Settings(BaseSettings):
     chroma_path: Path = Path("shared/vectorstore/chroma")
 
     # LLM Configuration
-    llm_provider: LLMProvider = LLMProvider.OPENAI
-    llm_model: str = "gpt-4o-mini"
+    llm_provider: LLMProvider = LLMProvider.GITHUB
+    llm_model: str = "openai/gpt-4.1-mini"
     llm_api_key: Optional[str] = Field(default=None, validation_alias="OPENAI_API_KEY")
     llm_base_url: Optional[str] = None
+
+    # GitHub AI Inference (Azure)
+    github_token: Optional[str] = Field(default=None, validation_alias="GITHUB_ACCESS_TOKEN")
+    github_endpoint: str = "https://models.github.ai/inference"
 
     # Ollama (fallback/local)
     ollama_base_url: str = "http://localhost:11434"
