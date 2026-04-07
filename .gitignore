@@ -51,6 +51,8 @@ node_modules/
 .next/
 out/
 yarn-error.log
+AGENTS.md
+/.cursor/
 pnpm-lock.yaml
 package-lock.json
 .env
@@ -96,5 +98,3 @@ mlops-service/mlops-service/logs/
 # llmops artifacts (for when we build it)
 llmops-service/artifacts/
 
-/.skills
-AGENTS.md

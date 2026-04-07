@@ -40,6 +40,7 @@ import {
   IconLogout,
   IconUserCircle
 } from '@tabler/icons-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -77,9 +78,14 @@ export default function AppSidebar() {
     <Sidebar collapsible='icon'>
       <SidebarHeader>
         <div className='flex items-center gap-2 px-2 py-1'>
-          <div className='bg-primary flex h-7 w-7 items-center justify-center rounded-md'>
-            <Icons.logo className='text-primary-foreground h-4 w-4' />
-          </div>
+          <Image
+            src='/retinaxai-logo.svg'
+            alt='RetinaXAI'
+            width={28}
+            height={28}
+            className='h-7 w-7 rounded-md'
+            priority
+          />
           <span className='font-semibold'>RetinaXAI</span>
         </div>
       </SidebarHeader>

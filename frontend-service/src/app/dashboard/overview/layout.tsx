@@ -7,9 +7,26 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { IconTrendingDown, IconTrendingUp, IconEye, IconUsers, IconActivity, IconBrain } from '@tabler/icons-react';
+import { IconEye, IconUsers, IconActivity, IconBrain } from '@tabler/icons-react';
 import Image from 'next/image';
 import React from 'react';
+
+const gradeStats = [
+  { grade: 'No DR', count: 0, color: 'bg-emerald-500', pct: '0%' },
+  { grade: 'Mild', count: 8, color: 'bg-cyan-500', pct: '9.8%' },
+  { grade: 'Moderate', count: 29, color: 'bg-amber-500', pct: '35.4%' },
+  { grade: 'Severe', count: 9, color: 'bg-orange-500', pct: '11.0%' },
+  { grade: 'Proliferative', count: 36, color: 'bg-rose-500', pct: '43.9%' }
+];
+
+const services = [
+  'Contoura LASIK',
+  'Cataract',
+  'Keratoconus',
+  'Glaucoma',
+  'Diabetic Retinopathy',
+  'Dry Eyes'
+];
 
 export default function OverViewLayout({
   pie_stats,
@@ -24,33 +41,38 @@ export default function OverViewLayout({
     <PageContainer>
       <div className='flex flex-1 flex-col gap-8'>
         {/* Hero Section */}
-        <div className='relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0a2e3e] via-[#0d3a4c] to-[#104a5e] p-10 text-white'>
-          <div className='absolute right-0 top-0 h-full w-1/3 opacity-10'>
+        <div className='animate-in-up relative overflow-hidden rounded-2xl border bg-gradient-to-r from-slate-900 via-cyan-900 to-teal-900 p-10 text-white shadow-lg'>
+          <div className='absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(45,212,191,0.18),transparent_45%)]' />
+          <div className='absolute right-0 top-0 h-full w-1/3 opacity-15'>
             <Image
               src='https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&q=80'
               alt='Medical Technology'
               fill
               className='object-cover'
-              unoptimized
+              priority
+              sizes='(max-width: 768px) 0vw, 33vw'
             />
           </div>
-          <div className='relative z-10'>
+          <div className='relative z-10 space-y-2'>
             <div className='flex items-center gap-3 mb-4'>
               <Image
                 src='https://www.samayahospital.ae/home/images/logo.png'
                 alt='Samaya Logo'
-                width={32}
-                height={32}
-                className='h-8 w-auto brightness-0 invert'
+                width={160}
+                height={40}
+                className='h-10 w-auto object-contain brightness-0 invert'
+                sizes='160px'
+                quality={100}
+                priority
                 unoptimized
               />
               <span className='text-lg font-medium text-[#20bdbe]'>|</span>
               <span className='text-lg font-medium'>RetinaXAI</span>
             </div>
-            <h1 className='text-3xl font-bold mb-2'>
+            <h1 className='text-3xl font-bold tracking-tight md:text-4xl'>
               Welcome to RetinaXAI
             </h1>
-            <p className='text-white/70 max-w-xl text-lg'>
+            <p className='max-w-xl text-base text-white/80 md:text-lg'>
               AI-assisted diabetic retinopathy detection powered by Samaya Specialized Center.
               Love your Eyes. Love your Future.
             </p>
@@ -59,7 +81,7 @@ export default function OverViewLayout({
 
         {/* Stats Cards */}
         <div className='grid gap-6 md:grid-cols-2 lg:grid-cols-4'>
-          <Card className='shadow-md'>
+          <Card className='animate-in-up border-0 bg-gradient-to-br from-card to-cyan-50/40 shadow-md transition-transform duration-300 hover:-translate-y-1 dark:to-cyan-950/15'>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-4'>
               <CardTitle className='text-base font-medium'>Total OCT Reports</CardTitle>
               <IconEye className='h-5 w-5 text-[#20bdbe]' />
@@ -71,7 +93,7 @@ export default function OverViewLayout({
               </p>
             </CardContent>
           </Card>
-          <Card className='shadow-md'>
+          <Card className='animate-in-up border-0 bg-gradient-to-br from-card to-amber-50/40 shadow-md transition-transform duration-300 hover:-translate-y-1 dark:to-amber-950/15'>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-4'>
               <CardTitle className='text-base font-medium'>DR Detected</CardTitle>
               <IconActivity className='h-5 w-5 text-[#c8a951]' />
@@ -83,7 +105,7 @@ export default function OverViewLayout({
               </p>
             </CardContent>
           </Card>
-          <Card className='shadow-md'>
+          <Card className='animate-in-up border-0 bg-gradient-to-br from-card to-cyan-50/40 shadow-md transition-transform duration-300 hover:-translate-y-1 dark:to-cyan-950/15'>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-4'>
               <CardTitle className='text-base font-medium'>Active Patients</CardTitle>
               <IconUsers className='h-5 w-5 text-[#20bdbe]' />
@@ -95,7 +117,7 @@ export default function OverViewLayout({
               </p>
             </CardContent>
           </Card>
-          <Card className='shadow-md'>
+          <Card className='animate-in-up border-0 bg-gradient-to-br from-card to-emerald-50/40 shadow-md transition-transform duration-300 hover:-translate-y-1 dark:to-emerald-950/15'>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-4'>
               <CardTitle className='text-base font-medium'>Model Accuracy</CardTitle>
               <IconBrain className='h-5 w-5 text-[#20bdbe]' />
@@ -110,7 +132,7 @@ export default function OverViewLayout({
         </div>
 
         {/* Grade Distribution */}
-        <Card className='shadow-md'>
+        <Card className='animate-in-up border-0 shadow-md'>
           <CardHeader>
             <CardTitle>DR Grade Distribution</CardTitle>
             <CardDescription>
@@ -119,14 +141,11 @@ export default function OverViewLayout({
           </CardHeader>
           <CardContent>
             <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-5'>
-              {[
-                { grade: 'No DR', count: 0, color: 'bg-green-500', pct: '0%' },
-                { grade: 'Mild', count: 8, color: 'bg-[#20bdbe]', pct: '9.8%' },
-                { grade: 'Moderate', count: 29, color: 'bg-[#c8a951]', pct: '35.4%' },
-                { grade: 'Severe', count: 9, color: 'bg-orange-500', pct: '11.0%' },
-                { grade: 'Proliferative', count: 36, color: 'bg-red-500', pct: '43.9%' },
-              ].map((item) => (
-                <div key={item.grade} className='flex flex-col items-center gap-2 rounded-xl border p-4'>
+              {gradeStats.map((item) => (
+                <div
+                  key={item.grade}
+                  className='flex flex-col items-center gap-2 rounded-xl border p-4 transition-colors duration-200 hover:bg-muted/40'
+                >
                   <div className={`h-3 w-full rounded-full ${item.color}`} style={{ opacity: 0.8 }} />
                   <div className='text-center'>
                     <p className='text-2xl font-bold'>{item.count}</p>
@@ -148,7 +167,7 @@ export default function OverViewLayout({
 
         {/* Samaya Info */}
         <div className='grid gap-6 md:grid-cols-2'>
-          <Card className='shadow-md'>
+          <Card className='animate-in-up border-0 shadow-md'>
             <CardHeader>
               <CardTitle>About Samaya Specialized Center</CardTitle>
             </CardHeader>
@@ -171,13 +190,13 @@ export default function OverViewLayout({
               </div>
             </CardContent>
           </Card>
-          <Card className='shadow-md'>
+          <Card className='animate-in-up border-0 shadow-md'>
             <CardHeader>
               <CardTitle>Services</CardTitle>
             </CardHeader>
             <CardContent>
               <div className='grid gap-3 sm:grid-cols-2'>
-                {['Contoura LASIK', 'Cataract', 'Keratoconus', 'Glaucoma', 'Diabetic Retinopathy', 'Dry Eyes'].map((s) => (
+                {services.map((s) => (
                   <div key={s} className='flex items-center gap-2 rounded-lg border p-3'>
                     <div className='h-2 w-2 rounded-full bg-[#20bdbe]' />
                     <span className='text-sm'>{s}</span>
