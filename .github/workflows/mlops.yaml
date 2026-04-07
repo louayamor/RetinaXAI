@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - 'mlops-service/**'
-      - '.github/workflows/mlops.yml'
+      - '.github/workflows/mlops.yaml'
   workflow_dispatch:
     inputs:
       run_dvc:
