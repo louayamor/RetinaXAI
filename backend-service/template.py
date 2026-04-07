@@ -6,45 +6,30 @@ logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(message)s')
 BASE_DIR = Path("backend-service")
 
 dirs = [
-    
-    "logs",
-    "logs/system",
-    "logs/auth",
-    "logs/requests",
-
     "app",
     "app/api",
     "app/api/v1",
     "app/api/v1/routes",
     "app/core",
     "app/core/middleware",
-
     "app/db",
     "app/db/migrations",
     "app/db/migrations/versions",
-
     "app/models",
-
     "app/schemas",
-
     "app/auth",
-
     "app/services",
     "app/services/ml_client",
     "app/services/llm_client",
-
     "app/patients",
     "app/users",
     "app/reports",
     "app/predictions",
-
+    "app/mri_scans",
+    "app/oct_reports",
     "app/observability",
-
+    "app/scripts",
     "tests",
-    "tests/unit",
-    "tests/integration",
-    "tests/fixtures",
-
     "config",
 ]
 
@@ -60,18 +45,15 @@ files = [
     "app/core/middleware/__init__.py",
     "app/core/middleware/cors.py",
     "app/core/middleware/request_id.py",
-
     "app/db/__init__.py",
     "app/db/base.py",
     "app/db/session.py",
     "app/db/migrations/env.py",
-
     "app/models/__init__.py",
     "app/models/user.py",
     "app/models/patient.py",
     "app/models/prediction.py",
     "app/models/report.py",
-
     "app/schemas/__init__.py",
     "app/schemas/common.py",
     "app/schemas/user_schema.py",
@@ -83,7 +65,6 @@ files = [
     "app/auth/__init__.py",
     "app/auth/jwt_handler.py",
     "app/auth/dependencies.py",
-
     "app/api/__init__.py",
     "app/api/v1/__init__.py",
     "app/api/v1/router.py",
@@ -101,7 +82,6 @@ files = [
     "app/services/llm_client/__init__.py",
     "app/services/llm_client/llm_service.py",
     "app/services/llm_client/schemas.py",
-
     "app/patients/__init__.py",
     "app/patients/service.py",
     "app/patients/repository.py",
@@ -117,27 +97,15 @@ files = [
     "app/reports/__init__.py",
     "app/reports/service.py",
     "app/reports/repository.py",
-
     "app/observability/__init__.py",
     "app/observability/metrics.py",
     "app/observability/tracing.py",
-
+    "app/scripts/import_oct_reports.py",
     "config/app_config.yaml",
     "config/logging_config.yaml",
-
     "tests/__init__.py",
-    "tests/unit/__init__.py",
-    "tests/unit/test_auth.py",
-    "tests/unit/test_patient_service.py",
-    "tests/unit/test_prediction_service.py",
-    "tests/integration/__init__.py",
-    "tests/integration/test_predict_route.py",
-    "tests/integration/test_report_route.py",
-    "tests/fixtures/__init__.py",
-    "tests/fixtures/patient_fixtures.py",
     ".env.example",
     "alembic.ini",
-    
 ]
 
 for d in dirs:

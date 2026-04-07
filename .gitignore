@@ -78,6 +78,11 @@ mlops-service/mlops-service/artifacts/model/
 mlops-service/mlops-service/artifacts/monitoring/
 mlops-service/mlops-service/artifacts/ocr/output/reports.csv
 
+# service-local data directories
+backend-service/backend-service/data/
+mlops-service/mlops-service/data/
+llmops-service/llmops-service/data/
+
 # DVC local credentials (never commit)
 .dvc/config.local
 **/dvc/config.local
