@@ -2,26 +2,27 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
+from typing import Any, cast
 
 from app.entity.ocr_schema import ClinicalFindings, OCTReport, PatientInfo, RegionImage, ReportMetadata, RetinalThickness
 from app.pipeline.ocr_pipeline import OCRPipeline
 
 
-def test_ocr_pipeline_export_uses_configured_paths(monkeypatch, tmp_path):
-    input_dir = tmp_path / "ocr_reports"
-    output_dir = tmp_path / "output"
-    images_dir = tmp_path / "images"
+def test_ocr_pipeline_export_uses_configured_paths(monkeypatch, temp_input_dir, temp_output_dir, temp_images_dir):
+    input_dir = temp_input_dir
+    output_dir = temp_output_dir
+    images_dir = temp_images_dir
     regions_config = {"fundus": {"rel": [0.0, 0.0, 1.0, 1.0]}}
 
-    class DummyConfig:
-        pass
-
-    DummyConfig.input_dir = input_dir
-    DummyConfig.output_dir = output_dir
-    DummyConfig.json_output = output_dir / "reports.json"
-    DummyConfig.csv_output = output_dir / "reports.csv"
-    DummyConfig.images_dir = images_dir
-    DummyConfig.regions_config = regions_config
+    DummyConfig = SimpleNamespace(
+        input_dir=input_dir,
+        output_dir=output_dir,
+        json_output=output_dir / "reports.json",
+        csv_output=output_dir / "reports.csv",
+        images_dir=images_dir,
+        regions_config=regions_config,
+    )
 
     report = OCTReport(
         source_file="scan.jpg",
@@ -34,8 +35,8 @@ def test_ocr_pipeline_export_uses_configured_paths(monkeypatch, tmp_path):
         extraction_warnings=[],
     )
 
-    pipeline = OCRPipeline.__new__(OCRPipeline)
-    pipeline.config = DummyConfig()
+    pipeline = cast(Any, OCRPipeline.__new__(OCRPipeline))
+    pipeline.config = DummyConfig
 
     captured: dict[str, object] = {}
 
@@ -51,25 +52,21 @@ def test_ocr_pipeline_export_uses_configured_paths(monkeypatch, tmp_path):
 
     pipeline._export([report])
 
-    assert captured["json"][0]["source_file"] == "scan.jpg"
+    assert cast(list[dict[str, object]], captured["json"])[0]["source_file"] == "scan.jpg"
     assert captured["csv_path"] == str(DummyConfig.csv_output)
     assert captured["csv_index"] is False
 
 
-def test_ocr_pipeline_skips_existing_report(monkeypatch, tmp_path):
-    pipeline = OCRPipeline.__new__(OCRPipeline)
-    pipeline.config = type(
-        "Cfg",
-        (),
-        {
-            "images_dir": tmp_path / "images",
-            "input_dir": tmp_path / "input",
-            "regions_config": {},
-            "output_dir": tmp_path / "output",
-            "json_output": tmp_path / "output" / "reports.json",
-            "csv_output": tmp_path / "output" / "reports.csv",
-        },
-    )()
+def test_ocr_pipeline_skips_existing_report(monkeypatch, temp_input_dir, temp_output_dir, temp_images_dir):
+    pipeline = cast(Any, OCRPipeline.__new__(OCRPipeline))
+    pipeline.config = SimpleNamespace(
+        images_dir=temp_images_dir,
+        input_dir=temp_input_dir,
+        regions_config={},
+        output_dir=temp_output_dir,
+        json_output=temp_output_dir / "reports.json",
+        csv_output=temp_output_dir / "reports.csv",
+    )
 
     report_dir = pipeline.config.images_dir / "patient" / "OD" / "scan"
     report_dir.mkdir(parents=True)
