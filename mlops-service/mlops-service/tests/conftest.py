@@ -1,9 +1,13 @@
-import pytest
+from __future__ import annotations
+
+from pathlib import Path
+
 import numpy as np
+import pytest
 
 
 @pytest.fixture
-def sample_text():
+def sample_text() -> str:
     return """
     3D Macula Report    Triton    Print Date: 15/03/2026 11:10:55
     ID: 849x    Gender: Male    DOB: 01/01/1956    Age: 70
@@ -20,5 +24,26 @@ def sample_text():
 
 
 @pytest.fixture
-def dummy_image():
+def dummy_image() -> np.ndarray:
     return np.zeros((1000, 1280, 3), dtype=np.uint8)
+
+
+@pytest.fixture
+def temp_input_dir(tmp_path: Path) -> Path:
+    path = tmp_path / "input"
+    path.mkdir()
+    return path
+
+
+@pytest.fixture
+def temp_output_dir(tmp_path: Path) -> Path:
+    path = tmp_path / "output"
+    path.mkdir()
+    return path
+
+
+@pytest.fixture
+def temp_images_dir(tmp_path: Path) -> Path:
+    path = tmp_path / "images"
+    path.mkdir()
+    return path
