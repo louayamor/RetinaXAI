@@ -19,7 +19,7 @@ def test_shared_llm_payload_has_required_fields(llm_report_payload) -> None:
 
 @pytest.mark.asyncio
 async def test_api_client_fixture_available(api_client) -> None:
-    response = api_client.get("/health")
+    response = await api_client.get("/health")
 
     assert response.status_code == 200
     assert response.json()["status"] == "ok"

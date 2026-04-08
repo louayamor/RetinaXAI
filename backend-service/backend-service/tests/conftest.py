@@ -5,8 +5,9 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
+import httpx
 import pytest
-from fastapi.testclient import TestClient
+import pytest_asyncio
 
 from app.main import app
 from app.auth.jwt_handler import create_access_token, create_refresh_token
@@ -41,9 +42,10 @@ def auth_session(user_id: uuid.UUID) -> SimpleNamespace:
     )
 
 
-@pytest.fixture
-def api_client() -> TestClient:
-    return TestClient(app)
+@pytest_asyncio.fixture
+async def api_client() -> httpx.AsyncClient:
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://testserver") as client:
+        yield client
 
 
 @pytest.fixture
