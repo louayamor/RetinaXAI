@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+import yaml
 
 
 @pytest.fixture
@@ -47,3 +48,11 @@ def temp_images_dir(tmp_path: Path) -> Path:
     path = tmp_path / "images"
     path.mkdir()
     return path
+
+
+@pytest.fixture
+def regions_config() -> dict:
+    config_path = Path(__file__).resolve().parents[1] / "config" / "regions.yaml"
+    with config_path.open() as f:
+        data = yaml.safe_load(f)
+    return data.get("regions", data)
