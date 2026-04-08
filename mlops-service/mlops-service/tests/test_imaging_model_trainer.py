@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import numpy as np
+from types import SimpleNamespace
+from typing import Any, cast
 
 from app.components.imaging import model_trainer as mt
 
@@ -35,10 +37,10 @@ def test_imaging_model_trainer_logs_model_with_cpu_example(monkeypatch, tmp_path
         def get(self, key, default=None):
             return {"mlflow": {"imaging_run_name": "unit_test"}}.get(key, default)
 
-    trainer = mt.ImagingModelTrainer.__new__(mt.ImagingModelTrainer)
+    trainer = cast(Any, mt.ImagingModelTrainer.__new__(mt.ImagingModelTrainer))
     trainer.params = DummyParams()
-    trainer.config = type("Cfg", (), {"model_name": "efficientnet_b3", "pretrained": True, "checkpoint_path": tmp_path / "model.pth"})()
-    trainer.transformation_config = type("T", (), {"train_csv": tmp_path / "train.csv", "test_csv": tmp_path / "test.csv"})()
+    trainer.config = SimpleNamespace(model_name="efficientnet_b3", pretrained=True, checkpoint_path=tmp_path / "model.pth")
+    trainer.transformation_config = SimpleNamespace(train_csv=tmp_path / "train.csv", test_csv=tmp_path / "test.csv")
     trainer.device = None
 
     class DummyDataset:
