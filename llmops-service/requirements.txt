@@ -7,4 +7,6 @@ uvicorn[standard]>=0.27.0
 pydantic>=2.7.4
 pydantic-settings>=2.2.0
 
-azure-ai-inference>=1.0.0
+azure-ai-inference>=1.0.0b9
+pytest>=8.0
+pylance>=0.0.8

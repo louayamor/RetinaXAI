@@ -16,26 +16,26 @@ class InferencePipeline:
 
         client_kwargs = {"model": settings.llm_model}
         if provider == "github":
-            client_kwargs["token"] = token
-            client_kwargs["endpoint"] = base_url
+            client_kwargs["token"] = token or ""
+            client_kwargs["endpoint"] = base_url or settings.github_endpoint
         elif provider == "ollama":
             client_kwargs["base_url"] = base_url or settings.ollama_base_url
         else:
-            client_kwargs["token"] = token
-            client_kwargs["base_url"] = base_url
+            client_kwargs["token"] = token or ""
+            client_kwargs["base_url"] = base_url or settings.llm_base_url or settings.github_endpoint
 
         self.client = get_llm_client(provider, **client_kwargs)
 
     def generate_report(self, payload: dict) -> dict[str, str]:
         model_name = str(payload.get("model") or settings.llm_model)
         user_prompt = REPORT_USER_PROMPT.format(
-            patient=dump_compact(payload.get("patient", {})),
-            prediction=dump_compact(payload.get("prediction", {})),
-            cleaned_summary=payload.get("cleaned_summary", ""),
-            raw_ocr_text=payload.get("raw_ocr_text", ""),
-            report_type=payload.get("report_type", "unknown"),
-            language=payload.get("language", "en"),
-            tone=payload.get("tone", "clinical"),
+            patient=dump_compact(payload.get("patient") or {}),
+            prediction=dump_compact(payload.get("prediction") or {}),
+            cleaned_summary=str(payload.get("cleaned_summary") or ""),
+            raw_ocr_text=str(payload.get("raw_ocr_text") or ""),
+            report_type=str(payload.get("report_type") or "unknown"),
+            language=str(payload.get("language") or "en"),
+            tone=str(payload.get("tone") or "clinical"),
         )
 
         content = self.client.generate(user_prompt, REPORT_SYSTEM_PROMPT)
