@@ -11,7 +11,7 @@ def get_metrics():
     settings = get_settings()
 
     imaging_metrics = None
-    if settings.imaging_metrics_path.exists():
+    if settings.imaging_metrics_path.is_file():
         with open(settings.imaging_metrics_path) as f:
             data = json.load(f)
         eyepacs = data.get("eyepacs_test", {})
@@ -23,7 +23,7 @@ def get_metrics():
         )
 
     clinical_metrics = None
-    if settings.clinical_metrics_path.exists():
+    if settings.clinical_metrics_path.is_file():
         with open(settings.clinical_metrics_path) as f:
             data = json.load(f)
         clinical_metrics = ClinicalMetrics(
