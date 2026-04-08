@@ -50,6 +50,7 @@ dmypy.json
 node_modules/
 .next/
 out/
+docs/
 yarn-error.log
 AGENTS.md
 /.cursor/

@@ -29,9 +29,10 @@ async def list_patients(
     db: Annotated[AsyncSession, Depends(get_db)],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
+    q: str | None = Query(None, min_length=1),
 ):
     service = PatientService(db)
-    patients, _ = await service.get_all(skip=skip, limit=limit)
+    patients, _ = await service.get_all(skip=skip, limit=limit, query=q)
     return patients
 
 

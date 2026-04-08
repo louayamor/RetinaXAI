@@ -19,8 +19,13 @@ class PatientCreate(BaseModel):
 
 
 class PatientUpdate(BaseModel):
+    first_name: str | None = None
+    last_name: str | None = None
+    age: int | None = None
+    gender: Gender | None = None
     phone: str | None = None
     address: str | None = None
+    medical_record_number: str | None = None
     ocr_patient_id: str | None = None
 
 
