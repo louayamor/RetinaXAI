@@ -16,7 +16,7 @@ CLINICAL_METRICS = settings.CLINICAL_METRICS
 
 
 def _load_metrics(path: Path) -> dict | None:
-    if not path.exists():
+    if not path.is_file():
         return None
     try:
         with open(path) as f:

@@ -27,14 +27,22 @@ class PatientService:
             raise NotFoundException("Patient", patient_id)
         return patient
 
-    async def get_all(self, skip: int = 0, limit: int = 20) -> tuple[list[Patient], int]:
-        patients = await self.repo.get_all(skip, limit)
-        total = await self.repo.count()
+    async def get_all(self, skip: int = 0, limit: int = 20, query: str | None = None) -> tuple[list[Patient], int]:
+        patients = await self.repo.get_all(skip, limit, query)
+        total = await self.repo.count(query)
         return patients, total
 
     async def update(self, patient_id: uuid.UUID, data: PatientUpdate) -> Patient:
         patient = await self.get_by_id(patient_id)
-        for field, value in data.model_dump(exclude_none=True).items():
+        updates = data.model_dump(exclude_none=True)
+        new_mrn = updates.get("medical_record_number")
+        if new_mrn and new_mrn != patient.medical_record_number:
+            existing = await self.repo.get_by_mrn(new_mrn)
+            if existing:
+                raise ConflictException(
+                    f"Patient with MRN '{new_mrn}' already exists."
+                )
+        for field, value in updates.items():
             setattr(patient, field, value)
         return await self.repo.update(patient)
 

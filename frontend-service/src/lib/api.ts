@@ -63,6 +63,11 @@ export async function getPatients() {
   return request<Patient[]>('/api/v1/patients/');
 }
 
+export async function searchPatients(query: string) {
+  const params = new URLSearchParams({ q: query });
+  return request<Patient[]>(`/api/v1/patients/?${params.toString()}`);
+}
+
 export async function getPatient(id: string) {
   return request<Patient>(`/api/v1/patients/${id}`);
 }
@@ -72,6 +77,35 @@ export async function createPatient(payload: Omit<Patient, 'id' | 'created_at'>)
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
+  });
+}
+
+export async function updatePatient(
+  id: string,
+  payload: Partial<
+    Pick<
+      Patient,
+      | 'first_name'
+      | 'last_name'
+      | 'age'
+      | 'gender'
+      | 'phone'
+      | 'address'
+      | 'medical_record_number'
+      | 'ocr_patient_id'
+    >
+  >
+) {
+  return request<Patient>(`/api/v1/patients/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function deletePatient(id: string) {
+  return request<{ message: string }>(`/api/v1/patients/${id}`, {
+    method: 'DELETE'
   });
 }
 
