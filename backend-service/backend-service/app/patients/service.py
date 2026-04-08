@@ -1,4 +1,5 @@
 import uuid
+from typing import Any, cast
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,7 +23,7 @@ class PatientService:
         return await self.repo.create(patient)
 
     async def get_by_id(self, patient_id: uuid.UUID) -> Patient:
-        patient = await self.repo.get_by_id(patient_id)
+        patient = await self.repo.get_by_id(cast(Any, patient_id.hex))
         if not patient:
             raise NotFoundException("Patient", patient_id)
         return patient

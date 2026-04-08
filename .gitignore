@@ -41,6 +41,8 @@ db.sqlite3
 instance/
 .webassets-cache
 .pyre/
+.pyright/
+.pyrightcache/
 .mypy_cache/
 .dmypy.json
 dmypy.json
@@ -98,4 +100,3 @@ mlops-service/mlops-service/logs/
 
 # llmops artifacts (for when we build it)
 llmops-service/artifacts/
-

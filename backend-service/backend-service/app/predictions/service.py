@@ -1,4 +1,5 @@
 import uuid
+from typing import Any, cast
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,11 +20,11 @@ class PredictionService:
         self.mri_scan_repo = MRIScanRepository(db)
 
     async def run(self, data: PredictionRequest, requested_by: uuid.UUID) -> Prediction:
-        patient = await self.patient_repo.get_by_id(data.patient_id)
+        patient = await self.patient_repo.get_by_id(cast(Any, data.patient_id.hex))
         if not patient:
             raise NotFoundException("Patient", data.patient_id)
 
-        scan = await self.mri_scan_repo.get_by_id(data.mri_scan_id)
+        scan = await self.mri_scan_repo.get_by_id(cast(Any, data.mri_scan_id.hex))
         if not scan:
             raise NotFoundException("MRIScan", data.mri_scan_id)
 
@@ -59,7 +60,7 @@ class PredictionService:
         return await self.repo.update(prediction)
 
     async def get_by_id(self, prediction_id: uuid.UUID) -> Prediction:
-        prediction = await self.repo.get_by_id(prediction_id)
+        prediction = await self.repo.get_by_id(cast(Any, prediction_id.hex))
         if not prediction:
             raise NotFoundException("Prediction", prediction_id)
         return prediction

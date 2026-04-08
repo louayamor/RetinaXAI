@@ -1,4 +1,5 @@
 import uuid
+from typing import Any, cast
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,7 +24,7 @@ class ReportService:
     async def generate(
         self, data: ReportGenerateRequest, generated_by: uuid.UUID
     ) -> Report:
-        prediction = await self.prediction_repo.get_by_id(data.prediction_id)
+        prediction = await self.prediction_repo.get_by_id(cast(Any, data.prediction_id.hex))
         if not prediction:
             raise NotFoundException("Prediction", data.prediction_id)
 
@@ -38,7 +39,9 @@ class ReportService:
                 "A report for this prediction already exists."
             )
 
-        patient = await self.patient_repo.get_by_id(prediction.patient_id)
+        patient = await self.patient_repo.get_by_id(cast(Any, prediction.patient_id.hex))
+        if not patient:
+            raise NotFoundException("Patient", prediction.patient_id)
 
         report = Report(
             patient_id=prediction.patient_id,
@@ -81,8 +84,8 @@ class ReportService:
                 report_type="prediction",
                 model_name=prediction.model_name,
                 model_version=prediction.model_version,
-                prediction_output=prediction.output_payload,
-                confidence_score=prediction.confidence_score,
+                prediction_output=prediction.output_payload or {},
+                confidence_score=prediction.confidence_score or 0.0,
             )
             llm_response = await llm_client.generate_report(llm_request)
             report.content = llm_response.content
@@ -96,7 +99,7 @@ class ReportService:
         return await self.repo.update(report)
 
     async def get_by_id(self, report_id: uuid.UUID) -> Report:
-        report = await self.repo.get_by_id(report_id)
+        report = await self.repo.get_by_id(cast(Any, report_id.hex))
         if not report:
             raise NotFoundException("Report", report_id)
         return report
