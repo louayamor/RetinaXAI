@@ -73,6 +73,9 @@ class OllamaLLMClient(LLMClient):
 
 
 class MockLLMClient(LLMClient):
+    def __init__(self, **kwargs) -> None:
+        pass
+
     def generate(self, prompt: str, system_prompt: Optional[str] = None) -> str:
         return f"[Mock response for: {prompt[:50]}...]"
 
