@@ -41,3 +41,23 @@ def test_rag_manifest_endpoint_returns_indexable_artifacts(tmp_path, monkeypatch
         "clinical_feature_importance",
         "imaging_metrics",
     }
+    assert all(artifact["schema_version"] == "1.0" for artifact in body["artifacts"])
+    assert all(artifact["artifact_type"] == "json" for artifact in body["artifacts"])
+
+
+def test_rag_manifest_endpoint_rejects_partial_bundle(tmp_path):
+    ocr_dir = tmp_path / "ocr"
+    ocr_dir.mkdir()
+    (ocr_dir / "reports.json").write_text("[{\"source_file\": \"scan.jpg\"}]")
+
+    app = create_app()
+    app.dependency_overrides[get_settings] = lambda: DummySettings(tmp_path)
+    client = TestClient(app)
+
+    response = client.get("/rag/manifest")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["artifact_count"] == 1
+    assert body["pipeline"] == "partial"
+    assert {artifact["artifact_id"] for artifact in body["artifacts"]} == {"ocr_reports"}
