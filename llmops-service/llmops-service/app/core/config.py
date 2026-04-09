@@ -54,6 +54,15 @@ class Settings(BaseSettings):
     github_token: Optional[str] = Field(default=None, validation_alias="GITHUB_ACCESS_TOKEN")
     github_endpoint: str = "https://models.github.ai/inference"
 
+    # Inter-service Authentication
+    api_key: str = Field(default="dev-api-key", validation_alias="LLMOPS_API_KEY")
+    backend_api_key: str = Field(default="dev-api-key", validation_alias="BACKEND_API_KEY")
+
+    # Rate Limiting
+    rate_limit_max_requests: int = 100
+    rate_limit_window_seconds: int = 60
+    enable_rate_limiting: bool = True
+
     # DagsHub / MLflow
     mlflow_tracking_uri: str = ""
     mlflow_experiment_name: str = "retinaxai-llmops"
