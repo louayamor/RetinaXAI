@@ -55,3 +55,23 @@ def test_generate_endpoint_returns_503_on_error(monkeypatch):
 
     response = client.post("/api/generate", json={})
     assert response.status_code == 503
+
+
+def test_rag_endpoints_use_indexing_pipeline(monkeypatch):
+    import app.api.routes as routes_module
+
+    class MockIndexingPipeline:
+        def run(self) -> dict:
+            return {"schema_version": "1.0", "run_id": "run-1", "artifact_count": 4}
+
+    monkeypatch.setattr(routes_module, "IndexingPipeline", MockIndexingPipeline)
+
+    response = client.post("/api/rag/reindex")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ok"
+    assert body["result"]["run_id"] == "run-1"
+
+    status_response = client.get("/api/rag/status")
+    assert status_response.status_code == 200
+    assert status_response.json()["artifact_count"] == 4

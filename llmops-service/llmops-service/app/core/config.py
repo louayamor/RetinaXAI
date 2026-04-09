@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     # Inter-service
     backend_service_url: str = "http://backend-service:8000"
     timeout_seconds: int = 60
+    rag_manifest_url: str = "http://mlops-service:8001/api/rag/manifest"
 
     # Local storage only; LLMOps receives context from backend.
     DATA_DIR: Path = Path()
@@ -47,6 +48,10 @@ class Settings(BaseSettings):
     # GitHub AI Inference (Azure)
     github_token: Optional[str] = Field(default=None, validation_alias="GITHUB_ACCESS_TOKEN")
     github_endpoint: str = "https://models.github.ai/inference"
+
+    # DagsHub / MLflow
+    mlflow_tracking_uri: str = ""
+    mlflow_experiment_name: str = "retinaxai-llmops"
 
     # Ollama (fallback/local)
     ollama_base_url: str = "http://localhost:11434"

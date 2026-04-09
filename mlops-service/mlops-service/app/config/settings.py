@@ -75,7 +75,7 @@ class Settings(BaseSettings):
             "data_dir", "upload_dir", "fundus_dir", "oct_dir", 
             "output_dir", "gradcam_dir", "model_dir", "vectorstore_dir",
             "imaging_model_path", "clinical_model_path", 
-            "clinical_feature_importance_path"
+            "clinical_feature_importance_path", "ocr_output_dir"
         ]
         
         for field in path_fields:
