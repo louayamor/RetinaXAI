@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 import httpx
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 
 class RagSchemaVersion(StrEnum):
@@ -31,9 +31,10 @@ class RagArtifactType(StrEnum):
     JSON = "json"
 
 
-@dataclass(frozen=True)
-class RagArtifact:
-    schema_version: str
+class RagArtifact(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    schema_version: str = Field(default=RagSchemaVersion.V1)
     artifact_id: RagArtifactId
     artifact_type: RagArtifactType
     source_path: str
@@ -43,13 +44,30 @@ class RagArtifact:
     content: Any | None = None
 
 
-@dataclass(frozen=True)
-class RagManifest:
-    schema_version: str
+class RagManifest(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    schema_version: str = Field(default=RagSchemaVersion.V1)
     run_id: str
     pipeline: RagPipeline
     generated_at: datetime
     artifact_count: int
+    artifacts: list[RagArtifact]
+
+    @field_validator("artifacts")
+    @classmethod
+    def _artifacts_must_be_list(cls, value: list[RagArtifact]) -> list[RagArtifact]:
+        return value
+
+
+class RagManifestResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: str = Field(default=RagSchemaVersion.V1)
+    run_id: str
+    pipeline: RagPipeline
+    generated_at: datetime
+    artifact_count: int = Field(ge=0)
     artifacts: list[RagArtifact]
 
 
@@ -57,13 +75,13 @@ def fetch_manifest(url: str, timeout: float = 30.0) -> RagManifest:
     response = httpx.get(url, timeout=timeout)
     response.raise_for_status()
     payload = response.json()
-    artifacts = [RagArtifact(**artifact) for artifact in payload.get("artifacts", [])]
-    generated_at = payload.get("generated_at")
-    return RagManifest(
-        schema_version=RagSchemaVersion(payload["schema_version"]),
-        run_id=payload["run_id"],
-        pipeline=RagPipeline(payload["pipeline"]),
-        generated_at=datetime.fromisoformat(generated_at.replace("Z", "+00:00")) if isinstance(generated_at, str) else generated_at,
-        artifact_count=payload["artifact_count"],
-        artifacts=artifacts,
-    )
+
+    try:
+        parsed = RagManifestResponse.model_validate(payload)
+    except ValidationError as exc:
+        raise ValueError(f"Invalid RAG manifest payload: {exc}") from exc
+
+    if parsed.artifact_count != len(parsed.artifacts):
+        raise ValueError("Invalid RAG manifest payload: artifact_count does not match artifacts length")
+
+    return RagManifest.model_validate(parsed.model_dump())

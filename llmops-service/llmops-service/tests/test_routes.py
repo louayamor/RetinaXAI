@@ -72,6 +72,8 @@ def test_rag_endpoints_use_indexing_pipeline(monkeypatch):
     assert body["status"] == "ok"
     assert body["result"]["run_id"] == "run-1"
 
+    monkeypatch.setattr(routes_module.ChromaStore, "read_state", lambda self: {"schema_version": "1.0", "run_id": "run-1", "artifact_count": 4})
     status_response = client.get("/api/rag/status")
     assert status_response.status_code == 200
     assert status_response.json()["artifact_count"] == 4
+    assert status_response.json()["status"] == "ok"

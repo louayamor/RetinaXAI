@@ -1,89 +1,112 @@
 # RetinaXAI
 
-![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=fff)
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=fff)
-![Next.js](https://img.shields.io/badge/Next.js-000000?logo=next.js&logoColor=fff)
-![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=fff)
-![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?logo=kubernetes&logoColor=fff)
-![TailwindCSS](https://img.shields.io/badge/TailwindCSS-38B2AC?logo=tailwind-css&logoColor=fff)
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=fff" alt="Python" />
+  <img src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=fff" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/Next.js-000000?logo=next.js&logoColor=fff" alt="Next.js" />
+  <img src="https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=fff" alt="Docker" />
+  <img src="https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=fff" alt="PostgreSQL" />
+  <img src="https://img.shields.io/badge/TailwindCSS-38B2AC?logo=tailwind-css&logoColor=fff" alt="TailwindCSS" />
+</p>
 
 ---
 
-## Project Overview
+## Overview
 
-**RetinaXAI** is a modular AI platform designed for **automated diabetic retinopathy detection and analysis**.
-It combines **MLOps pipelines** for image-based diagnostics with **LLMOps** for generating contextual medical insights.
+**RetinaXAI** is an AI-powered medical platform for **automated diabetic retinopathy detection and analysis**. It combines computer vision for fundus image analysis with LLM-based medical report generation.
+
+### Key Features
+
+- **Fundus Image Analysis**: Deep learning models (EfficientNet-B3) classify diabetic retinopathy severity
+- **Clinical Risk Assessment**: XGBoost models predict DR from structured patient data
+- **OCR Pipeline**: Extract structured data from OCT reports
+- **LLM Report Generation**: RAG-powered medical reports with contextual insights
+- **Real-time Dashboard**: Next.js frontend for patient management and visualization
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           RetinaXAI Architecture                           │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐              │
-│  │   Frontend   │────▶│   Backend    │────▶│  PostgreSQL  │              │
-│  │  (Next.js)   │     │  (FastAPI)   │     │  (Database)  │              │
-│  │   :3000      │     │    :8000     │     │    :5432     │              │
-│  └──────────────┘     └──────┬───────┘     └──────────────┘              │
-│                              │                                             │
-│            ┌─────────────────┼─────────────────┐                         │
-│            │                 │                 │                          │
-│            ▼                 ▼                 ▼                          │
-│  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐            │
-│  │  MLOps Svc   │     │  LLMOps Svc  │     │  Backend DB  │            │
-│  │   :8001      │     │    :8002     │     │  + local I/O │            │
-│  └──────────────┘     └──────────────┘     └──────────────┘            │
-│                                                         │                 │
-│  Each service keeps its own local data/artifacts      │                 │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│    Frontend     │────▶│     Backend      │────▶│    PostgreSQL   │
+│    (Next.js)    │     │    (FastAPI)     │     │    (Database)   │
+│    Port 3001    │     │    Port 8000     │     │    Port 5432    │
+└─────────────────┘     └────────┬─────────┘     └─────────────────┘
+                                 │
+          ┌──────────────────────┼──────────────────────┐
+          │                      │                      │
+          ▼                      ▼                      ▼
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│  MLOps Service  │     │  LLMOps Service  │     │   Local Data    │
+│   (FastAPI)     │     │    (FastAPI)     │     │   Directories   │
+│   Port 8001     │     │    Port 8002     │     │                 │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
+
+- Imaging: EfficientNet-B3        - RAG with ChromaDB           - backend-service/data/
+- Clinical: XGBoost               - GitHub AI Inference         - mlops-service/data/
+- OCR: Tesseract + OpenCV         - LangChain                   - llmops-service/data/
 ```
 
 ### Data Flow
 
-1. **Upload**: Frontend → Backend stores uploads in backend-local data
-2. **Predict**: Backend → MLOps reads image, returns prediction
-3. **Store**: Backend → PostgreSQL stores structured prediction record
-4. **Generate**: Backend → LLMOps generates report from prediction
-5. **Output**: MLOps → Grad-CAM saved to MLOps-local artifacts
+1. **Upload**: Frontend uploads fundus scans → Backend stores in local data directory
+2. **Predict**: Backend sends base64 images to MLOps → Runs EfficientNet + XGBoost
+3. **Store**: Prediction results saved to PostgreSQL
+4. **Report**: Backend requests LLM report → LLMOps retrieves RAG context → Generates report
+5. **Visualize**: Grad-CAM outputs displayed in frontend dashboard
 
 ---
 
-## Folder Structure
+## Quick Start
 
+### Prerequisites
+
+- Python 3.12+
+- Bun (for frontend)
+- Docker & Docker Compose (optional)
+- PostgreSQL 16 (if not using Docker)
+
+### Option 1: Docker Compose (Recommended)
+
+```bash
+cd infra/infra
+docker-compose up -d
 ```
-retinaxai/
-├── backend-service/        # FastAPI REST API (port 8000)
-├── frontend-service/       # Next.js dashboard (port 3000)
-├── mlops-service/         # ML training & inference (port 8001)
-├── llmops-service/        # RAG/LLM report generation (port 8002)
-├── backend-service/data/   # Backend-local uploads and outputs
-├── mlops-service/mlops-service/data/   # MLOps-local artifacts
-├── llmops-service/llmops-service/data/ # LLMOps-local cache
-├── infra/                 # Docker, Kubernetes configs
-│   ├── docker-compose.yml
-│   └── k8s/
-└── README.md
+
+Services available at:
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000
+- API Docs: http://localhost:8000/docs
+- MLOps API: http://localhost:8001
+- LLMOps API: http://localhost:8002
+
+### Option 2: Manual Setup
+
+```bash
+# 1. Backend Service
+cd backend-service
+python3.12 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn backend-service.app.main:app --reload --port 8000
+
+# 2. MLOps Service
+cd mlops-service
+python3.12 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn mlops-service.app.api.app:app --reload --port 8001
+
+# 3. LLMOps Service
+cd llmops-service
+python3.12 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn llmops-service.app.main:app --reload --port 8002
+
+# 4. Frontend
+cd frontend-service
+bun install
+bun dev  # runs on port 3001
 ```
-
----
-
-## Storage Strategy
-
-| Data Type | Storage | Reason |
-|-----------|---------|--------|
-| Raw images | backend-local data dir | Ingested by backend |
-| Grad-CAM outputs | mlops-local data dir | Generated by MLOps |
-| Model weights | mlops-local data dir | Owned by MLOps |
-| Vector embeddings | llmops-local cache | Optional, service-local only |
-| Predictions | PostgreSQL | Structured, queryable |
-| Reports | PostgreSQL | Audit trail, searchable |
-| Patient records | PostgreSQL | Relational data |
-
-**Database is source of truth. File system holds blobs.**
 
 ---
 
@@ -91,111 +114,189 @@ retinaxai/
 
 | Layer | Technology |
 |-------|------------|
-| Backend | FastAPI, Python, Pydantic v2, SQLAlchemy |
-| Frontend | Next.js 16, TypeScript, Tailwind CSS, shadcn/ui |
-| ML | PyTorch, timm, XGBoost, MLflow, DVC |
-| LLM | LangChain, ChromaDB, Ollama |
-| Database | PostgreSQL 16 |
-| Infrastructure | Docker, Docker Compose, Kubernetes |
+| **Backend** | FastAPI, SQLAlchemy 2.0, asyncpg, Pydantic v2, PyJWT |
+| **Frontend** | Next.js 16, React 19, Tailwind CSS 4, shadcn/ui, Zustand |
+| **ML/AI** | PyTorch, timm, XGBoost, MLflow, DVC, evidently |
+| **LLM/RAG** | LangChain, ChromaDB, sentence-transformers, GitHub AI Inference |
+| **Database** | PostgreSQL 16 |
+| **Infra** | Docker, Docker Compose, Kubernetes |
 
 ---
 
-## Getting Started
+## Project Structure
 
-### Docker Compose (Recommended)
-
-```bash
-cd infra/infra
-docker-compose up -d
 ```
-
-Services will be available at:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000
-- MLOps API: http://localhost:8001
-- LLMOps API: http://localhost:8002
-- API Docs: http://localhost:8000/docs
-
-### Manual Setup
-
-```bash
-# Backend
-cd backend-service/backend-service
-python3.12 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-
-# MLOps
-cd mlops-service
-python3.12 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.api.main:app --reload --port 8001
-
-# LLMOps
-cd llmops-service
-python3.12 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8002
-
-# Frontend
-cd frontend-service
-bun install
-bun dev
+RetinaXAI/
+├── backend-service/          # FastAPI API (port 8000)
+│   ├── backend-service/app/
+│   │   ├── main.py           # FastAPI entry point
+│   │   ├── core/config.py    # Settings
+│   │   ├── models/           # SQLAlchemy models
+│   │   ├── api/v1/           # API routes
+│   │   └── services/         # ML/LLM clients
+│   └── Dockerfile
+├── frontend-service/         # Next.js app (port 3001)
+│   ├── src/
+│   │   ├── app/              # Next.js App Router
+│   │   ├── components/       # UI components
+│   │   └── lib/              # API client, auth
+│   └── Dockerfile
+├── mlops-service/            # ML training/inference (port 8001)
+│   ├── mlops-service/app/
+│   │   ├── api/              # Routes (predict, train, health)
+│   │   ├── services/         # Inference, training
+│   │   └── pipeline/         # Training, OCR pipelines
+│   └── Dockerfile
+├── llmops-service/          # LLM/RAG (port 8002)
+│   ├── llmops-service/app/
+│   │   ├── api/routes.py     # Generate, RAG endpoints
+│   │   ├── llm/client.py     # GitHub/Ollama/Mock clients
+│   │   ├── pipeline/         # Indexing, inference
+│   │   └── vectorstore/      # ChromaDB store
+│   └── Dockerfile
+├── infra/
+│   └── infra/
+│       ├── docker-compose.yml
+│       └── k8s/
+└── docs/
+    ├── plan.md
+    └── llmops-plan.md
 ```
 
 ---
 
-## Environment Variables
+## Configuration
 
-### Backend (`backend-service/.env`)
+### Required Environment Variables
+
+Create `.env` files in each service directory:
+
+**backend-service/.env:**
 ```env
 DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/retinaxai
 SECRET_KEY=your-secret-key
 ML_SERVICE_URL=http://localhost:8001
 LLM_SERVICE_URL=http://localhost:8002
-ML_SERVICE_API_KEY=your-ml-api-key
-LLM_SERVICE_API_KEY=your-llm-api-key
 ```
 
-### MLOps (`mlops-service/.env`)
+**llmops-service/.env:**
 ```env
-DATA_DIR=/home/louay/RetinaXAI/mlops-service/mlops-service/data
-FUNDUS_DIR=/home/louay/RetinaXAI/mlops-service/mlops-service/data/uploads/fundus
-MODEL_DIR=/home/louay/RetinaXAI/mlops-service/mlops-service/data/models
+LLM_PROVIDER=github
+GITHUB_ACCESS_TOKEN=ghp_xxx
+RAG_CHROMA_PERSIST_DIRECTORY=./data/chroma
+```
+
+**frontend-service/.env:**
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
 ---
 
-## Contributing
+## API Endpoints
 
-1. Create a branch from `dev` for your feature
-2. Implement your feature in the relevant service
-3. Open a pull request to `dev`
-4. Ensure tests pass and code is linted
+### Backend Service (Port 8000)
 
-### Branch Naming
-```
-feat/backend-scan-endpoint
-fix/mlops-ordinal-loss
-chore/infra-postgres-healthcheck
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/api/v1/auth/login` | POST | User login |
+| `/api/v1/auth/register` | POST | User registration |
+| `/api/v1/patients/` | CRUD | Patient management |
+| `/api/v1/predictions/` | POST | Run ML prediction |
+| `/api/v1/reports/` | POST | Generate LLM report |
+
+### MLOps Service (Port 8001)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/predict` | POST | Run inference |
+| `/train` | POST | Trigger training |
+| `/api/rag/manifest` | GET | Artifact manifest for RAG |
+
+### LLMOps Service (Port 8002)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/health` | GET | Health check |
+| `/api/generate` | POST | Generate report |
+| `/api/rag/reindex` | POST | Rebuild RAG index |
+| `/api/rag/status` | GET | RAG index status |
+
+---
+
+## Development
+
+### Running Tests
+
+```bash
+# Backend/MLOps/LLMOps
+cd <service-directory>
+pytest
+
+# Frontend
+cd frontend-service
+bun run build
 ```
 
-### Commit Format
-```
-<type>(<scope>): <description>
+### Code Style
 
-feat(mlops): add ordinal transformation stage
-fix(backend): resolve JWT expiration handling
-```
+- **Python**: Black, Ruff
+- **TypeScript**: Prettier, ESLint
+- **Commits**: Conventional commits format
+
+---
+
+## ML Models
+
+### Diabetic Retinopathy Classification
+
+- **Imaging Model**: EfficientNet-B3 (timm)
+  - Input: 224x224 RGB fundus images
+  - Output: 5-class severity (No DR, Mild, Moderate, Severe, Proliferative)
+  
+- **Clinical Model**: XGBoost
+  - Input: Structured clinical features
+  - Output: Risk score with probability distribution
+
+### RAG System
+
+- **Vector Store**: ChromaDB
+- **Embeddings**: sentence-transformers/all-MiniLM-L6-v2
+- **LLM Provider**: GitHub AI Inference (GPT-4o)
+- **Document Types**: OCR reports, clinical metrics, feature importance, imaging metrics
+
+---
+
+## CI/CD
+
+GitHub Actions workflows:
+
+| Workflow | Triggers |
+|----------|----------|
+| `tests.yml` | PRs to main |
+| `backend.yml` | Push/PR to backend-service |
+| `mlops.yaml` | Push/PR to mlops-service |
+| `llmops.yml` | Push/PR to llmops-service |
+| `frontend.yml` | Push/PR to frontend-service |
+
+---
+
+## Documentation
+
+- **AGENTS.md**: Development guide for AI agents
+- **docs/plan.md**: Development roadmap
+- **docs/llmops-plan.md**: RAG implementation details
 
 ---
 
 ## License
 
-This project is licensed under the MIT License.
+MIT License
 
 ---
 
 ## Contact
 
-**Louay Amor** – [GitHub](https://github.com/louayamor) – [Email](mailto:amor.louay20@gmail.com)
+**Louay Amor** - [GitHub](https://github.com/louayamor) - [Email](mailto:amor.louay20@gmail.com)
