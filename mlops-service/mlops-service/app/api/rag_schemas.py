@@ -1,26 +1,54 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from enum import StrEnum
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class RagSchemaVersion(StrEnum):
+    V1 = "1.0"
+
+
+class RagPipeline(StrEnum):
+    CLINICAL = "clinical"
+    IMAGING = "imaging"
+    OCR = "ocr"
+    COMBINED = "combined"
+    PARTIAL = "partial"
+
+
+class RagArtifactId(StrEnum):
+    OCR_REPORTS = "ocr_reports"
+    CLINICAL_METRICS = "clinical_metrics"
+    CLINICAL_FEATURE_IMPORTANCE = "clinical_feature_importance"
+    IMAGING_METRICS = "imaging_metrics"
+
+
+class RagArtifactType(StrEnum):
+    JSON = "json"
 
 
 class RagArtifactManifest(BaseModel):
-    schema_version: str = Field(default="1.0")
-    artifact_id: str
-    artifact_type: str
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = Field(default=RagSchemaVersion.V1.value)
+    artifact_id: RagArtifactId
+    artifact_type: RagArtifactType
     source_path: str
     content_hash: str
-    content_length: int
+    content_length: int = Field(ge=0)
     indexable: bool = True
     content: Any | None = None
 
 
 class RagManifestResponse(BaseModel):
-    schema_version: str = Field(default="1.0")
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = Field(default=RagSchemaVersion.V1.value)
     run_id: str
-    pipeline: str
+    pipeline: RagPipeline
     generated_at: datetime
-    artifact_count: int
+    artifact_count: int = Field(ge=0)
     artifacts: list[RagArtifactManifest]
