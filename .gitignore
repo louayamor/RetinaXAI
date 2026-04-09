@@ -82,6 +82,7 @@ mlops-service/mlops-service/artifacts/data/
 mlops-service/mlops-service/artifacts/model/
 mlops-service/mlops-service/artifacts/monitoring/
 mlops-service/mlops-service/artifacts/ocr/output/reports.csv
+mlops-service/.ruff_cache/
 
 # service-local data directories
 backend-service/backend-service/data/
