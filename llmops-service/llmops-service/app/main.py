@@ -20,6 +20,8 @@ from loguru import logger
 from app.api.routes import router
 from app.core.config import settings
 from app.core.middleware import APIKeyMiddleware, RateLimitMiddleware
+from app.pipeline.report_generator import generate_report_handler
+from app.services.job_manager import get_job_manager
 from app.vectorstore.chroma_store import ChromaStore
 
 # Track startup time for health checks
@@ -144,9 +146,18 @@ async def lifespan(app: FastAPI):
     chroma_ready = check_chromadb_ready()
     logger.info(f"ChromaDB status: {'ready' if chroma_ready else 'not ready'}")
 
+    # Initialize job manager
+    job_manager = get_job_manager()
+    job_manager.register_handler("report_generation", generate_report_handler)
+    await job_manager.start()
+    logger.info(f"Job manager started with handlers: {list(job_manager._handlers.keys())}")
+
     logger.info(f"Service ready on {settings.app_host}:{settings.app_port}")
 
     yield
+
+    # Stop job manager on shutdown
+    await job_manager.stop()
 
     # Shutdown logic
     shutdown_duration = time.time() - _STARTUP_TIME if _STARTUP_TIME else 0
