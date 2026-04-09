@@ -1,30 +1,287 @@
+"""
+RetinaXAI LLMOps Service - Main Application Entry Point.
+
+This module initializes the FastAPI application with proper lifespan management,
+middleware, exception handling, and service dependencies.
+"""
 from __future__ import annotations
 
-from fastapi import FastAPI
+import os
+import time
+import uuid
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from loguru import logger
 
 from app.api.routes import router
 from app.core.config import settings
+from app.core.middleware import APIKeyMiddleware, RateLimitMiddleware
+from app.vectorstore.chroma_store import ChromaStore
+
+# Track startup time for health checks
+_STARTUP_TIME: float | None = None
 
 
-def configure_mlflow() -> None:
+def configure_mlflow() -> bool:
+    """
+    Configure MLflow with Dagshub for experiment tracking.
+
+    Returns:
+        bool: True if MLflow was successfully configured, False otherwise.
+    """
     if not settings.mlflow_tracking_uri:
-        return
+        logger.info("MLflow tracking URI not configured, skipping MLflow setup")
+        return False
 
     try:
         import dagshub
         import mlflow
+
+        dagshub.init(
+            repo_owner="louayamor",
+            repo_name="retinaxai",
+            mlflow=True,
+        )
+        mlflow.set_tracking_uri(settings.mlflow_tracking_uri)
+        mlflow.set_experiment(settings.mlflow_experiment_name)
+        logger.info(f"MLflow configured: {settings.mlflow_tracking_uri}")
+        return True
     except ModuleNotFoundError:
-        return
+        logger.warning("dagshub or mlflow not installed, skipping MLflow setup")
+        return False
+    except Exception as e:
+        logger.error(f"Failed to configure MLflow: {e}")
+        return False
 
-    dagshub.init(
-        repo_owner="louayamor",
-        repo_name="retinaxai",
-        mlflow=True,
+
+def validate_directories() -> dict[str, bool]:
+    """
+    Validate and create required directories.
+
+    Returns:
+        dict[str, bool]: Mapping of directory names to their creation status.
+    """
+    dirs_to_validate = {
+        "data_dir": settings.DATA_DIR,
+        "cache_dir": settings.CACHE_DIR,
+        "chroma_persist": settings.rag_chroma_persist_directory,
+    }
+
+    results = {}
+    for name, dir_path in dirs_to_validate.items():
+        try:
+            path = Path(dir_path)
+            path.mkdir(parents=True, exist_ok=True)
+            # Verify directory is writable
+            test_file = path / ".write_test"
+            test_file.touch()
+            test_file.unlink()
+            results[name] = True
+            logger.info(f"Directory validated: {path}")
+        except Exception as e:
+            results[name] = False
+            logger.error(f"Directory validation failed for {name} ({dir_path}): {e}")
+
+    return results
+
+
+def check_chromadb_ready() -> bool:
+    """
+    Check if ChromaDB is accessible and ready.
+
+    Returns:
+        bool: True if ChromaDB is ready, False otherwise.
+    """
+    try:
+        store = ChromaStore(
+            settings.rag_chroma_persist_directory,
+            settings.rag_chroma_collection_name,
+            settings.rag_embedding_model,
+        )
+        store.ensure_ready()
+        logger.info("ChromaDB is ready")
+        return True
+    except Exception as e:
+        logger.warning(f"ChromaDB not ready: {e}")
+        return False
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Application lifespan context manager.
+
+    Handles startup and shutdown logic, including:
+    - Directory validation
+    - MLflow configuration
+    - ChromaDB readiness check
+    - Service initialization logging
+    """
+    global _STARTUP_TIME
+    _STARTUP_TIME = time.time()
+
+    logger.info(f"Starting {settings.app_name} v{settings.app_version}")
+    logger.info(f"Environment: {settings.app_env}")
+    logger.info(f"LLM Provider: {settings.llm_provider}")
+    logger.info(f"LLM Model: {settings.llm_model}")
+
+    # Validate directories
+    dir_results = validate_directories()
+    if not all(dir_results.values()):
+        failed = [name for name, ok in dir_results.items() if not ok]
+        logger.error(f"Directory validation failed for: {', '.join(failed)}")
+        raise RuntimeError(f"Failed to validate directories: {failed}")
+
+    # Configure MLflow
+    mlflow_ready = configure_mlflow()
+    logger.info(f"MLflow status: {'ready' if mlflow_ready else 'not configured'}")
+
+    # Check ChromaDB
+    chroma_ready = check_chromadb_ready()
+    logger.info(f"ChromaDB status: {'ready' if chroma_ready else 'not ready'}")
+
+    logger.info(f"Service ready on {settings.app_host}:{settings.app_port}")
+
+    yield
+
+    # Shutdown logic
+    shutdown_duration = time.time() - _STARTUP_TIME if _STARTUP_TIME else 0
+    logger.info(f"Shutting down {settings.app_name} (uptime: {shutdown_duration:.2f}s)")
+
+
+def create_app() -> FastAPI:
+    """
+    Create and configure the FastAPI application.
+
+    Returns:
+        FastAPI: The configured application instance.
+    """
+    app = FastAPI(
+        title=settings.app_name,
+        version=settings.app_version,
+        description="LLMOps Service for RetinaXAI - RAG-powered medical report generation",
+        docs_url="/docs" if settings.app_env == "development" else None,
+        redoc_url="/redoc" if settings.app_env == "development" else None,
+        lifespan=lifespan,
     )
-    mlflow.set_tracking_uri(settings.mlflow_tracking_uri)
-    mlflow.set_experiment(settings.mlflow_experiment_name)
+
+    # CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000", "http://localhost:3001"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # API Key authentication middleware
+    app.add_middleware(APIKeyMiddleware)
+
+    # Rate limiting middleware
+    if settings.enable_rate_limiting:
+        app.add_middleware(
+            RateLimitMiddleware,
+            max_requests=settings.rate_limit_max_requests,
+            window_seconds=settings.rate_limit_window_seconds,
+        )
+
+    # Request ID middleware
+    @app.middleware("http")
+    async def request_id_middleware(request: Request, call_next):
+        """Add request ID for tracing across services."""
+        request_id = str(uuid.uuid4())
+        request.state.request_id = request_id
+
+        start_time = time.time()
+        response = await call_next(request)
+        duration = time.time() - start_time
+
+        response.headers["X-Request-ID"] = request_id
+        logger.info(
+            f"{request.method} {request.url.path} - {response.status_code} "
+            f"({duration:.3f}s) [{request_id[:8]}]"
+        )
+        return response
+
+    # Include routers
+    app.include_router(router)
+
+    # Exception handlers
+    @app.exception_handler(Exception)
+    async def generic_exception_handler(request: Request, exc: Exception):
+        """Handle uncaught exceptions."""
+        request_id = getattr(request.state, "request_id", "unknown")
+        logger.error(f"Unhandled exception [{request_id}]: {exc}", exc_info=True)
+        return JSONResponse(
+            status_code=500,
+            content={
+                "detail": "Internal server error",
+                "error_code": "INTERNAL_ERROR",
+                "request_id": request_id,
+            },
+        )
+
+    @app.exception_handler(ValueError)
+    async def value_error_handler(request: Request, exc: ValueError):
+        """Handle validation errors."""
+        request_id = getattr(request.state, "request_id", "unknown")
+        logger.warning(f"Validation error [{request_id}]: {exc}")
+        return JSONResponse(
+            status_code=422,
+            content={
+                "detail": str(exc),
+                "error_code": "VALIDATION_ERROR",
+                "request_id": request_id,
+            },
+        )
+
+    # Health check endpoints
+    @app.get("/health", tags=["health"])
+    async def health():
+        """
+        Basic health check.
+
+        Returns service status and version info.
+        """
+        return {
+            "status": "ok",
+            "service": settings.app_name,
+            "version": settings.app_version,
+            "environment": settings.app_env,
+        }
+
+    @app.get("/ready", tags=["health"])
+    async def ready():
+        """
+        Readiness check for Kubernetes.
+
+        Returns 200 only when all dependencies are ready.
+        """
+        checks = {
+            "directories": True,  # Already validated at startup
+            "chromadb": check_chromadb_ready(),
+        }
+
+        if not all(checks.values()):
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "status": "not_ready",
+                    "checks": checks,
+                },
+            )
+
+        return {
+            "status": "ready",
+            "checks": checks,
+        }
+
+    return app
 
 
-configure_mlflow()
-app = FastAPI(title=settings.app_name, version=settings.app_version)
-app.include_router(router)
+# Create application instance
+app = create_app()
