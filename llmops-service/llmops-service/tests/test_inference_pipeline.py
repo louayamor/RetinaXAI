@@ -76,3 +76,35 @@ def test_generate_report_with_plain_text_response(monkeypatch):
     result = pipeline.generate_report({"report_type": "report"})
     assert result["content"] == plain_text
     assert result["summary"] == plain_text[:400]
+
+
+def test_generate_report_includes_retrieved_context(monkeypatch):
+    from app.pipeline import inference_pipeline as ip
+    from app.core.config import LLMProvider
+
+    monkeypatch.setattr(ip.settings, "llm_provider", LLMProvider.MOCK)
+
+    pipeline = InferencePipeline()
+
+    class DummyStore:
+        def query(self, text, top_k=4):
+            class Doc:
+                page_content = "retrieved chunk"
+                metadata = {"artifact_id": "clinical_metrics"}
+
+            return [[Doc()]]
+
+    pipeline.store = DummyStore()
+
+    captured = {}
+
+    def fake_generate(prompt: str, system_prompt=None) -> str:
+        captured["prompt"] = prompt
+        return "{\"content\": \"ok\", \"summary\": \"ok\"}"
+
+    monkeypatch.setattr(pipeline.client, "generate", fake_generate)
+
+    pipeline.generate_report({"cleaned_summary": "summary text", "raw_ocr_text": "ocr text"})
+
+    assert "Retrieved Context:" in captured["prompt"]
+    assert "retrieved chunk" in captured["prompt"]

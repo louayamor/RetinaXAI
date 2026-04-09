@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     # Local storage only; LLMOps receives context from backend.
     DATA_DIR: Path = Path()
     CACHE_DIR: Path = Path()
+    rag_chroma_persist_directory: Path = Path("llmops-service/llmops-service/data/rag/chroma")
+    rag_chroma_collection_name: str = "retinaxai_rag"
+    rag_embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    rag_chunk_size: int = 800
+    rag_chunk_overlap: int = 80
 
     # LLM Configuration
     llm_provider: LLMProvider = LLMProvider.GITHUB
@@ -63,5 +68,17 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         extra = "ignore"
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        self._resolve_paths()
+
+    def _resolve_paths(self):
+        base = Path(_get_base_dir())
+        path_fields = ["DATA_DIR", "CACHE_DIR", "rag_chroma_persist_directory"]
+        for field in path_fields:
+            value = getattr(self, field)
+            if value and not Path(value).is_absolute():
+                setattr(self, field, base / value)
 
 settings = Settings()

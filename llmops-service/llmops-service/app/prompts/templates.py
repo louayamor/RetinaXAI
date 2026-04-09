@@ -19,6 +19,9 @@ Cleaned Context:
 Raw OCR / Source Context:
 {raw_ocr_text}
 
+Retrieved Context:
+{retrieved_context}
+
 Report Type: {report_type}
 Language: {language}
 Tone: {tone}
