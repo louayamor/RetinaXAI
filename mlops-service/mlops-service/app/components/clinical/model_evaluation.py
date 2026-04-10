@@ -55,9 +55,9 @@ class ClinicalModelEvaluation:
             logger.warning("less than 2 classes present, skipping AUC")
             return None
         try:
-            num_classes = len(np.unique(y))
+            num_classes = len(np.unique(y))  # type: ignore[union-attr]
             if num_classes == probs.shape[1]:
-                return roc_auc_score(y, probs, multi_class="ovr", average="macro")
+                return roc_auc_score(y, probs, multi_class="ovr", average="macro")  # type: ignore[arg-type]
             else:
                 probs_subset = probs[:, present_classes]
                 probs_subset = probs_subset / probs_subset.sum(axis=1, keepdims=True)
@@ -67,7 +67,7 @@ class ClinicalModelEvaluation:
                     multi_class="ovr",
                     average="macro",
                     labels=present_classes,
-                )
+                )  # type: ignore[arg-type]
         except Exception as e:
             logger.warning(f"AUC computation failed: {e}")
             return None
@@ -83,10 +83,10 @@ class ClinicalModelEvaluation:
         probs = model.predict_proba(X_test)
         preds = model.predict(X_test)
 
-        accuracy = accuracy_score(y_test, preds)
-        qwk = cohen_kappa_score(y_test, preds, weights="quadratic")
-        auc = self._compute_auc(y_test, probs)
-        report = classification_report(y_test, preds, output_dict=True, zero_division=0)
+        accuracy = accuracy_score(y_test, preds)  # type: ignore[arg-type]
+        qwk = cohen_kappa_score(y_test, preds, weights="quadratic")  # type: ignore[arg-type]
+        auc = self._compute_auc(y_test, probs)  # type: ignore[arg-type]
+        report = classification_report(y_test, preds, output_dict=True, zero_division=0)  # type: ignore[call-overload]
 
         auc_str = f"{auc:.4f}" if auc is not None else "N/A"
         logger.info(f"accuracy={accuracy:.4f} qwk={qwk:.4f} auc={auc_str}")

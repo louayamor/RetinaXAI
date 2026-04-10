@@ -27,7 +27,7 @@ class ClinicalDataTransformation:
         df = df.copy()
 
         label_mapping = dict(self.schema.ml_dataset.label_mapping)
-        df["label"] = df["clinical_npdr_grade"].map(label_mapping).astype(int)
+        df["label"] = df["clinical_npdr_grade"].map(label_mapping).astype(int)  # type: ignore[assignment]
         logger.info(f"label encoding applied: {label_mapping}")
 
         label_offset = int(df["label"].min())
@@ -50,8 +50,8 @@ class ClinicalDataTransformation:
             if col in df.columns:
                 df[col] = df[col].fillna("unknown")
                 le = LabelEncoder()
-                df[col] = le.fit_transform(df[col].astype(str))
-                categorical_encoders[col] = le.classes_.tolist()
+                df[col] = le.fit_transform(df[col].astype(str))  # type: ignore[assignment]
+                categorical_encoders[col] = le.classes_.tolist()  # type: ignore[union-attr]
 
         for col in numeric_features:
             if col in df.columns:
@@ -62,7 +62,7 @@ class ClinicalDataTransformation:
         feature_cols = [f for f in available_features if f in df.columns]
         df_features = df[feature_cols + ["label"]]
 
-        train_df, test_df = train_test_split(
+        train_df, test_df = train_test_split(  # type: ignore[assignment]
             df_features,
             test_size=self.params.ml_training.test_size,
             random_state=self.params.ml_training.seed,
@@ -70,8 +70,8 @@ class ClinicalDataTransformation:
         )
 
         self.config.train_csv.parent.mkdir(parents=True, exist_ok=True)
-        train_df.to_csv(self.config.train_csv, index=False)
-        test_df.to_csv(self.config.test_csv, index=False)
+        train_df.to_csv(self.config.train_csv, index=False)  # type: ignore[union-attr]
+        test_df.to_csv(self.config.test_csv, index=False)  # type: ignore[union-attr]
 
         logger.info(f"clinical train CSV: {self.config.train_csv} ({len(train_df)} rows)")
         logger.info(f"clinical test CSV: {self.config.test_csv} ({len(test_df)} rows)")

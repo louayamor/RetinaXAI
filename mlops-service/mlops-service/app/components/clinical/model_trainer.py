@@ -71,9 +71,9 @@ class ClinicalModelTrainer:
         X_test = test_df[feature_cols].values
         y_test = test_df["label"].values
 
-        sample_weights = compute_sample_weight(class_weight="balanced", y=y_train)
-        logger.info(f"class distribution train: {dict(zip(*np.unique(y_train, return_counts=True)))}")
-        logger.info(f"class distribution test: {dict(zip(*np.unique(y_test, return_counts=True)))}")
+        sample_weights = compute_sample_weight(class_weight="balanced", y=y_train)  # type: ignore[arg-type]
+        logger.info(f"class distribution train: {dict(zip(*np.unique(y_train, return_counts=True)))}")  # type: ignore[union-attr]
+        logger.info(f"class distribution test: {dict(zip(*np.unique(y_test, return_counts=True)))}")  # type: ignore[union-attr]
 
         model = self._build_model()
         xgb_cfg = self.params.ml_training.xgboost

@@ -36,10 +36,10 @@ def test_imaging_model_trainer_logs_model_with_cpu_example(monkeypatch, tmp_path
             return {"mlflow": {"imaging_run_name": "unit_test"}}.get(key, default)
 
     trainer = mt.ImagingModelTrainer.__new__(mt.ImagingModelTrainer)
-    trainer.params = DummyParams()
-    trainer.config = type("Cfg", (), {"model_name": "efficientnet_b3", "pretrained": True, "checkpoint_path": tmp_path / "model.pth"})()
-    trainer.transformation_config = type("T", (), {"train_csv": tmp_path / "train.csv", "test_csv": tmp_path / "test.csv"})()
-    trainer.device = None
+    trainer.params = DummyParams()  # type: ignore[assignment]
+    trainer.config = type("Cfg", (), {"model_name": "efficientnet_b3", "pretrained": True, "checkpoint_path": tmp_path / "model.pth"})()  # type: ignore[assignment]
+    trainer.transformation_config = type("T", (), {"train_csv": tmp_path / "train.csv", "test_csv": tmp_path / "test.csv"})()  # type: ignore[assignment]
+    trainer.device = None  # type: ignore[assignment]
 
     class DummyDataset:
         def __init__(self, *args, **kwargs):

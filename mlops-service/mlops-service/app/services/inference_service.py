@@ -82,8 +82,8 @@ class InferenceService:
         start = time.time()
         model = self._load_imaging_model()
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-        tf = self._build_transform()
-        tensor = tf(img).unsqueeze(0).to(self.device)
+        tf: nn.Module = self._build_transform()  # type: ignore[assignment]
+        tensor = tf(img).unsqueeze(0).to(self.device)  # type: ignore[operator]
 
         with torch.no_grad():
             outputs = model(tensor)

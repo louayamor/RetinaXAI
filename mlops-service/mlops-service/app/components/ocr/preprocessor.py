@@ -13,11 +13,11 @@ def load_and_preprocess(image_path: Path) -> np.ndarray:
     _, binary = cv2.threshold(denoised, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     scaled = cv2.resize(binary, None, fx=2.0, fy=2.0, interpolation=cv2.INTER_CUBIC)
     logger.debug(f"Preprocessed: {image_path.name} shape={scaled.shape}")
-    return scaled
+    return scaled  # type: ignore[return-value]
 
 
 def load_color_image(image_path: Path) -> np.ndarray:
     image = cv2.imread(str(image_path), cv2.IMREAD_COLOR)
     if image is None:
         raise ValueError(f"Cannot load image: {image_path}")
-    return image
+    return image  # type: ignore[return-value]

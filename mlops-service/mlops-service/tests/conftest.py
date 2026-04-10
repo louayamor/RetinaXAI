@@ -25,8 +25,8 @@ def sample_text() -> str:
 
 
 @pytest.fixture
-def dummy_image() -> np.ndarray:
-    return np.zeros((1000, 1280, 3), dtype=np.uint8)
+def dummy_image() -> np.ndarray:  # type: ignore[type-var]
+    return np.zeros((1000, 1280, 3), dtype=np.uint8)  # type: ignore[return-value]
 
 
 @pytest.fixture
@@ -51,8 +51,10 @@ def temp_images_dir(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def regions_config() -> dict:
+def regions_config() -> dict:  # type: ignore[type-var]
     config_path = Path(__file__).resolve().parents[1] / "config" / "regions.yaml"
     with config_path.open() as f:
         data = yaml.safe_load(f)
-    return data.get("regions", data)
+    if isinstance(data, dict):
+        return data.get("regions", data)  # type: ignore[return-value]
+    return {}  # type: ignore[return-value]

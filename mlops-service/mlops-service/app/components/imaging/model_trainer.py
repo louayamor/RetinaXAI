@@ -95,7 +95,7 @@ class ImagingModelTrainer:
             drop_rate=p.dropout,
         )
 
-        blocks = list(model.blocks.children()) if hasattr(model, "blocks") else []
+        blocks = list(model.blocks.children()) if hasattr(model, "blocks") else []  # type: ignore[union-attr]
         freeze_until = min(3, len(blocks))
         for i, block in enumerate(blocks):
             if i < freeze_until:
@@ -103,7 +103,7 @@ class ImagingModelTrainer:
                     param.requires_grad = False
         logger.info(f"frozen first {freeze_until} blocks of {self.config.model_name}")
 
-        model.set_grad_checkpointing(enable=True)
+        model.set_grad_checkpointing(enable=True)  # type: ignore[operator]
         logger.info("gradient checkpointing enabled")
 
         trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -276,14 +276,14 @@ class ImagingModelTrainer:
                 val_acc = val_correct / val_total
                 avg_loss = train_loss / train_total
                 EPOCH_TRAIN_LOSS.labels(pipeline="imaging").observe(avg_loss)
-                lr = scheduler.get_last_lr()[0]
+                lr = float(scheduler.get_last_lr()[0])
 
                 mlflow.log_metrics({
                     "train_loss": avg_loss,
                     "train_acc": train_acc,
                     "val_acc": val_acc,
                     "lr": lr,
-                }, step=epoch)
+                }, step=epoch)  # type: ignore[call-overload]
 
                 logger.info(
                     f"epoch={epoch + 1}/{p.epochs} "

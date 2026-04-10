@@ -11,13 +11,13 @@ class EvidentlyReportGenerator:
         self.reports_dir = reports_dir
         self.reports_dir.mkdir(parents=True, exist_ok=True)
 
-    def _drop_non_numeric_cols(self, df: pd.DataFrame, keep: list = None) -> pd.DataFrame:
+    def _drop_non_numeric_cols(self, df: pd.DataFrame, keep: list | None = None) -> pd.DataFrame:  # type: ignore[type-var]
         keep = keep or []
         cols = [
             c for c in df.columns
             if c in keep or df[c].dtype in ["float64", "int64", "float32", "int32"]
         ]
-        return df[cols]
+        return df[cols]  # type: ignore[return-value]
 
     def imaging_data_drift(
         self,
@@ -94,7 +94,7 @@ class EvidentlyReportGenerator:
         samaya = samaya[common_cols]
 
         report = Report([DataDriftPreset()])
-        result = report.run(eyepacs, samaya)
+        result = report.run(eyepacs, samaya)  # type: ignore[arg-type]
         result.save_html(str(output_path))
         logger.info(f"domain shift report saved: {output_path}")
 

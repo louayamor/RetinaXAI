@@ -6,7 +6,7 @@ from loguru import logger
 
 
 def encode_to_base64(image_bgr: np.ndarray) -> str:
-    success, buffer = cv2.imencode(".png", image_bgr)
+    success, buffer = cv2.imencode(".png", image_bgr)  # type: ignore[call-overload]
     if not success:
         raise RuntimeError("Failed to encode image to PNG")
     return base64.b64encode(buffer).decode("utf-8")
@@ -26,7 +26,7 @@ def save_region_png(
     patient_dir = patient_dir / report_key
     patient_dir.mkdir(parents=True, exist_ok=True)
     out_path = patient_dir / f"{region_name}.png"
-    cv2.imwrite(str(out_path), image_bgr)
+    cv2.imwrite(str(out_path), image_bgr)  # type: ignore[call-overload]
     logger.debug(f"Saved: {out_path}")
     return out_path
 
