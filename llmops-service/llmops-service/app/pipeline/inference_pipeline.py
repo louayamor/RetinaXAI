@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import time
 
+from loguru import logger
+
 from app.core.config import settings
 from app.llm.client import get_llm_client
 from app.prompts.templates import REPORT_SYSTEM_PROMPT, REPORT_USER_PROMPT
@@ -38,14 +40,18 @@ class InferencePipeline:
         parts = [payload.get("cleaned_summary", ""), payload.get("raw_ocr_text", "")]
         query = "\n".join(part for part in parts if part)
         if not query.strip():
+            logger.debug("No query text provided for retrieval")
             return "", 0.0
 
+        logger.info(f"Retrieving context for query (length: {len(query)})")
         try:
             results = self.store.query(query, top_k=4)
-        except Exception:
+        except Exception as e:
+            logger.error(f"Retrieval failed: {e}")
             return "", 0.0
 
         if not results:
+            logger.warning("No results returned from retrieval")
             return "", 0.0
 
         if isinstance(results, tuple):
@@ -61,12 +67,16 @@ class InferencePipeline:
             if text:
                 snippets.append(f"[source: {metadata.get('artifact_id', 'unknown')}] {text}")
 
+        logger.info(f"Retrieved {len(snippets)} context snippets")
         return "\n".join(snippets), time.time() - start_time
 
     def generate_report(self, payload: dict) -> dict[str, str]:
         model_name = str(payload.get("model") or settings.llm_model)
+        
+        logger.info("Building retrieval context...")
         retrieved_context, retrieval_time = self._build_retrieval_context(payload)
         
+        logger.info(f"Generating report with {model_name}...")
         start_time = time.time()
         user_prompt = REPORT_USER_PROMPT.format(
             patient=dump_compact(payload.get("patient", {})),
@@ -81,6 +91,7 @@ class InferencePipeline:
 
         content = self.client.generate(user_prompt, REPORT_SYSTEM_PROMPT)
         generation_time = time.time() - start_time
+        logger.info(f"Generation complete ({generation_time:.2f}s)")
 
         parsed = None
         try:
@@ -95,6 +106,7 @@ class InferencePipeline:
             report_content = content
             summary = content[:400]
 
+        logger.info(f"Report generated (content length: {len(report_content)})")
         self._log_to_mlflow(
             model_name=model_name,
             retrieval_time=retrieval_time,
