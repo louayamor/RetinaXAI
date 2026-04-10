@@ -282,14 +282,21 @@ interface RagReindexResponse {
   };
 }
 
+const LLMOPS_API_KEY = process.env.NEXT_PUBLIC_LLMOPS_API_KEY ?? 'dev-api-key';
+
 export async function getRagStatus(): Promise<RagStatusResponse> {
-  const res = await fetch(`${LLMOPS_BASE}/api/rag/status`);
+  const res = await fetch(`${LLMOPS_BASE}/api/rag/status`, {
+    headers: { 'x-api-key': LLMOPS_API_KEY },
+  });
   if (!res.ok) throw new Error(`RAG status failed: ${res.status}`);
   return res.json();
 }
 
 export async function triggerRagReindex(): Promise<RagReindexResponse> {
-  const res = await fetch(`${LLMOPS_BASE}/api/rag/reindex`, { method: 'POST' });
+  const res = await fetch(`${LLMOPS_BASE}/api/rag/reindex`, {
+    method: 'POST',
+    headers: { 'x-api-key': LLMOPS_API_KEY },
+  });
   if (!res.ok) throw new Error(`RAG reindex failed: ${res.status}`);
   return res.json();
 }
