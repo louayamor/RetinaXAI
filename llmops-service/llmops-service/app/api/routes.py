@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 
 from app.core.config import settings
 from app.pipeline.indexing_pipeline import IndexingPipeline
+from app.services.operation_state import get_operation
 from app.pipeline.inference_pipeline import InferencePipeline
 from app.pipeline.report_generator import generate_report_sync
 from app.services.job_manager import JobStatus, get_job_manager
@@ -187,3 +188,14 @@ def rag_status() -> RagStatusResponse:
         collection_name=store.collection_name,
         persist_directory=str(store.persist_directory),
     )
+
+
+@router.get("/operation/status")
+def operation_status() -> dict:
+    op = get_operation()
+    return {
+        "state": op.state,
+        "message": op.message,
+        "progress": op.progress,
+        "started_at": op.started_at,
+    }

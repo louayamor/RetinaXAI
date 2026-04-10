@@ -8,7 +8,9 @@ import {
   getReport,
   getRagStatus,
   triggerRagReindex,
-  checkLlmoopsHealth
+  checkLlmoopsHealth,
+  getOperationStatus,
+  OperationStatus
 } from '@/lib/api';
 import PageContainer from '@/components/layout/page-container';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -33,6 +35,7 @@ import {
   FileText,
   Loader2,
   RefreshCw,
+  Search,
   Eye,
   AlertCircle,
   CheckCircle2,
@@ -74,11 +77,25 @@ export default function ReportsPage() {
   const [ragLoading, setRagLoading] = useState(false);
   const [reindexing, setReindexing] = useState(false);
   const [llmopsDown, setLlmopsDown] = useState(false);
+  const [operation, setOperation] = useState<OperationStatus | null>(null);
 
   useEffect(() => {
     loadReports();
     loadRagStatus();
-  }, []);
+    
+    const interval = setInterval(async () => {
+      if (!llmopsDown) {
+        try {
+          const op = await getOperationStatus();
+          setOperation(op);
+        } catch {
+          // Ignore errors during polling
+        }
+      }
+    }, 2000);
+    
+    return () => clearInterval(interval);
+  }, [llmopsDown]);
 
   const loadRagStatus = async () => {
     try {
@@ -94,6 +111,13 @@ export default function ReportsPage() {
       
       const status = await getRagStatus();
       setRagStatus(status);
+      
+      try {
+        const op = await getOperationStatus();
+        setOperation(op);
+      } catch {
+        setOperation(null);
+      }
     } catch (err) {
       console.error('Failed to load RAG status:', err);
       setRagStatus({ status: 'error', artifact_count: 0 });
@@ -175,6 +199,23 @@ export default function ReportsPage() {
             </p>
           </div>
         </div>
+
+        {/* Operation Status Card */}
+        {operation && operation.state !== 'idle' && (
+          <Card className="border-primary">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                {operation.state === 'indexing' && <Database className="h-5 w-5 animate-pulse" />}
+                {operation.state === 'retrieving' && <Search className="h-5 w-5 animate-pulse" />}
+                {operation.state === 'generating' && <Sparkles className="h-5 w-5 animate-pulse" />}
+                {operation.state === 'indexing' && 'Indexing RAG'}
+                {operation.state === 'retrieving' && 'Retrieving Context'}
+                {operation.state === 'generating' && 'Generating Report'}
+              </CardTitle>
+              <CardDescription>{operation.message}</CardDescription>
+            </CardHeader>
+          </Card>
+        )}
 
         {/* RAG Status Card - Service Down */}
         {llmopsDown ? (

@@ -8,6 +8,7 @@ from loguru import logger
 from app.core.config import settings
 from app.llm.client import get_llm_client
 from app.prompts.templates import REPORT_SYSTEM_PROMPT, REPORT_USER_PROMPT
+from app.services.operation_state import set_operation, clear_operation
 from app.utils.helpers import dump_compact
 from app.vectorstore.chroma_store import ChromaStore
 
@@ -74,9 +75,11 @@ class InferencePipeline:
         model_name = str(payload.get("model") or settings.llm_model)
         
         logger.info("Building retrieval context...")
+        set_operation("retrieving", "Retrieving context from RAG...")
         retrieved_context, retrieval_time = self._build_retrieval_context(payload)
         
         logger.info(f"Generating report with {model_name}...")
+        set_operation("generating", "Generating report with LLM...")
         start_time = time.time()
         user_prompt = REPORT_USER_PROMPT.format(
             patient=dump_compact(payload.get("patient", {})),
@@ -107,6 +110,7 @@ class InferencePipeline:
             summary = content[:400]
 
         logger.info(f"Report generated (content length: {len(report_content)})")
+        set_operation("idle", "Ready")
         self._log_to_mlflow(
             model_name=model_name,
             retrieval_time=retrieval_time,
