@@ -293,5 +293,39 @@ def create_app() -> FastAPI:
     return app
 
 
+def run_serve() -> None:
+    import uvicorn
+    logger.info("Starting LLMOps API server...")
+    uvicorn.run(app, host="0.0.0.0", port=8002, reload=True)
+
+
+def run_reindex() -> None:
+    import os
+    from pathlib import Path
+    os.chdir(Path(__file__).parent)
+    from app.pipeline.indexing_pipeline import IndexingPipeline
+    logger.info("Starting RAG reindexing...")
+    pipeline = IndexingPipeline()
+    result = pipeline.run()
+    logger.info(f"Reindexing complete: {result}")
+
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="RetinaXAI LLMOps Service")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    subparsers.add_parser("serve")
+    subparsers.add_parser("pipeline").add_argument("--task", choices=["reindex"], default="reindex")
+    args = parser.parse_args()
+
+    if args.command == "serve":
+        run_serve()
+    elif args.command == "pipeline" and args.task == "reindex":
+        run_reindex()
+
+
 # Create application instance
 app = create_app()
+
+if __name__ == "__main__":
+    main()
