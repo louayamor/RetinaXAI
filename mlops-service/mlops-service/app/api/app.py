@@ -34,12 +34,12 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    app.include_router(health.router, tags=["health"])
-    app.include_router(train.router, tags=["training"])
-    app.include_router(status.router, tags=["status"])
-    app.include_router(metrics.router, tags=["metrics"])
-    app.include_router(predict.router, tags=["predict"])
-    app.include_router(rag.router, tags=["rag"])
+    app.include_router(health.router, tags=["health"])  # type: ignore[arg-type]
+    app.include_router(train.router, tags=["training"])  # type: ignore[arg-type]
+    app.include_router(status.router, tags=["status"])  # type: ignore[arg-type]
+    app.include_router(metrics.router, tags=["metrics"])  # type: ignore[arg-type]
+    app.include_router(predict.router, tags=["predict"])  # type: ignore[arg-type]
+    app.include_router(rag.router, tags=["rag"])  # type: ignore[arg-type]
     # app.include_router(reports.router, tags=["monitoring"])  # temporarily disabled (evidently dep conflict)
 
     return app

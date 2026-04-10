@@ -46,6 +46,6 @@ class ClinicalDataCleaning:
         df.to_csv(cleaned_csv, index=False)
 
         logger.info(f"clinical cleaning complete: {original_size} → {len(df)} records")
-        logger.info(f"final grade distribution: {df['clinical_npdr_grade'].value_counts().to_dict()}")
+        logger.info(f"final grade distribution: {df['clinical_npdr_grade'].value_counts().to_dict()}")  # type: ignore[reportAttributeAccessIssue]
         logger.info(f"cleaned CSV saved: {cleaned_csv}")
-        return df
+        return df  # type: ignore[return-value]

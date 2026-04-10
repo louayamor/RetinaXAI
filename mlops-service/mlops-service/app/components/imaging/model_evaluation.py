@@ -94,13 +94,13 @@ class ImagingModelEvaluation:
 
         try:
             if len(present_classes) == num_classes:
-                return roc_auc_score(
+                return roc_auc_score(  # type: ignore[arg-type]
                     labels, probs, multi_class="ovr", average="macro"
                 )
             else:
                 probs_subset = probs[:, present_classes]
                 probs_subset = probs_subset / probs_subset.sum(axis=1, keepdims=True)
-                return roc_auc_score(
+                return roc_auc_score(  # type: ignore[arg-type]
                     labels,
                     probs_subset,
                     multi_class="ovr",
@@ -120,7 +120,7 @@ class ImagingModelEvaluation:
     ) -> dict:
         accuracy = accuracy_score(labels, preds)
         qwk = cohen_kappa_score(labels, preds, weights="quadratic")
-        report = classification_report(labels, preds, output_dict=True, zero_division=0)
+        report = classification_report(labels, preds, output_dict=True, zero_division=0)  # type: ignore[call-overload]
         auc = self._compute_auc(labels, probs)
 
         auc_str = f"{auc:.4f}" if auc is not None else "N/A"
