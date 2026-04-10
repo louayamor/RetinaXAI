@@ -48,9 +48,8 @@ def configure_mlflow() -> bool:
             repo_name="retinaxai",
             mlflow=True,
         )
-        mlflow.set_tracking_uri(settings.mlflow_tracking_uri)
         mlflow.set_experiment(settings.mlflow_experiment_name)
-        logger.info(f"MLflow configured: {settings.mlflow_tracking_uri}")
+        logger.info(f"MLflow configured via DagsHub: {settings.mlflow_experiment_name}")
         return True
     except ModuleNotFoundError:
         logger.warning("dagshub or mlflow not installed, skipping MLflow setup")

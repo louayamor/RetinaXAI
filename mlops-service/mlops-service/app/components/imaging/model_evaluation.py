@@ -1,3 +1,4 @@
+import time
 import mlflow
 import mlflow.pytorch
 import timm
@@ -185,7 +186,8 @@ class ImagingModelEvaluation:
         save_json(self.config.metric_file, full_metrics)
         logger.info(f"metrics saved: {self.config.metric_file}")
 
-        with mlflow.start_run(run_name=self.config.run_name + "_eval"):
+        run_suffix = f"_{int(time.time()) % 1000:03d}"
+        with mlflow.start_run(run_name=self.config.run_name + "_eval" + run_suffix):
             mlflow.log_metrics({
                 "test_accuracy": test_metrics["accuracy"],
                 "test_qwk": test_metrics["quadratic_weighted_kappa"],

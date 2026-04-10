@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 
 from app.core.config import settings
 from app.llm.client import get_llm_client
@@ -32,19 +33,20 @@ class InferencePipeline:
             settings.rag_embedding_model,
         )
 
-    def _build_retrieval_context(self, payload: dict) -> str:
+    def _build_retrieval_context(self, payload: dict) -> tuple[str, float]:
+        start_time = time.time()
         parts = [payload.get("cleaned_summary", ""), payload.get("raw_ocr_text", "")]
         query = "\n".join(part for part in parts if part)
         if not query.strip():
-            return ""
+            return "", 0.0
 
         try:
             results = self.store.query(query, top_k=4)
         except Exception:
-            return ""
+            return "", 0.0
 
         if not results:
-            return ""
+            return "", 0.0
 
         if isinstance(results, tuple):
             documents = results[0] or []
@@ -59,11 +61,13 @@ class InferencePipeline:
             if text:
                 snippets.append(f"[source: {metadata.get('artifact_id', 'unknown')}] {text}")
 
-        return "\n".join(snippets)
+        return "\n".join(snippets), time.time() - start_time
 
     def generate_report(self, payload: dict) -> dict[str, str]:
         model_name = str(payload.get("model") or settings.llm_model)
-        retrieved_context = self._build_retrieval_context(payload)
+        retrieved_context, retrieval_time = self._build_retrieval_context(payload)
+        
+        start_time = time.time()
         user_prompt = REPORT_USER_PROMPT.format(
             patient=dump_compact(payload.get("patient", {})),
             prediction=dump_compact(payload.get("prediction", {})),
@@ -76,6 +80,8 @@ class InferencePipeline:
         )
 
         content = self.client.generate(user_prompt, REPORT_SYSTEM_PROMPT)
+        generation_time = time.time() - start_time
+
         parsed = None
         try:
             parsed = json.loads(content)
@@ -89,4 +95,40 @@ class InferencePipeline:
             report_content = content
             summary = content[:400]
 
+        self._log_to_mlflow(
+            model_name=model_name,
+            retrieval_time=retrieval_time,
+            generation_time=generation_time,
+            has_retrieved_context=bool(retrieved_context),
+            run_index=int(time.time()) % 1000,
+        )
+
         return {"content": report_content, "summary": summary, "model_used": model_name}
+
+    def _log_to_mlflow(
+        self,
+        model_name: str,
+        retrieval_time: float,
+        generation_time: float,
+        has_retrieved_context: bool,
+        run_index: int = 0,
+    ) -> None:
+        try:
+            import mlflow
+
+            if not settings.mlflow_tracking_uri:
+                return
+
+            with mlflow.start_run(run_name=f"llmops_inference_{run_index:03d}"):
+                mlflow.log_params({
+                    "model": model_name,
+                    "report_type": "clinical",
+                })
+                mlflow.log_metrics({
+                    "retrieval_latency_seconds": retrieval_time,
+                    "generation_latency_seconds": generation_time,
+                    "total_latency_seconds": retrieval_time + generation_time,
+                    "retrieved_doc_count": int(has_retrieved_context),
+                })
+        except Exception:
+            pass
