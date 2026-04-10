@@ -1,11 +1,27 @@
 {
   "venvPath": "backend-service",
   "venv": ".venv",
+  "pythonVersion": "3.12",
   "executionEnvironments": [
     {
       "root": "backend-service/backend-service",
       "extraPaths": [
-        "backend-service/backend-service"
+        "backend-service/backend-service",
+        "backend-service/.venv/lib/python3.12/site-packages"
+      ]
+    },
+    {
+      "root": "mlops-service/mlops-service",
+      "extraPaths": [
+        "mlops-service/mlops-service",
+        "mlops-service/.venv/lib/python3.12/site-packages"
+      ]
+    },
+    {
+      "root": "llmops-service/llmops-service",
+      "extraPaths": [
+        "llmops-service/llmops-service",
+        "llmops-service/.venv/lib/python3.12/site-packages"
       ]
     }
   ]

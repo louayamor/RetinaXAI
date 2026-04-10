@@ -24,7 +24,7 @@ class PatientService:
     async def get_by_id(self, patient_id: uuid.UUID) -> Patient:
         patient = await self.repo.get_by_id(patient_id)
         if not patient:
-            raise NotFoundException("Patient", patient_id)
+            raise NotFoundException("Patient", patient_id)  # type: ignore[reportArgumentType]
         return patient
 
     async def get_all(self, skip: int = 0, limit: int = 20, query: str | None = None) -> tuple[list[Patient], int]:

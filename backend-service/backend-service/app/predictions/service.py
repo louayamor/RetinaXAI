@@ -21,11 +21,11 @@ class PredictionService:
     async def run(self, data: PredictionRequest, requested_by: uuid.UUID) -> Prediction:
         patient = await self.patient_repo.get_by_id(data.patient_id)
         if not patient:
-            raise NotFoundException("Patient", data.patient_id)
+            raise NotFoundException("Patient", data.patient_id)  # type: ignore[reportArgumentType]
 
         scan = await self.mri_scan_repo.get_by_id(data.mri_scan_id)
         if not scan:
-            raise NotFoundException("MRIScan", data.mri_scan_id)
+            raise NotFoundException("MRIScan", data.mri_scan_id)  # type: ignore[reportArgumentType]
 
         prediction = Prediction(
             patient_id=data.patient_id,
@@ -61,7 +61,7 @@ class PredictionService:
     async def get_by_id(self, prediction_id: uuid.UUID) -> Prediction:
         prediction = await self.repo.get_by_id(prediction_id)
         if not prediction:
-            raise NotFoundException("Prediction", prediction_id)
+            raise NotFoundException("Prediction", prediction_id)  # type: ignore[reportArgumentType]
         return prediction
 
     async def get_by_patient(
@@ -69,4 +69,11 @@ class PredictionService:
     ) -> tuple[list[Prediction], int]:
         predictions = await self.repo.get_by_patient(patient_id, skip, limit)
         total = await self.repo.count_by_patient(patient_id)
+        return predictions, total
+
+    async def get_all(
+        self, skip: int = 0, limit: int = 20
+    ) -> tuple[list[Prediction], int]:
+        predictions = await self.repo.get_all(skip, limit)
+        total = await self.repo.count_all()
         return predictions, total
