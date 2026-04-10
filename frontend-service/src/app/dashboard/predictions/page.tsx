@@ -7,6 +7,7 @@ import {
   getPatients,
   listAllPredictions,
   getPatient,
+  createReport,
   PredictionRequest
 } from '@/lib/api';
 import PageContainer from '@/components/layout/page-container';
@@ -39,6 +40,7 @@ import {
 import {
   Upload,
   FileImage,
+  FileText,
   X,
   Loader2,
   Eye,
@@ -95,6 +97,7 @@ export default function PredictionsPage() {
   const [predictionsLoading, setPredictionsLoading] = useState(true);
   const [selectedPrediction, setSelectedPrediction] = useState<Prediction | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [generatingReport, setGeneratingReport] = useState(false);
   const [patientNames, setPatientNames] = useState<Record<string, string>>({});
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
@@ -259,6 +262,21 @@ export default function PredictionsPage() {
   const viewPredictionDetails = (prediction: Prediction) => {
     setSelectedPrediction(prediction);
     setDetailOpen(true);
+  };
+
+  const handleGenerateReport = async () => {
+    if (!selectedPrediction) return;
+    setGeneratingReport(true);
+    try {
+      await createReport(selectedPrediction.id);
+      toast.success('Report generated successfully');
+      setDetailOpen(false);
+    } catch (err) {
+      console.error('Failed to generate report:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to generate report');
+    } finally {
+      setGeneratingReport(false);
+    }
   };
 
   return (
@@ -588,6 +606,27 @@ export default function PredictionsPage() {
                         </p>
                       </CardContent>
                     </Card>
+
+                    {/* Generate Report Button */}
+                    <div className="flex justify-end">
+                      <Button
+                        onClick={handleGenerateReport}
+                        disabled={generatingReport}
+                        className="mt-4"
+                      >
+                        {generatingReport ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <FileText className="mr-2 h-4 w-4" />
+                            Generate Report
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 )}
 
