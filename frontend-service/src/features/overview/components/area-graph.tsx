@@ -1,5 +1,6 @@
 'use client';
 
+import * as React from 'react';
 import { IconTrendingUp } from '@tabler/icons-react';
 import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts';
 
@@ -17,43 +18,95 @@ import {
   ChartTooltip,
   ChartTooltipContent
 } from '@/components/ui/chart';
+import { Skeleton } from '@/components/ui/skeleton';
 
-const chartData = [
-  { month: 'January', desktop: 186, mobile: 80 },
-  { month: 'February', desktop: 305, mobile: 200 },
-  { month: 'March', desktop: 237, mobile: 120 },
-  { month: 'April', desktop: 73, mobile: 190 },
-  { month: 'May', desktop: 209, mobile: 130 },
-  { month: 'June', desktop: 214, mobile: 140 }
-];
+interface AreaGraphProps {
+  data?: Record<number, number>;
+  loading?: boolean;
+}
+
+const severityLabels: Record<number, string> = {
+  0: 'No DR',
+  1: 'Mild',
+  2: 'Moderate',
+  3: 'Severe',
+  4: 'Proliferative'
+};
 
 const chartConfig = {
-  visitors: {
-    label: 'Visitors'
-  },
-  desktop: {
-    label: 'Desktop',
-    color: 'var(--primary)'
-  },
-  mobile: {
-    label: 'Mobile',
+  count: {
+    label: 'Predictions',
     color: 'var(--primary)'
   }
 } satisfies ChartConfig;
 
-export function AreaGraph() {
+export function AreaGraph({ data, loading = false }: AreaGraphProps) {
+  // Transform severity data for the chart
+  const chartData = React.useMemo(() => {
+    if (!data || Object.keys(data).length === 0) {
+      // Return empty data for all severity levels
+      return [
+        { severity: 'No DR', count: 0, level: 0 },
+        { severity: 'Mild', count: 0, level: 1 },
+        { severity: 'Moderate', count: 0, level: 2 },
+        { severity: 'Severe', count: 0, level: 3 },
+        { severity: 'Proliferative', count: 0, level: 4 }
+      ];
+    }
+
+    return Object.entries(data)
+      .map(([level, count]) => ({
+        severity: severityLabels[parseInt(level)] || `Level ${level}`,
+        count: count || 0,
+        level: parseInt(level)
+      }))
+      .sort((a, b) => a.level - b.level);
+  }, [data]);
+
+  const total = React.useMemo(
+    () => chartData.reduce((acc, curr) => acc + curr.count, 0),
+    [chartData]
+  );
+
+  const [isClient, setIsClient] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) {
+    return null;
+  }
+
+  if (loading) {
+    return (
+      <Card className="@container/card">
+        <CardHeader>
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-4 w-32" />
+        </CardHeader>
+        <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
+          <Skeleton className="h-[250px] w-full" />
+        </CardContent>
+        <CardFooter>
+          <Skeleton className="h-4 w-full" />
+        </CardFooter>
+      </Card>
+    );
+  }
+
   return (
-    <Card className='@container/card'>
+    <Card className="@container/card">
       <CardHeader>
-        <CardTitle>Area Chart - Stacked</CardTitle>
+        <CardTitle>DR Severity Distribution</CardTitle>
         <CardDescription>
-          Showing total visitors for the last 6 months
+          Predictions by diabetic retinopathy severity level
         </CardDescription>
       </CardHeader>
-      <CardContent className='px-2 pt-4 sm:px-6 sm:pt-6'>
+      <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
         <ChartContainer
           config={chartConfig}
-          className='aspect-auto h-[250px] w-full'
+          className="aspect-auto h-[250px] w-full"
         >
           <AreaChart
             data={chartData}
@@ -63,70 +116,60 @@ export function AreaGraph() {
             }}
           >
             <defs>
-              <linearGradient id='fillDesktop' x1='0' y1='0' x2='0' y2='1'>
+              <linearGradient id="fillSeverity" x1="0" y1="0" x2="0" y2="1">
                 <stop
-                  offset='5%'
-                  stopColor='var(--color-desktop)'
+                  offset="5%"
+                  stopColor="var(--primary)"
                   stopOpacity={1.0}
                 />
                 <stop
-                  offset='95%'
-                  stopColor='var(--color-desktop)'
-                  stopOpacity={0.1}
-                />
-              </linearGradient>
-              <linearGradient id='fillMobile' x1='0' y1='0' x2='0' y2='1'>
-                <stop
-                  offset='5%'
-                  stopColor='var(--color-mobile)'
-                  stopOpacity={0.8}
-                />
-                <stop
-                  offset='95%'
-                  stopColor='var(--color-mobile)'
+                  offset="95%"
+                  stopColor="var(--primary)"
                   stopOpacity={0.1}
                 />
               </linearGradient>
             </defs>
             <CartesianGrid vertical={false} />
             <XAxis
-              dataKey='month'
+              dataKey="severity"
               tickLine={false}
               axisLine={false}
               tickMargin={8}
               minTickGap={32}
-              tickFormatter={(value) => value.slice(0, 3)}
             />
             <ChartTooltip
               cursor={false}
-              content={<ChartTooltipContent indicator='dot' />}
+              content={
+                <ChartTooltipContent
+                  indicator="dot"
+                  labelKey="severity"
+                />
+              }
             />
             <Area
-              dataKey='mobile'
-              type='natural'
-              fill='url(#fillMobile)'
-              stroke='var(--color-mobile)'
-              stackId='a'
-            />
-            <Area
-              dataKey='desktop'
-              type='natural'
-              fill='url(#fillDesktop)'
-              stroke='var(--color-desktop)'
-              stackId='a'
+              dataKey="count"
+              type="natural"
+              fill="url(#fillSeverity)"
+              stroke="var(--primary)"
             />
           </AreaChart>
         </ChartContainer>
       </CardContent>
       <CardFooter>
-        <div className='flex w-full items-start gap-2 text-sm'>
-          <div className='grid gap-2'>
-            <div className='flex items-center gap-2 leading-none font-medium'>
-              Trending up by 5.2% this month{' '}
-              <IconTrendingUp className='h-4 w-4' />
+        <div className="flex w-full items-start gap-2 text-sm">
+          <div className="grid gap-2">
+            <div className="flex items-center gap-2 leading-none font-medium">
+              {total > 0 ? (
+                <>
+                  {chartData[0]?.count || 0} No DR cases{' '}
+                  <IconTrendingUp className="h-4 w-4" />
+                </>
+              ) : (
+                'No predictions yet'
+              )}
             </div>
-            <div className='text-muted-foreground flex items-center gap-2 leading-none'>
-              January - June 2024
+            <div className="text-muted-foreground flex items-center gap-2 leading-none">
+              {total > 0 ? `${total} total predictions` : 'Start by creating predictions'}
             </div>
           </div>
         </div>

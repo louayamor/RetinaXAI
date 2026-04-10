@@ -80,21 +80,44 @@ export type DRSeverity =
   | 'severe'
   | 'proliferative';
 
+export type PredictionStatus = 'pending' | 'success' | 'failed';
+
 export interface Prediction {
   id: string;
   patient_id: string;
-  scan_id: string;
-  severity: DRSeverity;
-  confidence: number;
-  gradcam_url: string;
+  mri_scan_id: string;
+  requested_by: string;
+  model_name: string;
+  model_version: string;
+  input_payload: Record<string, unknown>;
+  output_payload: Record<string, unknown> | null;
+  confidence_score: number | null;
+  status: PredictionStatus;
+  error_message: string | null;
   created_at: string;
 }
 
+export type ReportStatus = 'pending' | 'running' | 'completed' | 'failed';
+
 export interface Report {
   id: string;
+  patient_id: string;
   prediction_id: string;
-  content: string;
-  generated_at: string;
+  generated_by: string;
+  llm_model: string;
+  content: string | null;
+  summary: string | null;
+  status: ReportStatus;
+  error_message: string | null;
+  created_at: string;
+}
+
+export interface PaginatedResponse<T> {
+  total: number;
+  page: number;
+  size: number;
+  pages: number;
+  items: T[];
 }
 
 export interface ApiError {
