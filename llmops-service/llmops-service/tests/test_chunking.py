@@ -20,6 +20,6 @@ def test_chunk_documents_preserve_metadata_and_ids():
     chunks = chunk_documents(docs, chunk_size=8, chunk_overlap=2)
 
     assert chunks
-    assert chunks[0].id.startswith("clinical_metrics:abc:0")
+    assert chunks[0].id is not None and chunks[0].id.startswith("clinical_metrics:abc:0")
     assert chunks[0].metadata["chunk_index"] == 0
     assert chunks[0].metadata["run_id"] is None

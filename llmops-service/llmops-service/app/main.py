@@ -219,7 +219,7 @@ def create_app() -> FastAPI:
         return response
 
     # Include routers
-    app.include_router(router)
+    app.include_router(router)  # type: ignore[arg-type]
 
     # Exception handlers
     @app.exception_handler(Exception)

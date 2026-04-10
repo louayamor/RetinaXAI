@@ -69,7 +69,7 @@ class OllamaLLMClient(LLMClient):
         messages.append(("user", prompt))
 
         response = self._get_client().invoke(messages)
-        return response.content
+        return response.content  # type: ignore[return-value]
 
 
 class MockLLMClient(LLMClient):
