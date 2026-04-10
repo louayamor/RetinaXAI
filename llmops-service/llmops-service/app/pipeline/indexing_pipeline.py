@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import TypedDict
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from loguru import logger
 
 from app.core.config import settings
 from app.rag.manifest_client import fetch_manifest
@@ -25,7 +26,11 @@ class IndexingPipeline:
     def run(self) -> PipelineResult:
         start_time = time.time()
 
+        logger.info("Fetching manifest from MLOps...")
         manifest = fetch_manifest(settings.rag_manifest_url)
+        logger.info(f"Manifest: run_id={manifest.run_id}, artifacts={manifest.artifact_count}")
+
+        logger.info("Initializing ChromaDB store...")
         store = ChromaStore(
             settings.rag_chroma_persist_directory,
             settings.rag_chroma_collection_name,
@@ -34,18 +39,27 @@ class IndexingPipeline:
         store.ensure_ready()
         store.upsert_documents([])
 
+        logger.info("Loading and normalizing artifacts...")
         documents = []
         for artifact in manifest.artifacts:
             if not artifact.indexable:
+                logger.debug(f"Skipping non-indexable artifact: {artifact.artifact_id}")
                 continue
-            documents.extend(normalize_artifact(artifact, run_id=manifest.run_id))
+            docs = normalize_artifact(artifact, run_id=manifest.run_id)
+            logger.debug(f"Loaded {len(docs)} documents from {artifact.artifact_id}")
+            documents.extend(docs)
+        logger.info(f"Total documents loaded: {len(documents)}")
 
+        logger.info("Splitting documents into chunks...")
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=settings.rag_chunk_size,
             chunk_overlap=settings.rag_chunk_overlap,
             separators=["\n\n", "\n", ". ", " ", ""],
         )
         chunks = splitter.split_documents(documents)
+        logger.info(f"Total chunks created: {len(chunks)}")
+
+        logger.info("Rebuilding ChromaDB collection...")
         state = {
             "schema_version": manifest.schema_version,
             "run_id": manifest.run_id,
@@ -62,6 +76,7 @@ class IndexingPipeline:
             if hasattr(store, "write_state"):
                 store.write_state(state)
 
+        logger.info("Indexing complete!")
         elapsed_time = time.time() - start_time
 
         self._log_to_mlflow(
