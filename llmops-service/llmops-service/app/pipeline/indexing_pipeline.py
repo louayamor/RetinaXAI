@@ -9,6 +9,7 @@ from loguru import logger
 
 from app.core.config import settings
 from app.rag.manifest_client import fetch_manifest
+from app.services.operation_state import set_operation, clear_operation
 from app.vectorstore.chroma_store import ChromaStore
 from app.vectorstore.document_loader import normalize_artifact
 
@@ -25,11 +26,13 @@ class PipelineResult(TypedDict):
 class IndexingPipeline:
     def run(self) -> PipelineResult:
         start_time = time.time()
+        set_operation("indexing", "Fetching manifest from MLOps...")
 
         logger.info("Fetching manifest from MLOps...")
         manifest = fetch_manifest(settings.rag_manifest_url)
         logger.info(f"Manifest: run_id={manifest.run_id}, artifacts={manifest.artifact_count}")
 
+        set_operation("indexing", "Initializing ChromaDB store...")
         logger.info("Initializing ChromaDB store...")
         store = ChromaStore(
             settings.rag_chroma_persist_directory,
@@ -39,6 +42,7 @@ class IndexingPipeline:
         store.ensure_ready()
         store.upsert_documents([])
 
+        set_operation("indexing", "Loading and normalizing artifacts...")
         logger.info("Loading and normalizing artifacts...")
         documents = []
         for artifact in manifest.artifacts:
@@ -50,6 +54,7 @@ class IndexingPipeline:
             documents.extend(docs)
         logger.info(f"Total documents loaded: {len(documents)}")
 
+        set_operation("indexing", "Splitting documents into chunks...")
         logger.info("Splitting documents into chunks...")
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=settings.rag_chunk_size,
@@ -59,6 +64,7 @@ class IndexingPipeline:
         chunks = splitter.split_documents(documents)
         logger.info(f"Total chunks created: {len(chunks)}")
 
+        set_operation("indexing", "Rebuilding ChromaDB collection...")
         logger.info("Rebuilding ChromaDB collection...")
         state = {
             "schema_version": manifest.schema_version,
@@ -77,6 +83,7 @@ class IndexingPipeline:
                 store.write_state(state)
 
         logger.info("Indexing complete!")
+        set_operation("idle", "Ready")
         elapsed_time = time.time() - start_time
 
         self._log_to_mlflow(

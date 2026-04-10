@@ -306,3 +306,16 @@ export async function checkLlmoopsHealth(): Promise<{ status: string }> {
   if (!res.ok) throw new Error(`LLMOps service is down: ${res.status}`);
   return res.json();
 }
+
+export interface OperationStatus {
+  state: string;
+  message: string;
+  progress: number | null;
+  started_at: string | null;
+}
+
+export async function getOperationStatus(): Promise<OperationStatus> {
+  const res = await fetch(`${LLMOPS_BASE}/api/operation/status`);
+  if (!res.ok) throw new Error(`Failed to get operation status: ${res.status}`);
+  return res.json();
+}

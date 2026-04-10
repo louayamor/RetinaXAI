@@ -4,7 +4,9 @@ import os
 import sys
 from pathlib import Path
 
-os.chdir(Path(__file__).parent / "llmops-service")
+root = Path(__file__).parent
+os.chdir(root / "llmops-service")
+sys.path.insert(0, str(root / "llmops-service"))
 
 import uvicorn
 
