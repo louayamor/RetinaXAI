@@ -32,7 +32,7 @@ async def list_patients(
     q: str | None = Query(None, min_length=1),
 ):
     service = PatientService(db)
-    patients, _ = await service.get_all(skip=skip, limit=limit, query=q)
+    patients, _ = await service.get_all(skip=skip, limit=limit, query=q)  # type: ignore[assignment]
     return patients
 
 

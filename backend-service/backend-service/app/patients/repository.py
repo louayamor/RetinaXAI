@@ -31,6 +31,7 @@ class PatientRepository:
                     Patient.ocr_patient_id.ilike(q),
                 )
             )
+        stmt = stmt.order_by(Patient.created_at.desc(), Patient.id.desc())
         stmt = stmt.offset(skip).limit(limit)
         result = await self.db.execute(stmt)
         return list(result.scalars().all())

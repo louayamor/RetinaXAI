@@ -36,7 +36,7 @@ THICKNESS_COLS = [
 
 
 async def main():
-    import pandas as pd
+    import pandas as pd  # type: ignore[reportMissingImports]
 
     if not OCR_CSV.exists():
         print(f"OCR CSV not found: {OCR_CSV}")

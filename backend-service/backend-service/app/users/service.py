@@ -27,7 +27,7 @@ class UserService:
     async def get_by_id(self, user_id: uuid.UUID) -> User:
         user = await self.repo.get_by_id(user_id)
         if not user:
-            raise NotFoundException("User", user_id)
+            raise NotFoundException("User", user_id)  # type: ignore[reportArgumentType]
         return user
 
     async def get_by_email(self, email: str) -> User:

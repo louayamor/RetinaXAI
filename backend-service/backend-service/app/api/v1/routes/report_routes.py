@@ -22,6 +22,25 @@ async def generate_report(
     return await service.generate(data, current_user.id)
 
 
+@router.get("/", response_model=dict)
+async def list_reports(
+    _: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
+):
+    service = ReportService(db)
+    skip = (page - 1) * size
+    reports, total = await service.get_all(skip, size)
+    return {
+        "total": total,
+        "page": page,
+        "size": size,
+        "pages": (total + size - 1) // size,
+        "items": [ReportRead.model_validate(r) for r in reports],
+    }
+
+
 @router.get("/patient/{patient_id}", response_model=dict)
 async def list_patient_reports(
     patient_id: uuid.UUID,

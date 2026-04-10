@@ -22,6 +22,25 @@ async def run_prediction(
     return await service.run(data, current_user.id)
 
 
+@router.get("/", response_model=dict)
+async def list_predictions(
+    _: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
+):
+    service = PredictionService(db)
+    skip = (page - 1) * size
+    predictions, total = await service.get_all(skip, size)
+    return {
+        "total": total,
+        "page": page,
+        "size": size,
+        "pages": (total + size - 1) // size,
+        "items": [PredictionRead.model_validate(p) for p in predictions],
+    }
+
+
 @router.get("/patient/{patient_id}", response_model=dict)
 async def list_patient_predictions(
     patient_id: uuid.UUID,

@@ -25,7 +25,7 @@ class ReportService:
     ) -> Report:
         prediction = await self.prediction_repo.get_by_id(data.prediction_id)
         if not prediction:
-            raise NotFoundException("Prediction", data.prediction_id)
+            raise NotFoundException("Prediction", data.prediction_id)  # type: ignore[reportArgumentType]
 
         if prediction.status != PredictionStatus.SUCCESS:
             raise UnprocessableEntityException(
@@ -39,6 +39,8 @@ class ReportService:
             )
 
         patient = await self.patient_repo.get_by_id(prediction.patient_id)
+        if not patient:
+            raise NotFoundException("Patient", prediction.patient_id)  # type: ignore[reportArgumentType]
 
         report = Report(
             patient_id=prediction.patient_id,
@@ -81,8 +83,8 @@ class ReportService:
                 report_type="prediction",
                 model_name=prediction.model_name,
                 model_version=prediction.model_version,
-                prediction_output=prediction.output_payload,
-                confidence_score=prediction.confidence_score,
+                prediction_output=prediction.output_payload or {},
+                confidence_score=prediction.confidence_score if prediction.confidence_score is not None else 0.0,
             )
             llm_response = await llm_client.generate_report(llm_request)
             report.content = llm_response.content
@@ -98,7 +100,7 @@ class ReportService:
     async def get_by_id(self, report_id: uuid.UUID) -> Report:
         report = await self.repo.get_by_id(report_id)
         if not report:
-            raise NotFoundException("Report", report_id)
+            raise NotFoundException("Report", report_id)  # type: ignore[reportArgumentType]
         return report
 
     async def get_by_patient(
@@ -106,4 +108,11 @@ class ReportService:
     ) -> tuple[list[Report], int]:
         reports = await self.repo.get_by_patient(patient_id, skip, limit)
         total = await self.repo.count_by_patient(patient_id)
+        return reports, total
+
+    async def get_all(
+        self, skip: int = 0, limit: int = 20
+    ) -> tuple[list[Report], int]:
+        reports = await self.repo.get_all(skip, limit)
+        total = await self.repo.count_all()
         return reports, total

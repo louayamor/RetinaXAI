@@ -49,7 +49,7 @@ class MRIScanService:
     ) -> MRIScan:
         patient = await self.patient_repo.get_by_id(patient_id)
         if not patient:
-            raise NotFoundException("Patient", patient_id)
+            raise NotFoundException("Patient", patient_id)  # type: ignore[reportArgumentType]
 
         self._validate_file(left_scan)
         self._validate_file(right_scan)
@@ -68,13 +68,13 @@ class MRIScanService:
     async def get_by_id(self, scan_id: uuid.UUID) -> MRIScan:
         scan = await self.repo.get_by_id(scan_id)
         if not scan:
-            raise NotFoundException("MRIScan", scan_id)
+            raise NotFoundException("MRIScan", scan_id)  # type: ignore[reportArgumentType]
         return scan
 
     async def get_by_patient(self, patient_id: uuid.UUID) -> list[MRIScan]:
         patient = await self.patient_repo.get_by_id(patient_id)
         if not patient:
-            raise NotFoundException("Patient", patient_id)
+            raise NotFoundException("Patient", patient_id)  # type: ignore[reportArgumentType]
         return await self.repo.get_by_patient(patient_id)
 
     async def delete(self, scan_id: uuid.UUID) -> None:

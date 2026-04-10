@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import AsyncGenerator
+
 import uuid
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
@@ -43,7 +45,7 @@ def auth_session(user_id: uuid.UUID) -> SimpleNamespace:
 
 
 @pytest_asyncio.fixture
-async def api_client() -> httpx.AsyncClient:
+async def api_client() -> AsyncGenerator[httpx.AsyncClient, None]:
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://testserver") as client:
         yield client
 

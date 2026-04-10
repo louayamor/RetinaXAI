@@ -60,9 +60,9 @@ async def get_oct_stats(
     )
     thickness_row = thickness_avg.first()
     thickness_averages = {
-        "center_fovea": round(float(thickness_row[0]), 2) if thickness_row[0] else None,
-        "average_thickness": round(float(thickness_row[1]), 2) if thickness_row[1] else None,
-        "total_volume_mm3": round(float(thickness_row[2]), 2) if thickness_row[2] else None,
+        "center_fovea": round(float(thickness_row[0]), 2) if thickness_row is not None and thickness_row[0] is not None else None,
+        "average_thickness": round(float(thickness_row[1]), 2) if thickness_row is not None and thickness_row[1] is not None else None,
+        "total_volume_mm3": round(float(thickness_row[2]), 2) if thickness_row is not None and thickness_row[2] is not None else None,
     }
 
     # Image quality average
