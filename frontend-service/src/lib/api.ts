@@ -300,3 +300,9 @@ export async function triggerRagReindex(): Promise<RagReindexResponse> {
   if (!res.ok) throw new Error(`RAG reindex failed: ${res.status}`);
   return res.json();
 }
+
+export async function checkLlmoopsHealth(): Promise<{ status: string }> {
+  const res = await fetch(`${LLMOPS_BASE}/health`);
+  if (!res.ok) throw new Error(`LLMOps service is down: ${res.status}`);
+  return res.json();
+}
