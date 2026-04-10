@@ -18,6 +18,7 @@ from monitoring.prometheus_metrics import INFERENCE_LATENCY
 
 
 DR_CLASSES = {0: "No DR", 1: "Mild", 2: "Moderate", 3: "Severe", 4: "Proliferative DR"}
+DR_SEVERITY = {0: "none", 1: "low", 2: "moderate", 3: "high", 4: "critical"}
 
 
 class InferenceService:
@@ -35,39 +36,46 @@ class InferenceService:
     def _load_imaging_model(self) -> nn.Module:
         if self._imaging_model is not None:
             return self._imaging_model
+        logger.info(f"[IMAGING MODEL] path={self.settings.imaging_model_path} exists={self.settings.imaging_model_path.exists()}")
         if not self.settings.imaging_model_path.exists():
             raise FileNotFoundError(f"imaging model not found: {self.settings.imaging_model_path}")
         p = self.params.dl_training
+        logger.info(f"[IMAGING MODEL] creating efficientnet_b3 num_classes={p.num_classes} drop={p.dropout}")
         model = timm.create_model(
             "efficientnet_b3",
             pretrained=False,
             num_classes=p.num_classes,
             drop_rate=p.dropout,
         )
+        logger.info(f"[IMAGING MODEL] loading state dict from {self.settings.imaging_model_path}")
         model.load_state_dict(
             torch.load(self.settings.imaging_model_path, map_location=self.device)
         )
         model.to(self.device)
         model.eval()
         self._imaging_model = model
-        logger.info("imaging model loaded for inference")
+        logger.info("[IMAGING MODEL] loaded successfully")
         return model
 
     def _load_clinical_model(self):
         if self._clinical_model is not None:
             return self._clinical_model, self._feature_meta
+        logger.info(f"[CLINICAL MODEL] model_path={self.settings.clinical_model_path} exists={self.settings.clinical_model_path.exists()}")
+        logger.info(f"[CLINICAL MODEL] feature_meta_path={self.settings.clinical_feature_importance_path} exists={self.settings.clinical_feature_importance_path.exists()}")
         if not self.settings.clinical_model_path.exists():
             raise FileNotFoundError(f"clinical model not found: {self.settings.clinical_model_path}")
         if not self.settings.clinical_feature_importance_path.exists():
             raise FileNotFoundError(f"clinical feature metadata not found: {self.settings.clinical_feature_importance_path}")
+        logger.info("[CLINICAL MODEL] loading pickle model")
         with open(self.settings.clinical_model_path, "rb") as f:
             model = pickle.load(f)
+        logger.info(f"[CLINICAL MODEL] loading feature metadata from {self.settings.clinical_feature_importance_path}")
         feature_meta = load_json(self.settings.clinical_feature_importance_path)
         self._clinical_model = model
         self._feature_meta = feature_meta
         self._clinical_encoders = feature_meta.get("categorical_encoders", {}) or {}
         self._clinical_numeric_medians = feature_meta.get("numeric_medians", {}) or {}
-        logger.info("clinical model loaded for inference")
+        logger.info("[CLINICAL MODEL] loaded successfully")
         return model, feature_meta
 
     def _build_transform(self):
@@ -97,6 +105,7 @@ class InferenceService:
         return {
             "predicted_grade": pred_class,
             "predicted_label": DR_CLASSES[pred_class],
+            "severity": DR_SEVERITY.get(pred_class, "unknown"),
             "confidence": round(confidence, 4),
             "probabilities": {
                 DR_CLASSES[i]: round(float(p), 4)
@@ -143,6 +152,7 @@ class InferenceService:
         return {
             "predicted_grade": pred_original,
             "predicted_label": risk_labels.get(pred_original, "Unknown"),
+            "severity": DR_SEVERITY.get(pred_original, "unknown"),
             "risk_score": round(float(max(probs)), 4),
             "probabilities": {
                 risk_labels.get(i + label_offset, str(i + label_offset)): round(float(p), 4)

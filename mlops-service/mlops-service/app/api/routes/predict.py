@@ -41,48 +41,80 @@ async def predict(
     service: InferenceService = Depends(get_inference_service),
 ) -> PredictResponse:
     try:
+        logger.info(f"[STEP 1] Decoding left image ({len(request.left_scan)} chars)")
         left_bytes = _decode_base64_image(request.left_scan)
+        logger.info(f"[STEP 2] Decoding right image ({len(request.right_scan)} chars)")
         right_bytes = _decode_base64_image(request.right_scan)
+        logger.info("[STEP 3] Validating left image")
         _validate_image_bytes(left_bytes)
+        logger.info("[STEP 4] Validating right image")
         _validate_image_bytes(right_bytes)
-        
         logger.info(
-            f"processing prediction for {request.patient_gender} "
-            f"age {request.patient_age}"
+            f"[STEP 5] Processing prediction for {request.patient_gender} "
+            f"age {request.patient_age}, model={request.model_name} v{request.model_version}"
         )
-        
+
+        logger.info("[STEP 6] Loading/predicting imaging model (left eye)")
         left_imaging_result = service.predict_imaging(left_bytes)
+        logger.info(f"[STEP 7] Left eye result: {left_imaging_result}")
+
+        logger.info("[STEP 8] Loading/predicting imaging model (right eye)")
         right_imaging_result = service.predict_imaging(right_bytes)
-        
+        logger.info(f"[STEP 9] Right eye result: {right_imaging_result}")
+
+        logger.info(f"[STEP 10] Parsing clinical features: {request.features}")
         try:
             features = ClinicalFeatures(**request.features)
         except Exception as e:
-            raise HTTPException(
-                status_code=422,
-                detail=f"invalid clinical features: {e}"
-            )
-        
-        clinical_result = service.predict_clinical(features)
-        
-        left_imaging_result["right_eye_prediction"] = right_imaging_result
-        left_imaging_result["clinical_risk"] = clinical_result.get("predicted_grade")
-        left_imaging_result["clinical_risk_score"] = clinical_result.get("risk_score")
-        
+            logger.warning(f"[STEP 10] Clinical features parse failed: {e} — proceeding without clinical model")
+            features = None
+
+        if features is not None:
+            logger.info("[STEP 11] Loading/predicting clinical model")
+            clinical_result = service.predict_clinical(features)
+            logger.info(f"[STEP 12] Clinical result: {clinical_result}")
+        else:
+            logger.info("[STEP 11-12] Skipping clinical model (no valid features)")
+            clinical_result = {}
+
+        severity_map = {0: "none", 1: "low", 2: "moderate", 3: "high", 4: "critical"}
+
+        combined_prediction = {
+            "left_eye": left_imaging_result,
+            "right_eye": right_imaging_result,
+            "clinical": {
+                "predicted_grade": clinical_result.get("predicted_grade"),
+                "predicted_label": clinical_result.get("predicted_label"),
+                "risk_score": clinical_result.get("risk_score"),
+                "severity": severity_map.get(clinical_result.get("predicted_grade", 0), "unknown"),
+                "probabilities": clinical_result.get("probabilities"),
+            },
+            "combined_grade": max(
+                left_imaging_result["predicted_grade"],
+                right_imaging_result["predicted_grade"],
+            ),
+            "overall_severity": severity_map.get(
+                max(left_imaging_result["predicted_grade"], right_imaging_result["predicted_grade"]),
+                "unknown",
+            ),
+        }
+
         logger.info(
             f"prediction complete: left={left_imaging_result['predicted_grade']} "
             f"right={right_imaging_result['predicted_grade']} "
+            f"combined={combined_prediction['combined_grade']} "
             f"left_confidence={left_imaging_result['confidence']}"
         )
-        
+
         return PredictResponse(
-            prediction=left_imaging_result,
+            prediction=combined_prediction,
             confidence_score=left_imaging_result["confidence"],
             model_name=request.model_name,
             model_version=request.model_version,
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"prediction error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"prediction failed: {e}")
+        logger.error(f"[PREDICT ERROR] {type(e).__name__}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"prediction failed: {type(e).__name__}: {e}")
