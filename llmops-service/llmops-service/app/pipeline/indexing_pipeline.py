@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import TypedDict
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -10,8 +11,17 @@ from app.vectorstore.chroma_store import ChromaStore
 from app.vectorstore.document_loader import normalize_artifact
 
 
+class PipelineResult(TypedDict):
+    schema_version: str
+    run_id: str
+    artifact_count: int
+    pipeline: str
+    document_count: int
+    chunk_count: int
+
+
 class IndexingPipeline:
-    def run(self) -> dict[str, object]:
+    def run(self) -> PipelineResult:
         manifest = fetch_manifest(settings.rag_manifest_url)
         store = ChromaStore(
             settings.rag_chroma_persist_directory,
@@ -19,7 +29,7 @@ class IndexingPipeline:
             settings.rag_embedding_model,
         )
         store.ensure_ready()
-        store.reset_collection()
+        store.upsert_documents([])
 
         documents = []
         for artifact in manifest.artifacts:

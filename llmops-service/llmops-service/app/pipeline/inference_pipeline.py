@@ -15,15 +15,15 @@ class InferencePipeline:
         token = settings.github_token if provider == "github" else settings.llm_api_key
         base_url = settings.github_endpoint if provider == "github" else settings.llm_base_url
 
-        client_kwargs = {"model": settings.llm_model}
+        client_kwargs: dict[str, str] = {"model": settings.llm_model}
         if provider == "github":
-            client_kwargs["token"] = token
-            client_kwargs["endpoint"] = base_url
+            client_kwargs["token"] = token if token is not None else ""
+            client_kwargs["endpoint"] = base_url if base_url is not None else ""
         elif provider == "ollama":
-            client_kwargs["base_url"] = base_url or settings.ollama_base_url
+            client_kwargs["base_url"] = base_url if base_url is not None else settings.ollama_base_url
         else:
-            client_kwargs["token"] = token
-            client_kwargs["base_url"] = base_url
+            client_kwargs["token"] = token if token is not None else ""
+            client_kwargs["base_url"] = base_url if base_url is not None else ""
 
         self.client = get_llm_client(provider, **client_kwargs)
         self.store = ChromaStore(

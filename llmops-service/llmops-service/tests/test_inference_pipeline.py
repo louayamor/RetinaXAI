@@ -94,7 +94,7 @@ def test_generate_report_includes_retrieved_context(monkeypatch):
 
             return [[Doc()]]
 
-    pipeline.store = DummyStore()
+    pipeline.store = DummyStore()  # type: ignore[assignment]
 
     captured = {}
 

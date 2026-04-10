@@ -116,7 +116,7 @@ class ChromaStore:
         vectorstore = self._make_vectorstore(self.persist_directory)
         vectorstore.add_documents(documents)
 
-    def query(self, text: str, top_k: int = 4) -> dict[str, Any]:
+    def query(self, text: str, top_k: int = 4) -> list[tuple[Any, float]]:
         vectorstore = self._make_vectorstore(self.persist_directory)
         return vectorstore.similarity_search_with_score(text, k=top_k)
 
