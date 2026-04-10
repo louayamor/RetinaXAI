@@ -294,9 +294,12 @@ def create_app() -> FastAPI:
 
 
 def run_serve() -> None:
+    import os
+    from pathlib import Path
+    os.chdir(Path(__file__).parent)
     import uvicorn
     logger.info("Starting LLMOps API server...")
-    uvicorn.run(app, host="0.0.0.0", port=8002, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8002, reload=True)
 
 
 def run_reindex() -> None:
@@ -312,6 +315,14 @@ def run_reindex() -> None:
 
 def main():
     import argparse
+    import os
+    import sys
+    from pathlib import Path
+
+    base = Path(__file__).parent
+    os.chdir(base)
+    sys.path.insert(0, str(base))
+
     parser = argparse.ArgumentParser(description="RetinaXAI LLMOps Service")
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("serve")
