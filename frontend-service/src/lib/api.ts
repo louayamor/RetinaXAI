@@ -257,3 +257,39 @@ export interface DashboardStats {
 export async function getDashboardStats(): Promise<DashboardStats> {
   return request<DashboardStats>('/api/v1/dashboard/stats');
 }
+
+// LLMOps service API (runs on port 8002)
+const LLMOPS_BASE = process.env.NEXT_PUBLIC_LLMOPS_URL ?? 'http://localhost:8002';
+
+interface RagStatusResponse {
+  status: string;
+  schema_version?: string;
+  run_id?: string;
+  artifact_count: number;
+  collection_name?: string;
+  persist_directory?: string;
+}
+
+interface RagReindexResponse {
+  status: string;
+  result?: {
+    schema_version: string;
+    run_id: string;
+    artifact_count: number;
+    pipeline: string;
+    document_count: number;
+    chunk_count: number;
+  };
+}
+
+export async function getRagStatus(): Promise<RagStatusResponse> {
+  const res = await fetch(`${LLMOPS_BASE}/api/rag/status`);
+  if (!res.ok) throw new Error(`RAG status failed: ${res.status}`);
+  return res.json();
+}
+
+export async function triggerRagReindex(): Promise<RagReindexResponse> {
+  const res = await fetch(`${LLMOPS_BASE}/api/rag/reindex`, { method: 'POST' });
+  if (!res.ok) throw new Error(`RAG reindex failed: ${res.status}`);
+  return res.json();
+}
