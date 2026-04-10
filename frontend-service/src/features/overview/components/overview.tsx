@@ -1,3 +1,6 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import PageContainer from '@/components/layout/page-container';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,129 +15,157 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AreaGraph } from './area-graph';
 import { BarGraph } from './bar-graph';
 import { PieGraph } from './pie-graph';
-import { IconTrendingUp, IconTrendingDown } from '@tabler/icons-react';
+import { IconTrendingUp, IconTrendingDown, IconUsers, IconScan, IconChartBar, IconFileText } from '@tabler/icons-react';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { getDashboardStats, DashboardStats } from '@/lib/api';
+import { toast } from 'sonner';
+
+const severityLabels: Record<number, string> = {
+  0: 'No DR',
+  1: 'Mild',
+  2: 'Moderate',
+  3: 'Severe',
+  4: 'Proliferative'
+};
 
 export default function OverViewPage() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+  const loadStats = async () => {
+    try {
+      setLoading(true);
+      const data = await getDashboardStats();
+      setStats(data);
+    } catch (error) {
+      toast.error('Failed to load dashboard stats');
+      console.error('Dashboard stats error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateTrend = (recent: number, total: number) => {
+    if (total === 0) return 0;
+    return Math.round((recent / total) * 100);
+  };
+
+  const StatCard = ({
+    title,
+    value,
+    icon: Icon,
+    trend,
+    trendLabel,
+    footer
+  }: {
+    title: string;
+    value: number;
+    icon: React.ElementType;
+    trend: number;
+    trendLabel: string;
+    footer: string;
+  }) => (
+    <Card className="@container/card">
+      <CardHeader>
+        <CardDescription>{title}</CardDescription>
+        <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+          {loading ? <Skeleton className="h-8 w-20" /> : value.toLocaleString()}
+        </CardTitle>
+        <CardAction>
+          {loading ? (
+            <Skeleton className="h-6 w-16" />
+          ) : (
+            <Badge variant={trend > 0 ? 'outline' : 'secondary'}>
+              {trend > 0 ? <IconTrendingUp className="size-4" /> : <IconTrendingDown className="size-4" />}
+              {trend > 0 ? '+' : ''}{trend}%
+            </Badge>
+          )}
+        </CardAction>
+      </CardHeader>
+      <CardFooter className="flex-col items-start gap-1.5 text-sm">
+        <div className="line-clamp-1 flex gap-2 font-medium">
+          {trendLabel}
+          {trend > 0 ? <IconTrendingUp className="size-4" /> : <IconTrendingDown className="size-4" />}
+        </div>
+        <div className="text-muted-foreground">{footer}</div>
+      </CardFooter>
+    </Card>
+  );
+
+  const predictionsTrend = stats ? calculateTrend(stats.recent_activity.new_predictions, stats.totals.predictions) : 0;
+  const reportsTrend = stats ? calculateTrend(stats.recent_activity.new_reports, stats.totals.reports) : 0;
+  const patientsTrend = stats ? calculateTrend(stats.recent_activity.new_patients, stats.totals.patients) : 0;
+  const confidenceTrend = stats?.avg_confidence ? Math.round(stats.avg_confidence * 100) : 0;
+
   return (
     <PageContainer>
-      <div className='flex flex-1 flex-col space-y-2'>
-        <div className='flex items-center justify-between space-y-2'>
-          <h2 className='text-2xl font-bold tracking-tight'>
-            Hi, Welcome back 👋
+      <div className="flex flex-1 flex-col space-y-2">
+        <div className="flex items-center justify-between space-y-2">
+          <h2 className="text-2xl font-bold tracking-tight">
+            Dashboard Overview
           </h2>
-          <div className='hidden items-center space-x-2 md:flex'>
-            <Button>Download</Button>
+          <div className="hidden items-center space-x-2 md:flex">
+            <Button onClick={loadStats} disabled={loading}>
+              {loading ? 'Loading...' : 'Refresh'}
+            </Button>
           </div>
         </div>
-        <Tabs defaultValue='overview' className='space-y-4'>
+        <Tabs defaultValue="overview" className="space-y-4">
           <TabsList>
-            <TabsTrigger value='overview'>Overview</TabsTrigger>
-            <TabsTrigger value='analytics' disabled>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="analytics" disabled>
               Analytics
             </TabsTrigger>
           </TabsList>
-          <TabsContent value='overview' className='space-y-4'>
-            <div className='*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4'>
-              <Card className='@container/card'>
-                <CardHeader>
-                  <CardDescription>Total Revenue</CardDescription>
-                  <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
-                    $1,250.00
-                  </CardTitle>
-                  <CardAction>
-                    <Badge variant='outline'>
-                      <IconTrendingUp />
-                      +12.5%
-                    </Badge>
-                  </CardAction>
-                </CardHeader>
-                <CardFooter className='flex-col items-start gap-1.5 text-sm'>
-                  <div className='line-clamp-1 flex gap-2 font-medium'>
-                    Trending up this month <IconTrendingUp className='size-4' />
-                  </div>
-                  <div className='text-muted-foreground'>
-                    Visitors for the last 6 months
-                  </div>
-                </CardFooter>
-              </Card>
-              <Card className='@container/card'>
-                <CardHeader>
-                  <CardDescription>New Customers</CardDescription>
-                  <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
-                    1,234
-                  </CardTitle>
-                  <CardAction>
-                    <Badge variant='outline'>
-                      <IconTrendingDown />
-                      -20%
-                    </Badge>
-                  </CardAction>
-                </CardHeader>
-                <CardFooter className='flex-col items-start gap-1.5 text-sm'>
-                  <div className='line-clamp-1 flex gap-2 font-medium'>
-                    Down 20% this period <IconTrendingDown className='size-4' />
-                  </div>
-                  <div className='text-muted-foreground'>
-                    Acquisition needs attention
-                  </div>
-                </CardFooter>
-              </Card>
-              <Card className='@container/card'>
-                <CardHeader>
-                  <CardDescription>Active Accounts</CardDescription>
-                  <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
-                    45,678
-                  </CardTitle>
-                  <CardAction>
-                    <Badge variant='outline'>
-                      <IconTrendingUp />
-                      +12.5%
-                    </Badge>
-                  </CardAction>
-                </CardHeader>
-                <CardFooter className='flex-col items-start gap-1.5 text-sm'>
-                  <div className='line-clamp-1 flex gap-2 font-medium'>
-                    Strong user retention <IconTrendingUp className='size-4' />
-                  </div>
-                  <div className='text-muted-foreground'>
-                    Engagement exceed targets
-                  </div>
-                </CardFooter>
-              </Card>
-              <Card className='@container/card'>
-                <CardHeader>
-                  <CardDescription>Growth Rate</CardDescription>
-                  <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
-                    4.5%
-                  </CardTitle>
-                  <CardAction>
-                    <Badge variant='outline'>
-                      <IconTrendingUp />
-                      +4.5%
-                    </Badge>
-                  </CardAction>
-                </CardHeader>
-                <CardFooter className='flex-col items-start gap-1.5 text-sm'>
-                  <div className='line-clamp-1 flex gap-2 font-medium'>
-                    Steady performance increase{' '}
-                    <IconTrendingUp className='size-4' />
-                  </div>
-                  <div className='text-muted-foreground'>
-                    Meets growth projections
-                  </div>
-                </CardFooter>
-              </Card>
+          <TabsContent value="overview" className="space-y-4">
+            <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+              <StatCard
+                title="Total Patients"
+                value={stats?.totals.patients ?? 0}
+                icon={IconUsers}
+                trend={patientsTrend}
+                trendLabel={`${stats?.recent_activity.new_patients ?? 0} new this week`}
+                footer="Active patients in system"
+              />
+              <StatCard
+                title="Total Predictions"
+                value={stats?.totals.predictions ?? 0}
+                icon={IconScan}
+                trend={predictionsTrend}
+                trendLabel={`${stats?.recent_activity.new_predictions ?? 0} this week`}
+                footer="AI predictions processed"
+              />
+              <StatCard
+                title="Reports Generated"
+                value={stats?.totals.reports ?? 0}
+                icon={IconFileText}
+                trend={reportsTrend}
+                trendLabel={`${stats?.recent_activity.new_reports ?? 0} this week`}
+                footer="Clinical reports created"
+              />
+              <StatCard
+                title="Avg Confidence"
+                value={confidenceTrend}
+                icon={IconChartBar}
+                trend={confidenceTrend > 80 ? 5 : confidenceTrend > 60 ? 0 : -5}
+                trendLabel={confidenceTrend > 80 ? 'High accuracy' : confidenceTrend > 60 ? 'Moderate accuracy' : 'Review needed'}
+                footer="Model prediction confidence"
+              />
             </div>
-            <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7'>
-              <div className='col-span-4'>
-                <BarGraph />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7">
+              <div className="col-span-4">
+                <BarGraph data={stats?.predictions_timeline} loading={loading} />
               </div>
-              <div className='col-span-4'>
-                <AreaGraph />
+              <div className="col-span-4">
+                <AreaGraph data={stats?.severity_distribution} loading={loading} />
               </div>
-              <div className='col-span-4 md:col-span-3'>
-                <PieGraph />
+              <div className="col-span-4 md:col-span-3">
+                <PieGraph data={stats?.gender_distribution} loading={loading} />
               </div>
             </div>
           </TabsContent>

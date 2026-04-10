@@ -15,6 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 import Image from 'next/image';
 import type { Patient } from '@/types';
 
@@ -84,36 +85,51 @@ export default function PatientsPage() {
   };
 
   const onSubmit = async () => {
-    if (!form.first_name || !form.last_name || !form.medical_record_number || !form.age) return;
+    // Validation
+    if (!form.first_name || !form.last_name || !form.medical_record_number || !form.age) {
+      toast.error('Please fill in all required fields: First name, Last name, Age, and Medical Record Number');
+      return;
+    }
+
+    const ageNum = Number(form.age);
+    if (isNaN(ageNum) || ageNum < 0 || ageNum > 150) {
+      toast.error('Please enter a valid age between 0 and 150');
+      return;
+    }
+
     setSaving(true);
     try {
       if (editingId) {
         await updatePatient(editingId, {
           first_name: form.first_name,
           last_name: form.last_name,
-          age: Number(form.age),
+          age: ageNum,
           gender: form.gender,
           medical_record_number: form.medical_record_number,
           phone: form.phone || null,
           address: form.address || null,
           ocr_patient_id: form.ocr_patient_id || null
         });
+        toast.success('Patient updated successfully');
       } else {
         await createPatient({
           first_name: form.first_name,
           last_name: form.last_name,
-          age: Number(form.age),
+          age: ageNum,
           gender: form.gender,
           medical_record_number: form.medical_record_number,
           phone: form.phone || null,
           address: form.address || null,
           ocr_patient_id: form.ocr_patient_id || null
         });
+        toast.success('Patient created successfully');
       }
       resetForm();
       await loadPatients(search);
     } catch (err) {
       console.error('Failed to save patient:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save patient';
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }
