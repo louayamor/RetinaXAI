@@ -65,6 +65,8 @@ class Settings(BaseSettings):
 
     # DagsHub / MLflow
     mlflow_tracking_uri: str = ""
+    mlflow_tracking_username: str = ""
+    mlflow_tracking_password: str = ""
     mlflow_experiment_name: str = "retinaxai-llmops"
 
     # Ollama (fallback/local)

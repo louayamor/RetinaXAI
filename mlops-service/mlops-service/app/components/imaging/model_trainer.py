@@ -226,7 +226,9 @@ class ImagingModelTrainer:
         checkpoint_path = self.config.checkpoint_path
         checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with mlflow.start_run(run_name=self.params.get("mlflow", {}).get("imaging_run_name", "efficientnet_b3")):
+        import time
+        run_suffix = f"_{int(time.time()) % 1000:03d}"
+        with mlflow.start_run(run_name=self.params.get("mlflow", {}).get("imaging_run_name", "efficientnet_b3") + run_suffix):
             mlflow.log_params({
                 "model": self.config.model_name,
                 "pretrained": self.config.pretrained,

@@ -81,7 +81,8 @@ class ClinicalModelTrainer:
         feature_meta = load_json(self.config.feature_file) if self.config.feature_file.exists() else {}
         categorical_encoders = feature_meta.get("categorical_encoders", {}) if feature_meta else {}
 
-        with mlflow.start_run(run_name=self.params.get("mlflow", {}).get("clinical_run_name", "xgboost_clinical")):
+        run_suffix = f"_{int(time.time()) % 1000:03d}"
+        with mlflow.start_run(run_name=self.params.get("mlflow", {}).get("clinical_run_name", "xgboost_clinical") + run_suffix):
             mlflow.log_params({
                 "model": self.config.model_name,
                 "n_estimators": xgb_cfg.n_estimators,

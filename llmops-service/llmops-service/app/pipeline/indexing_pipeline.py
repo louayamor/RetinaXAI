@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from datetime import datetime, timezone
 from typing import TypedDict
 
@@ -22,6 +23,8 @@ class PipelineResult(TypedDict):
 
 class IndexingPipeline:
     def run(self) -> PipelineResult:
+        start_time = time.time()
+
         manifest = fetch_manifest(settings.rag_manifest_url)
         store = ChromaStore(
             settings.rag_chroma_persist_directory,
@@ -59,6 +62,16 @@ class IndexingPipeline:
             if hasattr(store, "write_state"):
                 store.write_state(state)
 
+        elapsed_time = time.time() - start_time
+
+        self._log_to_mlflow(
+            manifest=manifest,
+            document_count=len(documents),
+            chunk_count=len(chunks),
+            elapsed_time=elapsed_time,
+            run_index=len(chunks) % 1000,
+        )
+
         return {
             "schema_version": manifest.schema_version,
             "run_id": manifest.run_id,
@@ -67,3 +80,35 @@ class IndexingPipeline:
             "document_count": len(documents),
             "chunk_count": len(chunks),
         }
+
+    def _log_to_mlflow(
+        self,
+        manifest,
+        document_count: int,
+        chunk_count: int,
+        elapsed_time: float,
+        run_index: int = 0,
+    ) -> None:
+        try:
+            import mlflow
+
+            if not settings.mlflow_tracking_uri:
+                return
+
+            with mlflow.start_run(run_name=f"llmops_indexing_{manifest.run_id}_{run_index:03d}"):
+                mlflow.log_params({
+                    "run_id": manifest.run_id,
+                    "pipeline": manifest.pipeline,
+                    "schema_version": manifest.schema_version,
+                })
+                mlflow.log_metrics({
+                    "artifact_count": manifest.artifact_count,
+                    "document_count": document_count,
+                    "chunk_count": chunk_count,
+                    "indexing_duration_seconds": elapsed_time,
+                    "embedding_model": settings.rag_embedding_model,
+                    "chunk_size": settings.rag_chunk_size,
+                    "chunk_overlap": settings.rag_chunk_overlap,
+                })
+        except Exception:
+            pass
