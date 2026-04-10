@@ -69,6 +69,7 @@ artifacts/ocr/
 *.swp
 *.swo
 *.bak
+*.tsbuildinfo
 
 .venv/
 frontend-service/docs/
