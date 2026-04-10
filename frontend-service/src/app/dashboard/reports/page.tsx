@@ -5,7 +5,9 @@ import {
   getPatients,
   getPatient,
   listAllReports,
-  getReport
+  getReport,
+  getRagStatus,
+  triggerRagReindex
 } from '@/lib/api';
 import PageContainer from '@/components/layout/page-container';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -32,7 +34,9 @@ import {
   RefreshCw,
   Eye,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  Database,
+  Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Report, ReportStatus } from '@/types';
@@ -57,10 +61,48 @@ export default function ReportsPage() {
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [patientNames, setPatientNames] = useState<Record<string, string>>({});
+  
+  // RAG state
+  const [ragStatus, setRagStatus] = useState<{
+    status: string;
+    schema_version?: string;
+    run_id?: string;
+    artifact_count: number;
+  } | null>(null);
+  const [ragLoading, setRagLoading] = useState(false);
+  const [reindexing, setReindexing] = useState(false);
 
   useEffect(() => {
     loadReports();
+    loadRagStatus();
   }, []);
+
+  const loadRagStatus = async () => {
+    try {
+      setRagLoading(true);
+      const status = await getRagStatus();
+      setRagStatus(status);
+    } catch (err) {
+      console.error('Failed to load RAG status:', err);
+      setRagStatus({ status: 'error', artifact_count: 0 });
+    } finally {
+      setRagLoading(false);
+    }
+  };
+
+  const handleReindex = async () => {
+    try {
+      setReindexing(true);
+      await triggerRagReindex();
+      toast.success('RAG reindexing started');
+      await loadRagStatus();
+    } catch (err) {
+      console.error('Failed to trigger reindex:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to trigger reindex');
+    } finally {
+      setReindexing(false);
+    }
+  };
 
   const loadReports = async () => {
     try {
@@ -121,6 +163,84 @@ export default function ReportsPage() {
             </p>
           </div>
         </div>
+
+        {/* RAG Status Card */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                RAG Index
+              </CardTitle>
+              <CardDescription>
+                Current state of the Retrieval-Augmented Generation index
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadRagStatus}
+                disabled={ragLoading}
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${ragLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleReindex}
+                disabled={reindexing}
+              >
+                {reindexing ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-2 h-4 w-4" />
+                )}
+                Reindex
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {ragLoading && !ragStatus ? (
+              <div className="py-4 text-center">
+                <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : ragStatus ? (
+              <div className="grid gap-4 md:grid-cols-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <Badge
+                    variant="outline"
+                    className={
+                      ragStatus.status === 'ok'
+                        ? 'bg-green-500 text-white'
+                        : ragStatus.status === 'idle'
+                        ? 'bg-yellow-500 text-white'
+                        : 'bg-red-500 text-white'
+                    }
+                  >
+                    {ragStatus.status}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Artifacts</p>
+                  <p className="text-2xl font-bold">{ragStatus.artifact_count}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Schema Version</p>
+                  <p className="font-mono text-sm">{ragStatus.schema_version || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Run ID</p>
+                  <p className="font-mono text-sm truncate">{ragStatus.run_id || '—'}</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-muted-foreground">Unable to load RAG status</p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Reports List */}
         <Card>
