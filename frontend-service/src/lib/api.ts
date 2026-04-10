@@ -17,10 +17,10 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   await refreshIfNeeded();
 
   const token = getAccessToken();
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(init.headers as Record<string, string> || {})
-  };
+  const isFormData = init.body instanceof FormData;
+  const headers: Record<string, string> = isFormData
+    ? {}
+    : { 'Content-Type': 'application/json', ...(init.headers as Record<string, string> || {}) };
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
