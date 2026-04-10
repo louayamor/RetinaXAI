@@ -7,7 +7,8 @@ import {
   listAllReports,
   getReport,
   getRagStatus,
-  triggerRagReindex
+  triggerRagReindex,
+  checkLlmoopsHealth
 } from '@/lib/api';
 import PageContainer from '@/components/layout/page-container';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -36,7 +37,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Database,
-  Sparkles
+  Sparkles,
+  WifiOff
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Report, ReportStatus } from '@/types';
@@ -71,6 +73,7 @@ export default function ReportsPage() {
   } | null>(null);
   const [ragLoading, setRagLoading] = useState(false);
   const [reindexing, setReindexing] = useState(false);
+  const [llmopsDown, setLlmopsDown] = useState(false);
 
   useEffect(() => {
     loadReports();
@@ -80,6 +83,15 @@ export default function ReportsPage() {
   const loadRagStatus = async () => {
     try {
       setRagLoading(true);
+      setLlmopsDown(false);
+      
+      try {
+        await checkLlmoopsHealth();
+      } catch {
+        setLlmopsDown(true);
+        return;
+      }
+      
       const status = await getRagStatus();
       setRagStatus(status);
     } catch (err) {
@@ -164,43 +176,73 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        {/* RAG Status Card */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5" />
-                RAG Index
+        {/* RAG Status Card - Service Down */}
+        {llmopsDown ? (
+          <Card className="border-destructive">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-destructive">
+                <WifiOff className="h-5 w-5" />
+                LLMOps Service Unavailable
               </CardTitle>
               <CardDescription>
-                Current state of the Retrieval-Augmented Generation index
+                The LLMOps service is currently down or unreachable.
               </CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={loadRagStatus}
-                disabled={ragLoading}
-              >
-                <RefreshCw className={`mr-2 h-4 w-4 ${ragLoading ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={handleReindex}
-                disabled={reindexing}
-              >
-                {reindexing ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Sparkles className="mr-2 h-4 w-4" />
-                )}
-                Reindex
-              </Button>
-            </div>
-          </CardHeader>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4">
+                <div className="h-2 w-2 animate-pulse rounded-full bg-destructive" />
+                <span className="text-sm text-muted-foreground">
+                  Attempting to reconnect...
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={loadRagStatus}
+                  disabled={ragLoading}
+                >
+                  <RefreshCw className={`mr-2 h-4 w-4 ${ragLoading ? 'animate-spin' : ''}`} />
+                  Retry
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="h-5 w-5" />
+                  RAG Index
+                </CardTitle>
+                <CardDescription>
+                  Current state of the Retrieval-Augmented Generation index
+                </CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={loadRagStatus}
+                  disabled={ragLoading}
+                >
+                  <RefreshCw className={`mr-2 h-4 w-4 ${ragLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleReindex}
+                  disabled={reindexing}
+                >
+                  {reindexing ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-2 h-4 w-4" />
+                  )}
+                  Reindex
+                </Button>
+              </div>
+            </CardHeader>
           <CardContent>
             {ragLoading && !ragStatus ? (
               <div className="py-4 text-center">
@@ -241,6 +283,7 @@ export default function ReportsPage() {
             )}
           </CardContent>
         </Card>
+        )}
 
         {/* Reports List */}
         <Card>
