@@ -26,9 +26,7 @@ class Settings(BaseSettings):
     APP_VERSION: str = "0.1.0"
     DEBUG: bool = False
 
-    DATABASE_URL: str = (
-        "postgresql+asyncpg://retinaxai:retinaxai_secret@localhost:5432/retinaxai"
-    )
+    DATABASE_URL: str = "postgresql+asyncpg://louay:louay@localhost:5432/retinaxai_db"
     DATABASE_POOL_SIZE: int = 20
     DATABASE_MAX_OVERFLOW: int = 40
 
