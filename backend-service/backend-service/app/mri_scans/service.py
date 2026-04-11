@@ -29,9 +29,9 @@ class MRIScanService:
         self, file: UploadFile, patient_id: uuid.UUID, side: str, modality: str
     ) -> str:
         if modality == "fundus":
-            dest_dir = settings.FUNDUS_DIR / str(patient_id)
+            dest_dir = settings.fundus_dir / str(patient_id)
         else:
-            dest_dir = settings.OCT_DIR / str(patient_id)
+            dest_dir = settings.oct_dir / str(patient_id)
         dest_dir.mkdir(parents=True, exist_ok=True)
 
         ext = "png" if file.content_type == "image/png" else "jpg"

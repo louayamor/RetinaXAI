@@ -1,4 +1,5 @@
 import pickle
+import time
 
 import mlflow
 import mlflow.sklearn
@@ -10,7 +11,10 @@ from sklearn.metrics import accuracy_score
 from sklearn.utils.class_weight import compute_sample_weight
 from xgboost import XGBClassifier
 
-from app.entity.config_entity import ClinicalModelTrainerConfig, ClinicalTransformationConfig
+from app.entity.config_entity import (
+    ClinicalModelTrainerConfig,
+    ClinicalTransformationConfig,
+)
 from app.utils.common import load_json, read_yaml, save_json
 from app.constants import PARAMS_FILE_PATH, SCHEMA_FILE_PATH
 from monitoring.prometheus_metrics import BEST_VAL_ACCURACY
@@ -28,8 +32,15 @@ class ClinicalModelTrainer:
         self.schema = read_yaml(SCHEMA_FILE_PATH)
 
     def _load_data(self) -> tuple[pd.DataFrame, pd.DataFrame, int]:
-        train_df = pd.read_csv(self.transformation_config.train_csv)
-        test_df = pd.read_csv(self.transformation_config.test_csv)
+        try:
+            train_df = pd.read_csv(self.transformation_config.train_csv)
+        except Exception as e:
+            raise RuntimeError(f"Failed to load training data: {e}") from e
+
+        try:
+            test_df = pd.read_csv(self.transformation_config.test_csv)
+        except Exception as e:
+            raise RuntimeError(f"Failed to load test data: {e}") from e
 
         logger.info(f"train samples: {len(train_df)}")
         logger.info(f"test samples: {len(test_df)}")
@@ -71,32 +82,51 @@ class ClinicalModelTrainer:
         X_test = test_df[feature_cols].values
         y_test = test_df["label"].values
 
-        sample_weights = compute_sample_weight(class_weight="balanced", y=y_train)  # type: ignore[arg-type]
-        logger.info(f"class distribution train: {dict(zip(*np.unique(y_train, return_counts=True)))}")  # type: ignore[union-attr]
-        logger.info(f"class distribution test: {dict(zip(*np.unique(y_test, return_counts=True)))}")  # type: ignore[union-attr]
+        y_train_np = np.asarray(y_train)
+        y_test_np = np.asarray(y_test)
+        sample_weights = compute_sample_weight(class_weight="balanced", y=y_train_np)  # type: ignore[arg-type]
+        logger.info(
+            f"class distribution train: {dict(zip(*np.unique(y_train_np, return_counts=True)))}"
+        )  # type: ignore[call-overload]
+        logger.info(
+            f"class distribution test: {dict(zip(*np.unique(y_test_np, return_counts=True)))}"
+        )  # type: ignore[call-overload]
 
         model = self._build_model()
         xgb_cfg = self.params.ml_training.xgboost
         p = self.params.ml_training
-        feature_meta = load_json(self.config.feature_file) if self.config.feature_file.exists() else {}
-        categorical_encoders = feature_meta.get("categorical_encoders", {}) if feature_meta else {}
+        feature_meta = (
+            load_json(self.config.feature_file)
+            if self.config.feature_file.exists()
+            else {}
+        )
+        categorical_encoders = (
+            feature_meta.get("categorical_encoders", {}) if feature_meta else {}
+        )
 
         run_suffix = f"_{int(time.time()) % 1000:03d}"
-        with mlflow.start_run(run_name=self.params.get("mlflow", {}).get("clinical_run_name", "xgboost_clinical") + run_suffix):
-            mlflow.log_params({
-                "model": self.config.model_name,
-                "n_estimators": xgb_cfg.n_estimators,
-                "max_depth": xgb_cfg.max_depth,
-                "learning_rate": xgb_cfg.learning_rate,
-                "subsample": xgb_cfg.subsample,
-                "colsample_bytree": xgb_cfg.colsample_bytree,
-                "eval_metric": xgb_cfg.eval_metric,
-                "seed": p.seed,
-                "train_samples": len(train_df),
-                "test_samples": len(test_df),
-                "n_features": len(feature_cols),
-                "label_offset": label_offset,
-            })
+        with mlflow.start_run(
+            run_name=self.params.get("mlflow", {}).get(
+                "clinical_run_name", "xgboost_clinical"
+            )
+            + run_suffix
+        ):
+            mlflow.log_params(
+                {
+                    "model": self.config.model_name,
+                    "n_estimators": xgb_cfg.n_estimators,
+                    "max_depth": xgb_cfg.max_depth,
+                    "learning_rate": xgb_cfg.learning_rate,
+                    "subsample": xgb_cfg.subsample,
+                    "colsample_bytree": xgb_cfg.colsample_bytree,
+                    "eval_metric": xgb_cfg.eval_metric,
+                    "seed": p.seed,
+                    "train_samples": len(train_df),
+                    "test_samples": len(test_df),
+                    "n_features": len(feature_cols),
+                    "label_offset": label_offset,
+                }
+            )
 
             logger.info("fitting XGBoost model with balanced sample weights")
             model.fit(
@@ -113,15 +143,19 @@ class ClinicalModelTrainer:
             test_acc = accuracy_score(y_test, test_preds)
             BEST_VAL_ACCURACY.labels(pipeline="clinical").set(test_acc)
 
-            mlflow.log_metrics({
-                "train_accuracy": round(train_acc, 4),
-                "test_accuracy": round(test_acc, 4),
-            })
+            mlflow.log_metrics(
+                {
+                    "train_accuracy": round(train_acc, 4),
+                    "test_accuracy": round(test_acc, 4),
+                }
+            )
 
             logger.info(f"train accuracy: {train_acc:.4f}")
             logger.info(f"test accuracy: {test_acc:.4f}")
 
-            feature_importance = dict(zip(feature_cols, model.feature_importances_.tolist()))
+            feature_importance = dict(
+                zip(feature_cols, model.feature_importances_.tolist())
+            )
             feature_importance_sorted = dict(
                 sorted(feature_importance.items(), key=lambda x: x[1], reverse=True)
             )
@@ -140,11 +174,15 @@ class ClinicalModelTrainer:
                 "numeric_medians": {
                     col: float(train_df[col].dropna().median())
                     for col in feature_cols
-                    if col in train_df.columns and pd.api.types.is_numeric_dtype(train_df[col]) and not train_df[col].dropna().empty
+                    if col in train_df.columns
+                    and pd.api.types.is_numeric_dtype(train_df[col])
+                    and not train_df[col].dropna().empty
                 },
             }
             save_json(self.config.feature_importance_path, feature_meta)
-            logger.info(f"feature importance saved: {self.config.feature_importance_path}")
+            logger.info(
+                f"feature importance saved: {self.config.feature_importance_path}"
+            )
 
             mlflow.log_artifact(str(self.config.feature_importance_path))
             mlflow.log_artifact(str(self.config.feature_importance_path))

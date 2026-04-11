@@ -11,8 +11,8 @@ from app.db.session import get_db
 
 router = APIRouter(prefix="/metrics", tags=["model_metrics"])
 
-IMAGING_METRICS = settings.IMAGING_METRICS
-CLINICAL_METRICS = settings.CLINICAL_METRICS
+IMAGING_METRICS = settings.imaging_metrics
+CLINICAL_METRICS = settings.clinical_metrics
 
 
 def _load_metrics(path: Path) -> dict | None:

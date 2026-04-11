@@ -26,7 +26,17 @@ class InferenceService:
         self.settings = settings
         self.params = read_yaml(PARAMS_FILE_PATH)
         self.schema = read_yaml(SCHEMA_FILE_PATH)
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        if torch.cuda.is_available():
+            self.device = torch.device("cuda")
+            logger.info(f"[INFERENCE] Using CUDA: {torch.cuda.get_device_name(0)}")
+            logger.info(
+                f"[INFERENCE] GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.2f} GB"
+            )
+        else:
+            self.device = torch.device("cpu")
+            logger.info("[INFERENCE] CUDA not available, using CPU")
+
         self._imaging_model = None
         self._clinical_model = None
         self._feature_meta = None
@@ -36,21 +46,39 @@ class InferenceService:
     def _load_imaging_model(self) -> nn.Module:
         if self._imaging_model is not None:
             return self._imaging_model
-        logger.info(f"[IMAGING MODEL] path={self.settings.imaging_model_path} exists={self.settings.imaging_model_path.exists()}")
+        logger.info(
+            f"[IMAGING MODEL] path={self.settings.imaging_model_path} exists={self.settings.imaging_model_path.exists()}"
+        )
         if not self.settings.imaging_model_path.exists():
-            raise FileNotFoundError(f"imaging model not found: {self.settings.imaging_model_path}")
+            raise FileNotFoundError(
+                f"imaging model not found: {self.settings.imaging_model_path}"
+            )
+
+        if self.settings.imaging_model_path.stat().st_size == 0:
+            raise ValueError(
+                f"imaging model file is empty: {self.settings.imaging_model_path}"
+            )
+
         p = self.params.dl_training
-        logger.info(f"[IMAGING MODEL] creating efficientnet_b3 num_classes={p.num_classes} drop={p.dropout}")
+        logger.info(
+            f"[IMAGING MODEL] creating efficientnet_b3 num_classes={p.num_classes} drop={p.dropout}"
+        )
         model = timm.create_model(
             "efficientnet_b3",
             pretrained=False,
             num_classes=p.num_classes,
             drop_rate=p.dropout,
         )
-        logger.info(f"[IMAGING MODEL] loading state dict from {self.settings.imaging_model_path}")
-        model.load_state_dict(
-            torch.load(self.settings.imaging_model_path, map_location=self.device)
-        )
+        try:
+            logger.info(
+                f"[IMAGING MODEL] loading state dict from {self.settings.imaging_model_path}"
+            )
+            model.load_state_dict(
+                torch.load(self.settings.imaging_model_path, map_location=self.device)
+            )
+        except Exception as e:
+            raise RuntimeError(f"Failed to load imaging model state dict: {e}") from e
+
         model.to(self.device)
         model.eval()
         self._imaging_model = model
@@ -60,17 +88,39 @@ class InferenceService:
     def _load_clinical_model(self):
         if self._clinical_model is not None:
             return self._clinical_model, self._feature_meta
-        logger.info(f"[CLINICAL MODEL] model_path={self.settings.clinical_model_path} exists={self.settings.clinical_model_path.exists()}")
-        logger.info(f"[CLINICAL MODEL] feature_meta_path={self.settings.clinical_feature_importance_path} exists={self.settings.clinical_feature_importance_path.exists()}")
+        logger.info(
+            f"[CLINICAL MODEL] model_path={self.settings.clinical_model_path} exists={self.settings.clinical_model_path.exists()}"
+        )
+        logger.info(
+            f"[CLINICAL MODEL] feature_meta_path={self.settings.clinical_feature_importance_path} exists={self.settings.clinical_feature_importance_path.exists()}"
+        )
+
         if not self.settings.clinical_model_path.exists():
-            raise FileNotFoundError(f"clinical model not found: {self.settings.clinical_model_path}")
+            raise FileNotFoundError(
+                f"clinical model not found: {self.settings.clinical_model_path}"
+            )
         if not self.settings.clinical_feature_importance_path.exists():
-            raise FileNotFoundError(f"clinical feature metadata not found: {self.settings.clinical_feature_importance_path}")
+            raise FileNotFoundError(
+                f"clinical feature metadata not found: {self.settings.clinical_feature_importance_path}"
+            )
+
+        if self.settings.clinical_model_path.stat().st_size == 0:
+            raise ValueError(
+                f"clinical model file is empty: {self.settings.clinical_model_path}"
+            )
+
         logger.info("[CLINICAL MODEL] loading pickle model")
-        with open(self.settings.clinical_model_path, "rb") as f:
-            model = pickle.load(f)
-        logger.info(f"[CLINICAL MODEL] loading feature metadata from {self.settings.clinical_feature_importance_path}")
-        feature_meta = load_json(self.settings.clinical_feature_importance_path)
+        try:
+            with open(self.settings.clinical_model_path, "rb") as f:
+                model = pickle.load(f)
+        except Exception as e:
+            raise RuntimeError(f"Failed to load clinical model: {e}") from e
+
+        try:
+            feature_meta = load_json(self.settings.clinical_feature_importance_path)
+        except Exception as e:
+            raise RuntimeError(f"Failed to load clinical feature metadata: {e}") from e
+
         self._clinical_model = model
         self._feature_meta = feature_meta
         self._clinical_encoders = feature_meta.get("categorical_encoders", {}) or {}
@@ -80,16 +130,23 @@ class InferenceService:
 
     def _build_transform(self):
         norm = self.params.augmentation.normalize
-        return transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=norm.mean, std=norm.std),
-        ])
+        return transforms.Compose(
+            [
+                transforms.Resize((224, 224)),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=norm.mean, std=norm.std),
+            ]
+        )
 
     def predict_imaging(self, image_bytes: bytes) -> dict:
         start = time.time()
         model = self._load_imaging_model()
-        img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+
+        try:
+            img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        except Exception as e:
+            raise ValueError(f"Failed to open image: {e}") from e
+
         tf: nn.Module = self._build_transform()  # type: ignore[assignment]
         tensor = tf(img).unsqueeze(0).to(self.device)  # type: ignore[operator]
 
@@ -102,14 +159,16 @@ class InferenceService:
 
         INFERENCE_LATENCY.labels(model="efficientnet_b3").observe(time.time() - start)
 
+        if self.device.type == "cuda":
+            torch.cuda.empty_cache()
+
         return {
             "predicted_grade": pred_class,
             "predicted_label": DR_CLASSES[pred_class],
             "severity": DR_SEVERITY.get(pred_class, "unknown"),
             "confidence": round(confidence, 4),
             "probabilities": {
-                DR_CLASSES[i]: round(float(p), 4)
-                for i, p in enumerate(probs)
+                DR_CLASSES[i]: round(float(p), 4) for i, p in enumerate(probs)
             },
         }
 
@@ -145,7 +204,13 @@ class InferenceService:
         pred_original = pred_0indexed + label_offset
         probs = model.predict_proba(X)[0]
 
-        risk_labels = {0: "No DR", 1: "Mild NPDR", 2: "Moderate NPDR", 3: "Severe NPDR", 4: "Proliferative DR"}
+        risk_labels = {
+            0: "No DR",
+            1: "Mild NPDR",
+            2: "Moderate NPDR",
+            3: "Severe NPDR",
+            4: "Proliferative DR",
+        }
 
         INFERENCE_LATENCY.labels(model="xgboost_clinical").observe(time.time() - start)
 
@@ -155,7 +220,9 @@ class InferenceService:
             "severity": DR_SEVERITY.get(pred_original, "unknown"),
             "risk_score": round(float(max(probs)), 4),
             "probabilities": {
-                risk_labels.get(i + label_offset, str(i + label_offset)): round(float(p), 4)
+                risk_labels.get(i + label_offset, str(i + label_offset)): round(
+                    float(p), 4
+                )
                 for i, p in enumerate(probs)
             },
         }

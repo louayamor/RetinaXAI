@@ -29,24 +29,45 @@ class LLMServiceClient:
             "format": "json",
         }
 
+        headers = {
+            "X-API-Key": settings.LLM_SERVICE_API_KEY,
+            "Content-Type": "application/json",
+        }
+
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.post(
                     f"{self.base_url}{OLLAMA_GENERATE_ENDPOINT}",
                     json=payload,
+                    headers=headers,
                 )
+                if response.status_code == 401:
+                    raise ServiceUnavailableException("llm-service")
                 response.raise_for_status()
-                data = response.json()
-                parsed = json.loads(data["response"])
+                try:
+                    data: dict = response.json()
+                    parsed = json.loads(data.get("response", "{}"))
+                except (json.JSONDecodeError, KeyError, Exception):
+                    data = {}
+                    response_text = (
+                        data.get("response", "") if isinstance(data, dict) else ""
+                    )
+                    parsed = {
+                        "content": response_text,
+                        "summary": "",
+                        "model_used": self.model,
+                    }
                 return LLMReportResponse(
-                    content=parsed["content"],
-                    summary=parsed["summary"],
+                    content=parsed.get("content", ""),
+                    summary=parsed.get("summary", ""),
                     model_used=parsed.get("model_used", self.model),
                 )
         except httpx.TimeoutException:
             raise ServiceUnavailableException("llm-service")
         except httpx.ConnectError:
             raise ServiceUnavailableException("llm-service")
+        except ServiceUnavailableException:
+            raise
         except (KeyError, ValueError):
             raise ServiceUnavailableException("llm-service")
 
