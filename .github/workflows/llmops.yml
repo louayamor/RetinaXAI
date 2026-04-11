@@ -59,7 +59,7 @@ jobs:
 
       - name: Install CI dependencies
         working-directory: llmops-service
-        run: pip install -r requirements-ci.txt && pip install --no-deps -e .
+        run: pip install -r requirements.txt && pip install --no-deps -e .
 
       - name: Create test env file
         working-directory: llmops-service/llmops-service
