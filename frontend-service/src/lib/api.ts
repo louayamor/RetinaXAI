@@ -284,12 +284,20 @@ interface RagReindexResponse {
 
 const LLMOPS_API_KEY = process.env.NEXT_PUBLIC_LLMOPS_API_KEY ?? 'dev-api-key';
 
+async function _handleLlmoopsResponse<T>(res: Response): Promise<T> {
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const detail = body?.detail || `HTTP ${res.status}`;
+    throw new Error(detail);
+  }
+  return res.json();
+}
+
 export async function getRagStatus(): Promise<RagStatusResponse> {
   const res = await fetch(`${LLMOPS_BASE}/api/rag/status`, {
     headers: { 'x-api-key': LLMOPS_API_KEY },
   });
-  if (!res.ok) throw new Error(`RAG status failed: ${res.status}`);
-  return res.json();
+  return _handleLlmoopsResponse(res);
 }
 
 export async function triggerRagReindex(): Promise<RagReindexResponse> {
@@ -297,14 +305,12 @@ export async function triggerRagReindex(): Promise<RagReindexResponse> {
     method: 'POST',
     headers: { 'x-api-key': LLMOPS_API_KEY },
   });
-  if (!res.ok) throw new Error(`RAG reindex failed: ${res.status}`);
-  return res.json();
+  return _handleLlmoopsResponse(res);
 }
 
 export async function checkLlmoopsHealth(): Promise<{ status: string }> {
   const res = await fetch(`${LLMOPS_BASE}/health`);
-  if (!res.ok) throw new Error(`LLMOps service is down: ${res.status}`);
-  return res.json();
+  return _handleLlmoopsResponse(res);
 }
 
 export interface OperationStatus {
@@ -316,6 +322,5 @@ export interface OperationStatus {
 
 export async function getOperationStatus(): Promise<OperationStatus> {
   const res = await fetch(`${LLMOPS_BASE}/api/operation/status`);
-  if (!res.ok) throw new Error(`Failed to get operation status: ${res.status}`);
-  return res.json();
+  return _handleLlmoopsResponse(res);
 }

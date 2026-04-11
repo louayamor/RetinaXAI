@@ -3,6 +3,7 @@ Async Job Manager for LLMOps Service.
 
 Manages report generation jobs with status tracking, retries, and persistence.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -55,7 +56,9 @@ class Job:
             "status": self.status.value,
             "created_at": self.created_at.isoformat(),
             "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": self.completed_at.isoformat()
+            if self.completed_at
+            else None,
             "result": self.result,
             "error": self.error,
             "retry_count": self.retry_count,
@@ -71,8 +74,12 @@ class Job:
             payload=data["payload"],
             status=JobStatus(data["status"]),
             created_at=datetime.fromisoformat(data["created_at"]),
-            started_at=datetime.fromisoformat(data["started_at"]) if data.get("started_at") else None,
-            completed_at=datetime.fromisoformat(data["completed_at"]) if data.get("completed_at") else None,
+            started_at=datetime.fromisoformat(data["started_at"])
+            if data.get("started_at")
+            else None,
+            completed_at=datetime.fromisoformat(data["completed_at"])
+            if data.get("completed_at")
+            else None,
             result=data.get("result"),
             error=data.get("error"),
             retry_count=data.get("retry_count", 0),
@@ -100,14 +107,18 @@ class JobManager:
         self._running = False
 
         # Persistence
-        self._persist_dir = Path(persist_dir or settings.CACHE_DIR / "jobs")
+        self._persist_dir = Path(persist_dir or settings.cache_dir / "jobs")
         self._persist_dir.mkdir(parents=True, exist_ok=True)
 
         # Job handlers
-        self._handlers: dict[str, Callable[[Job], Coroutine[Any, Any, dict[str, Any]]]] = {}
+        self._handlers: dict[
+            str, Callable[[Job], Coroutine[Any, Any, dict[str, Any]]]
+        ] = {}
 
     def register_handler(
-        self, job_type: str, handler: Callable[[Job], Coroutine[Any, Any, dict[str, Any]]]
+        self,
+        job_type: str,
+        handler: Callable[[Job], Coroutine[Any, Any, dict[str, Any]]],
     ) -> None:
         """Register a handler for a job type."""
         self._handlers[job_type] = handler
@@ -177,9 +188,7 @@ class JobManager:
         """Get job by ID."""
         return self.jobs.get(job_id)
 
-    def get_jobs(
-        self, status: JobStatus | None = None, limit: int = 100
-    ) -> list[Job]:
+    def get_jobs(self, status: JobStatus | None = None, limit: int = 100) -> list[Job]:
         """Get jobs, optionally filtered by status."""
         jobs = list(self.jobs.values())
 
@@ -235,6 +244,10 @@ class JobManager:
                 await self._persist_job(job)
                 return
 
+            from app.services.operation_state import set_operation
+
+            set_operation("generating", f"Processing {job.job_type}...")
+
             job.status = JobStatus.RUNNING
             job.started_at = datetime.now(timezone.utc)
             await self._persist_job(job)
@@ -256,22 +269,34 @@ class JobManager:
                         f"Job {job_id} failed (attempt {job.retry_count}), retrying: {e}"
                     )
                     # Re-queue for retry with backoff
-                    await asyncio.sleep(2 ** job.retry_count)  # Exponential backoff
+                    await asyncio.sleep(2**job.retry_count)  # Exponential backoff
                     await self._queue.put(job_id)
                 else:
                     job.status = JobStatus.FAILED
                     job.error = str(e)
                     job.completed_at = datetime.now(timezone.utc)
-                    logger.error(f"Job {job_id} failed after {job.max_retries} retries: {e}")
+                    logger.error(
+                        f"Job {job_id} failed after {job.max_retries} retries: {e}"
+                    )
 
             finally:
+                from app.services.operation_state import set_operation
+
+                if job.status == JobStatus.FAILED:
+                    error_msg = job.error or "Unknown error"
+                    set_operation("error", error_msg[:200])
+                elif job.status == JobStatus.COMPLETED:
+                    set_operation("idle", "Ready")
+                # Don't clear state for PENDING/RETRYING/RUNNING - keep showing job progress
                 await self._persist_job(job)
 
     async def _persist_job(self, job: Job) -> None:
         """Persist a single job to disk."""
         try:
             job_file = self._persist_dir / f"{job.id}.json"
-            job_file.write_text(json.dumps(job.to_dict(), default=str), encoding="utf-8")
+            job_file.write_text(
+                json.dumps(job.to_dict(), default=str), encoding="utf-8"
+            )
         except Exception as e:
             logger.warning(f"Failed to persist job {job.id}: {e}")
 

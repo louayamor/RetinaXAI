@@ -4,13 +4,17 @@ RetinaXAI LLMOps Service - Main Application Entry Point.
 This module initializes the FastAPI application with proper lifespan management,
 middleware, exception handling, and service dependencies.
 """
+
 from __future__ import annotations
 
+import logging
 import os
 import time
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
+
+logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,6 +26,7 @@ from app.core.config import settings
 from app.core.middleware import APIKeyMiddleware, RateLimitMiddleware
 from app.pipeline.report_generator import generate_report_handler
 from app.services.job_manager import get_job_manager
+from app.services.operation_state import set_operation
 from app.vectorstore.chroma_store import ChromaStore
 
 # Track startup time for health checks
@@ -67,8 +72,8 @@ def validate_directories() -> dict[str, bool]:
         dict[str, bool]: Mapping of directory names to their creation status.
     """
     dirs_to_validate = {
-        "data_dir": settings.DATA_DIR,
-        "cache_dir": settings.CACHE_DIR,
+        "data_dir": settings.data_dir,
+        "cache_dir": settings.cache_dir,
         "chroma_persist": settings.rag_chroma_persist_directory,
     }
 
@@ -149,7 +154,9 @@ async def lifespan(app: FastAPI):
     job_manager = get_job_manager()
     job_manager.register_handler("report_generation", generate_report_handler)
     await job_manager.start()
-    logger.info(f"Job manager started with handlers: {list(job_manager._handlers.keys())}")
+    logger.info(
+        f"Job manager started with handlers: {list(job_manager._handlers.keys())}"
+    )
 
     logger.info(f"Service ready on {settings.app_host}:{settings.app_port}")
 
@@ -226,10 +233,11 @@ def create_app() -> FastAPI:
         """Handle uncaught exceptions."""
         request_id = getattr(request.state, "request_id", "unknown")
         logger.error(f"Unhandled exception [{request_id}]: {exc}", exc_info=True)
+        set_operation("error", str(exc)[:200])
         return JSONResponse(
             status_code=500,
             content={
-                "detail": "Internal server error",
+                "detail": str(exc)[:200],
                 "error_code": "INTERNAL_ERROR",
                 "request_id": request_id,
             },
@@ -296,8 +304,10 @@ def create_app() -> FastAPI:
 def run_serve() -> None:
     import os
     from pathlib import Path
+
     os.chdir(Path(__file__).parent)
     import uvicorn
+
     logger.info("Starting LLMOps API server...")
     uvicorn.run("app.main:app", host="0.0.0.0", port=8002, reload=True)
 
@@ -305,8 +315,10 @@ def run_serve() -> None:
 def run_reindex() -> None:
     import os
     from pathlib import Path
+
     os.chdir(Path(__file__).parent)
     from app.pipeline.indexing_pipeline import IndexingPipeline
+
     logger.info("Starting RAG reindexing...")
     pipeline = IndexingPipeline()
     result = pipeline.run()
@@ -326,7 +338,9 @@ def main():
     parser = argparse.ArgumentParser(description="RetinaXAI LLMOps Service")
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("serve")
-    subparsers.add_parser("pipeline").add_argument("--task", choices=["reindex"], default="reindex")
+    subparsers.add_parser("pipeline").add_argument(
+        "--task", choices=["reindex"], default="reindex"
+    )
     args = parser.parse_args()
 
     if args.command == "serve":

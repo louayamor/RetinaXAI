@@ -37,15 +37,15 @@ const chartConfig = {
   },
   M: {
     label: 'Male',
-    color: 'var(--primary)'
+    color: 'var(--chart-1)'
   },
   F: {
     label: 'Female',
-    color: 'var(--primary-light)'
+    color: 'var(--chart-2)'
   },
   O: {
     label: 'Other',
-    color: 'var(--primary-lighter)'
+    color: 'var(--chart-3)'
   }
 } satisfies ChartConfig;
 
@@ -53,12 +53,12 @@ export function PieGraph({ data, loading = false }: PieGraphProps) {
   const chartData = React.useMemo(() => {
     if (!data || Object.keys(data).length === 0) {
       return [
-        { gender: 'Male', count: 0, key: 'M', fill: 'var(--primary)' },
-        { gender: 'Female', count: 0, key: 'F', fill: 'var(--primary-light)' }
+        { gender: 'Male', count: 0, key: 'M', fill: 'var(--chart-1)' },
+        { gender: 'Female', count: 0, key: 'F', fill: 'var(--chart-2)' }
       ];
     }
 
-    const colors = ['var(--primary)', 'var(--primary-light)', 'var(--primary-lighter)'];
+    const colors = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)'];
     return Object.entries(data)
       .map(([key, count], index) => ({
         gender: genderLabels[key] || key,

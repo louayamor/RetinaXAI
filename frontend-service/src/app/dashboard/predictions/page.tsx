@@ -305,7 +305,7 @@ export default function PredictionsPage() {
             />
           </div>
           <div className="relative z-10">
-            <h1 className="mb-2 text-3xl font-bold tracking-tight">Predictions</h1>
+            <h1 className="mb-2 text-3xl font-bold tracking-tight">DR Screening</h1>
             <p className="max-w-xl text-lg text-white/70">
               Upload scans and run DR grading predictions — AI-assisted retinal analysis
             </p>

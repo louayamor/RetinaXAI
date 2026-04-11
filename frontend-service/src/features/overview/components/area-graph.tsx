@@ -44,14 +44,7 @@ export function AreaGraph({ data, loading = false }: AreaGraphProps) {
   // Transform severity data for the chart
   const chartData = React.useMemo(() => {
     if (!data || Object.keys(data).length === 0) {
-      // Return empty data for all severity levels
-      return [
-        { severity: 'No DR', count: 0, level: 0 },
-        { severity: 'Mild', count: 0, level: 1 },
-        { severity: 'Moderate', count: 0, level: 2 },
-        { severity: 'Severe', count: 0, level: 3 },
-        { severity: 'Proliferative', count: 0, level: 4 }
-      ];
+      return null;
     }
 
     return Object.entries(data)
@@ -64,7 +57,7 @@ export function AreaGraph({ data, loading = false }: AreaGraphProps) {
   }, [data]);
 
   const total = React.useMemo(
-    () => chartData.reduce((acc, curr) => acc + curr.count, 0),
+    () => chartData ? chartData.reduce((acc, curr) => acc + curr.count, 0) : 0,
     [chartData]
   );
 
@@ -91,6 +84,25 @@ export function AreaGraph({ data, loading = false }: AreaGraphProps) {
         <CardFooter>
           <Skeleton className="h-4 w-full" />
         </CardFooter>
+      </Card>
+    );
+  }
+
+  // Empty state
+  if (!chartData || total === 0) {
+    return (
+      <Card className="@container/card">
+        <CardHeader>
+          <CardTitle>DR Severity Distribution</CardTitle>
+          <CardDescription>Predictions by diabetic retinopathy severity level</CardDescription>
+        </CardHeader>
+        <CardContent className="flex h-[250px] items-center justify-center">
+          <div className="text-center">
+            <IconTrendingUp className="mx-auto h-12 w-12 text-muted-foreground/30" />
+            <p className="mt-2 text-sm text-muted-foreground">No severity data</p>
+            <p className="text-xs text-muted-foreground/70">Run predictions to see severity distribution</p>
+          </div>
+        </CardContent>
       </Card>
     );
   }

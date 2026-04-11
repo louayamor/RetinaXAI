@@ -7,19 +7,14 @@ import PageContainer from '@/components/layout/page-container';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import type { Patient } from '@/types';
 import { fadeInUp, slideInUp, staggerContainer, staggerItemFast, buttonTap, rowHover } from '@/lib/animations';
+import { PatientCard } from '@/components/patients/PatientCard';
+import { StatsCard } from '@/components/ui/stats-card';
+import { Users, UserPlus, Calendar, UserCheck, Search, X } from 'lucide-react';
 
 type PatientFormState = {
   first_name: string;
@@ -170,12 +165,12 @@ export default function PatientsPage() {
         animate="visible"
         className="flex flex-col gap-8"
       >
-        {/* Hero */}
+        {/* Hero with Medical Image */}
         <motion.div
           variants={shouldReduceMotion ? {} : slideInUp}
           className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0a2e3e] via-[#0d3a4c] to-[#104a5e] p-10 text-white"
         >
-          <div className="absolute right-0 top-0 h-full w-1/3 opacity-10">
+          <div className="absolute right-0 top-0 h-full w-1/3 opacity-20">
             <Image
               src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&q=80"
               alt="Patient Care"
@@ -184,43 +179,172 @@ export default function PatientsPage() {
               unoptimized
             />
           </div>
+          {/* Decorative accent shapes */}
+          <div className="absolute -bottom-20 -left-20 h-40 w-40 rounded-full bg-[#20bdbe]/10 blur-3xl" />
+          <div className="absolute top-10 right-20 h-24 w-24 rounded-full bg-[#c8a951]/10 blur-2xl" />
+          
           <div className="relative z-10">
-            <h1 className="mb-2 text-3xl font-bold tracking-tight">Patients</h1>
+            <h1 className="mb-2 text-3xl font-bold tracking-tight">Patient Registry</h1>
             <p className="max-w-xl text-lg text-white/70">
-              Manage patients and their OCT reports.
+              Manage patient records, OCT scans, and clinical data
             </p>
           </div>
         </motion.div>
 
+        {/* Stats Row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatsCard
+            title="Total Patients"
+            value={patients.length}
+            icon={Users}
+            subtitle="In database"
+          />
+          <StatsCard
+            title="New This Month"
+            value={patients.filter(p => {
+              const created = new Date(p.created_at);
+              const now = new Date();
+              return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
+            }).length}
+            icon={UserPlus}
+            color="#22c55e"
+          />
+          <StatsCard
+            title="Avg Age"
+            value={patients.length > 0 ? Math.round(patients.reduce((sum, p) => sum + p.age, 0) / patients.length) : 0}
+            icon={Calendar}
+            color="#3b82f6"
+            subtitle="years"
+          />
+          <StatsCard
+            title="Gender Split"
+            value={`${patients.filter(p => p.gender === 'M').length} M / ${patients.filter(p => p.gender === 'F').length} F`}
+            icon={UserCheck}
+            color="#c8a951"
+          />
+        </div>
+
+        {/* Patient Form */}
         <motion.div variants={shouldReduceMotion ? {} : slideInUp}>
           <Card>
             <CardHeader>
-              <CardTitle>{editingId ? 'Update Patient' : 'Add Patient'}</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <UserPlus className="h-5 w-5 text-[#20bdbe]" />
+                {editingId ? 'Update Patient' : 'Add New Patient'}
+              </CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-3 md:grid-cols-4">
-              <Input placeholder="First name" value={form.first_name} onChange={onChange('first_name')} />
-              <Input placeholder="Last name" value={form.last_name} onChange={onChange('last_name')} />
-              <Input placeholder="Age" type="number" min={0} value={form.age} onChange={onChange('age')} />
-              <select
-                className="border-input bg-background h-9 rounded-md border px-3 text-sm"
-                value={form.gender}
-                onChange={onChange('gender')}
-              >
-                <option value="M">Male</option>
-                <option value="F">Female</option>
-              </select>
-              <Input
-                placeholder="Medical record number"
-                value={form.medical_record_number}
-                onChange={onChange('medical_record_number')}
-              />
-              <Input placeholder="Phone" value={form.phone} onChange={onChange('phone')} />
-              <Input placeholder="Address" value={form.address} onChange={onChange('address')} />
-              <Input placeholder="OCR patient id" value={form.ocr_patient_id} onChange={onChange('ocr_patient_id')} />
-              <div className="md:col-span-4 flex gap-2">
+            <CardContent className="space-y-4">
+              {/* Personal Info */}
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">First Name *</label>
+                  <Input 
+                    placeholder="Enter first name" 
+                    value={form.first_name} 
+                    onChange={onChange('first_name')} 
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Last Name *</label>
+                  <Input 
+                    placeholder="Enter last name" 
+                    value={form.last_name} 
+                    onChange={onChange('last_name')} 
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Age *</label>
+                  <Input 
+                    placeholder="Age" 
+                    type="number" 
+                    min={0} 
+                    value={form.age} 
+                    onChange={onChange('age')} 
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Gender</label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={form.gender === 'M' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setForm({ ...form, gender: 'M' })}
+                      className={`flex-1 ${form.gender === 'M' ? 'bg-blue-500 hover:bg-blue-600' : ''}`}
+                    >
+                      <span className="mr-1">👤</span> Male
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={form.gender === 'F' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setForm({ ...form, gender: 'F' })}
+                      className={`flex-1 ${form.gender === 'F' ? 'bg-pink-500 hover:bg-pink-600' : ''}`}
+                    >
+                      <span className="mr-1">👤</span> Female
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Medical Record Info */}
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                <div className="lg:col-span-2">
+                  <label className="text-sm font-medium mb-1 block">Medical Record Number *</label>
+                  <Input 
+                    placeholder="e.g., MRN-2024-001" 
+                    value={form.medical_record_number}
+                    onChange={onChange('medical_record_number')}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">OCR Patient ID</label>
+                  <Input 
+                    placeholder="From OCT report" 
+                    value={form.ocr_patient_id} 
+                    onChange={onChange('ocr_patient_id')} 
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Phone</label>
+                  <Input 
+                    placeholder="+1 234 567 8900" 
+                    value={form.phone} 
+                    onChange={onChange('phone')} 
+                  />
+                </div>
+              </div>
+
+              {/* Address */}
+              <div>
+                <label className="text-sm font-medium mb-1 block">Address</label>
+                <Input 
+                  placeholder="Full address" 
+                  value={form.address} 
+                  onChange={onChange('address')} 
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 pt-2">
                 <motion.div variants={shouldReduceMotion ? {} : buttonTap}>
                   <Button onClick={onSubmit} disabled={saving}>
-                    {editingId ? 'Update Patient' : 'Add Patient'}
+                    {saving ? (
+                      <>
+                        <span className="mr-2">⏳</span>
+                        Saving...
+                      </>
+                    ) : editingId ? (
+                      <>
+                        <span className="mr-2">✓</span>
+                        Update Patient
+                      </>
+                    ) : (
+                      <>
+                        <span className="mr-2">+</span>
+                        Add Patient
+                      </>
+                    )}
                   </Button>
                 </motion.div>
                 {editingId ? (
@@ -233,79 +357,64 @@ export default function PatientsPage() {
           </Card>
         </motion.div>
 
-        <motion.div variants={shouldReduceMotion ? {} : fadeInUp} className="flex items-center gap-4">
-          <Input
-            placeholder="Search by name, MRN, OCR ID..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="max-w-sm"
-          />
-        </motion.div>
-
-        <motion.div variants={shouldReduceMotion ? {} : fadeInUp}>
-          <Card>
-            <CardHeader>
-              <CardTitle>{patients.length} Patients</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <p className="text-muted-foreground py-8 text-center">Loading...</p>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Age</TableHead>
-                      <TableHead>Gender</TableHead>
-                      <TableHead>MRN</TableHead>
-                      <TableHead>OCR ID</TableHead>
-                      <TableHead>Added</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {patients.map((p, index) => (
-                      <motion.tr
-                        key={p.id}
-                        variants={shouldReduceMotion ? {} : staggerItemFast}
-                        initial="hidden"
-                        animate="visible"
-                        whileHover={shouldReduceMotion ? {} : 'hover'}
-                        custom={index}
-                      >
-                        <TableCell className="font-medium">
-                          {p.first_name} {p.last_name}
-                        </TableCell>
-                        <TableCell>{p.age}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{p.gender}</Badge>
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {p.medical_record_number}
-                        </TableCell>
-                        <TableCell className="font-mono text-sm text-muted-foreground">
-                          {p.ocr_patient_id || '—'}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {new Date(p.created_at).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button variant="outline" size="sm" onClick={() => onEdit(p)}>
-                              Edit
-                            </Button>
-                            <Button variant="destructive" size="sm" onClick={() => onDelete(p.id)}>
-                              Delete
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </motion.tr>
-                    ))}
-                  </TableBody>
-                </Table>
+        {/* Search & Patient List */}
+        <motion.div variants={shouldReduceMotion ? {} : fadeInUp} className="space-y-4">
+          {/* Search */}
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, MRN, OCR ID..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               )}
-            </CardContent>
-          </Card>
+            </div>
+            <span className="text-sm text-muted-foreground">
+              {patients.length} patient{patients.length !== 1 ? 's' : ''} found
+            </span>
+          </div>
+
+          {/* Patient Cards */}
+          {loading ? (
+            <div className="py-8 text-center">
+              <p className="text-muted-foreground">Loading patients...</p>
+            </div>
+          ) : patients.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="relative mb-4">
+                <Users className="h-16 w-16 text-muted-foreground/30" />
+                <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-[#20bdbe]/20 flex items-center justify-center">
+                  <Search className="h-4 w-4 text-[#20bdbe]" />
+                </div>
+              </div>
+              <p className="text-muted-foreground text-center">
+                {search ? 'No patients match your search' : 'No patients registered yet'}
+              </p>
+              <p className="text-sm text-muted-foreground/70 mt-1">
+                {search ? 'Try adjusting your search' : 'Add your first patient using the form above'}
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {patients.map((patient) => (
+                <PatientCard
+                  key={patient.id}
+                  patient={patient}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                />
+              ))}
+            </div>
+          )}
         </motion.div>
       </motion.div>
     </PageContainer>

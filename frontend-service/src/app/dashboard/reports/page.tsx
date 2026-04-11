@@ -18,21 +18,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription
-} from '@/components/ui/dialog';
-import {
   FileText,
   Loader2,
   RefreshCw,
@@ -42,11 +27,22 @@ import {
   CheckCircle2,
   Database,
   Sparkles,
-  WifiOff
+  WifiOff,
+  Bot,
+  Calendar,
+  FileCheck,
+  Clock,
+  AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Report, ReportStatus } from '@/types';
 import { fadeInUp, slideInUp, staggerItemFast, buttonTap, statusPulse } from '@/lib/animations';
+import { ReportCard } from '@/components/reports/ReportCard';
+import { ReportFilters } from '@/components/reports/ReportFilters';
+import { StatsCard } from '@/components/ui/stats-card';
+import Image from 'next/image';
+
+type FilterStatus = 'all' | 'completed' | 'pending' | 'running' | 'failed';
 
 const STATUS_COLORS: Record<ReportStatus, string> = {
   pending: 'bg-yellow-500',
@@ -66,9 +62,13 @@ export default function ReportsPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [reportsLoading, setReportsLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
   const [patientNames, setPatientNames] = useState<Record<string, string>>({});
+  const [expandedReportId, setExpandedReportId] = useState<string | null>(null);
   const shouldReduceMotion = useReducedMotion();
+  
+  // Filter states
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<FilterStatus>('all');
   
   // RAG state
   const [ragStatus, setRagStatus] = useState<{
@@ -183,21 +183,37 @@ export default function ReportsPage() {
     }
   };
 
-  const viewReportDetails = async (report: Report) => {
-    try {
-      const fullReport = await getReport(report.id);
-      setSelectedReport(fullReport);
-      setDetailOpen(true);
-    } catch (err) {
-      console.error('Failed to load report details:', err);
-      toast.error('Failed to load report details');
+  const toggleReportExpand = async (report: Report) => {
+    if (expandedReportId === report.id) {
+      setExpandedReportId(null);
+    } else {
+      if (!selectedReport || selectedReport.id !== report.id) {
+        try {
+          const fullReport = await getReport(report.id);
+          setSelectedReport(fullReport);
+        } catch (err) {
+          console.error('Failed to load report details:', err);
+          toast.error('Failed to load report details');
+        }
+      }
+      setExpandedReportId(report.id);
     }
   };
 
-  const formatContent = (content: string | null): string => {
-    if (!content) return '';
-    return content;
-  };
+  // Filter reports based on search and status
+  const filteredReports = reports.filter((report) => {
+    const matchesSearch = !search || 
+      patientNames[report.patient_id]?.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || report.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  // Calculate stats
+  const totalReports = reports.length;
+  const completedReports = reports.filter(r => r.status === 'completed').length;
+  const pendingReports = reports.filter(r => r.status === 'pending' || r.status === 'running').length;
+  const failedReports = reports.filter(r => r.status === 'failed').length;
+  const successRate = totalReports > 0 ? Math.round((completedReports / totalReports) * 100) : 0;
 
   return (
     <PageContainer>
@@ -207,21 +223,59 @@ export default function ReportsPage() {
         animate="visible"
         className="flex flex-col gap-8"
       >
-        {/* Hero */}
+        {/* Hero with Medical Image */}
         <motion.div
           variants={shouldReduceMotion ? {} : slideInUp}
           className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0a2e3e] via-[#0d3a4c] to-[#104a5e] p-10 text-white"
         >
-          <div className="absolute right-0 top-0 h-full w-1/3 opacity-10">
-            <div className="h-full w-full bg-gradient-to-br from-white/20 to-transparent" />
+          <div className="absolute right-0 top-0 h-full w-1/3 opacity-20">
+            <Image
+              src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&q=80"
+              alt="Medical Technology"
+              fill
+              className="object-cover"
+              unoptimized
+            />
           </div>
+          {/* Decorative accent shapes */}
+          <div className="absolute -bottom-20 -left-20 h-40 w-40 rounded-full bg-[#20bdbe]/10 blur-3xl" />
+          <div className="absolute top-10 right-20 h-24 w-24 rounded-full bg-[#c8a951]/10 blur-2xl" />
+          
           <div className="relative z-10">
-            <h1 className="mb-2 text-3xl font-bold tracking-tight">Reports</h1>
+            <h1 className="mb-2 text-3xl font-bold tracking-tight">Clinical Reports</h1>
             <p className="max-w-xl text-lg text-white/70">
-              LLM-generated clinical reports and summaries powered by AI
+              AI-generated clinical reports powered by LLM with retrieval-augmented generation
             </p>
           </div>
         </motion.div>
+
+        {/* Stats Row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatsCard
+            title="Total Reports"
+            value={totalReports}
+            icon={FileText}
+            subtitle="All time"
+          />
+          <StatsCard
+            title="Completed"
+            value={completedReports}
+            icon={FileCheck}
+            color="#22c55e"
+          />
+          <StatsCard
+            title="In Progress"
+            value={pendingReports}
+            icon={Clock}
+            color="#3b82f6"
+          />
+          <StatsCard
+            title="Success Rate"
+            value={`${successRate}%`}
+            icon={CheckCircle2}
+            color={successRate >= 80 ? '#22c55e' : successRate >= 50 ? '#eab308' : '#ef4444'}
+          />
+        </div>
 
         {/* Operation Status Card */}
         {operation && operation.state !== 'idle' && (
@@ -359,171 +413,71 @@ export default function ReportsPage() {
         </motion.div>
         )}
 
-        {/* Reports List */}
+        {/* Reports List with Filters */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between pb-4">
             <div>
               <CardTitle>Clinical Reports</CardTitle>
               <CardDescription>
-                View and manage AI-generated clinical reports
+                {filteredReports.length} of {reports.length} reports
               </CardDescription>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={loadReports}>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Refresh
-              </Button>
-            </div>
+            <Button variant="outline" size="sm" onClick={loadReports}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh
+            </Button>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            {/* Filters */}
+            <ReportFilters
+              search={search}
+              onSearchChange={setSearch}
+              status={statusFilter}
+              onStatusChange={setStatusFilter}
+            />
+
+            {/* Reports Grid */}
             {reportsLoading ? (
               <div className="py-8 text-center">
                 <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
                 <p className="mt-2 text-muted-foreground">Loading reports...</p>
               </div>
-            ) : reports.length === 0 ? (
+            ) : filteredReports.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12">
-                <FileText className="mb-4 h-16 w-16 text-muted-foreground" />
-                <p className="text-muted-foreground">
-                  No reports generated yet. Generate reports from completed predictions.
+                <div className="relative mb-4">
+                  <FileText className="h-16 w-16 text-muted-foreground/30" />
+                  <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-[#20bdbe]/20 flex items-center justify-center">
+                    <Search className="h-4 w-4 text-[#20bdbe]" />
+                  </div>
+                </div>
+                <p className="text-muted-foreground text-center">
+                  {search || statusFilter !== 'all' 
+                    ? 'No reports match your filters'
+                    : 'No reports generated yet'
+                  }
+                </p>
+                <p className="text-sm text-muted-foreground/70 mt-1">
+                  {search || statusFilter !== 'all' 
+                    ? 'Try adjusting your search or filters'
+                    : 'Generate reports from completed predictions'
+                  }
                 </p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Patient</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>LLM Model</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {reports.map((report) => (
-                    <TableRow key={report.id}>
-                      <TableCell className="font-medium">
-                        {patientNames[report.patient_id] || 'Loading...'}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={`${STATUS_COLORS[report.status]} text-white`}
-                        >
-                          {STATUS_LABELS[report.status]}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-muted-foreground">
-                          {report.llm_model || '—'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(report.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => viewReportDetails(report)}
-                          disabled={report.status !== 'completed'}
-                        >
-                          <Eye className="mr-2 h-4 w-4" />
-                          View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="grid gap-4">
+                {filteredReports.map((report) => (
+                  <ReportCard
+                    key={report.id}
+                    report={report}
+                    patientName={patientNames[report.patient_id] || 'Loading...'}
+                    expanded={expandedReportId === report.id}
+                    onExpand={() => toggleReportExpand(report)}
+                  />
+                ))}
+              </div>
             )}
           </CardContent>
         </Card>
-
-        {/* Report Detail Dialog */}
-        <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Clinical Report
-              </DialogTitle>
-              <DialogDescription>
-                {selectedReport && (
-                  <>
-                    Patient: {patientNames[selectedReport.patient_id] || 'Unknown'} | 
-                    Generated: {new Date(selectedReport.created_at).toLocaleString()}
-                  </>
-                )}
-              </DialogDescription>
-            </DialogHeader>
-            {selectedReport && (
-              <div className="space-y-4 overflow-y-auto max-h-[60vh]">
-                {/* Status */}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">Status:</span>
-                  <Badge
-                    variant="outline"
-                    className={`${STATUS_COLORS[selectedReport.status]} text-white`}
-                  >
-                    {STATUS_LABELS[selectedReport.status]}
-                  </Badge>
-                </div>
-
-                {/* Summary Card */}
-                {selectedReport.summary && (
-                  <Card className="bg-muted/50">
-                    <CardHeader>
-                      <CardTitle className="text-sm">Summary</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm">{selectedReport.summary}</p>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Report Content */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm">Detailed Report</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {selectedReport.content ? (
-                      <div className="text-sm whitespace-pre-wrap">
-                        {formatContent(selectedReport.content)}
-                      </div>
-                    ) : (
-                      <p className="text-muted-foreground">No content available</p>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Metadata */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm">Metadata</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Report ID:</span>
-                        <code className="rounded bg-muted px-1">{selectedReport.id}</code>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Prediction ID:</span>
-                        <code className="rounded bg-muted px-1">{selectedReport.prediction_id}</code>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">LLM Model:</span>
-                        <span>{selectedReport.llm_model || '—'}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
       </motion.div>
     </PageContainer>
   );

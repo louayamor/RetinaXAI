@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
+import { IconTrendingUp } from '@tabler/icons-react';
 
 import {
   Card,
@@ -40,23 +41,13 @@ const chartConfig = {
 export function BarGraph({ data, loading = false }: BarGraphProps) {
   const chartData = React.useMemo(() => {
     if (!data || data.length === 0) {
-      // Generate last 30 days with 0 values as fallback
-      const dates: TimelineData[] = [];
-      for (let i = 29; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        dates.push({
-          date: date.toISOString().split('T')[0],
-          predictions: 0
-        });
-      }
-      return dates;
+      return null;
     }
     return data;
   }, [data]);
 
   const total = React.useMemo(
-    () => chartData.reduce((acc, curr) => acc + curr.predictions, 0),
+    () => chartData ? chartData.reduce((acc, curr) => acc + curr.predictions, 0) : 0,
     [chartData]
   );
 
@@ -81,6 +72,27 @@ export function BarGraph({ data, loading = false }: BarGraphProps) {
         </CardHeader>
         <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
           <Skeleton className="h-[250px] w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Empty state
+  if (!chartData || total === 0) {
+    return (
+      <Card className="@container/card !pt-3">
+        <CardHeader className="flex flex-col items-stretch space-y-0 border-b !p-0 sm:flex-row">
+          <div className="flex flex-1 flex-col justify-center gap-1 px-6 !py-0">
+            <CardTitle>Predictions Timeline</CardTitle>
+            <CardDescription>Last 30 days</CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent className="flex h-[250px] items-center justify-center">
+          <div className="text-center">
+            <IconTrendingUp className="mx-auto h-12 w-12 text-muted-foreground/30" />
+            <p className="mt-2 text-sm text-muted-foreground">No predictions yet</p>
+            <p className="text-xs text-muted-foreground/70">Run predictions to see timeline data</p>
+          </div>
         </CardContent>
       </Card>
     );
