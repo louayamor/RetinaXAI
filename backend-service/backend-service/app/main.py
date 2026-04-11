@@ -29,7 +29,11 @@ def create_app() -> FastAPI:
 
     add_cors_middleware(app)
     app.add_middleware(RequestIDMiddleware)
-    app.add_middleware(RateLimitMiddleware, max_requests=10, window_seconds=60)
+    app.add_middleware(
+        RateLimitMiddleware,
+        max_requests=settings.RATE_LIMIT_MAX_REQUESTS,
+        window_seconds=settings.RATE_LIMIT_WINDOW_SECONDS,
+    )
 
     app.include_router(api_router)
 
@@ -38,6 +42,16 @@ def create_app() -> FastAPI:
         return JSONResponse(
             status_code=exc.status_code,
             content={"detail": exc.detail, "error_code": exc.error_code},
+        )
+
+    @app.exception_handler(Exception)
+    async def general_exception_handler(request: Request, exc: Exception):
+        import logging
+
+        logging.exception(f"Unhandled exception: {exc}")
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error", "error_code": "INTERNAL_ERROR"},
         )
 
     @app.get("/health", tags=["health"])

@@ -14,7 +14,10 @@ import pandas as pd
 from PIL import Image
 import numpy as np
 
-from app.entity.config_entity import ImagingModelTrainerConfig, ImagingTransformationConfig
+from app.entity.config_entity import (
+    ImagingModelTrainerConfig,
+    ImagingTransformationConfig,
+)
 from app.utils.common import read_yaml, set_seed
 from app.constants import PARAMS_FILE_PATH, SCHEMA_FILE_PATH
 from monitoring.prometheus_metrics import BEST_VAL_ACCURACY, EPOCH_TRAIN_LOSS
@@ -30,7 +33,10 @@ class RetinalDataset(Dataset):
 
     def __getitem__(self, idx):
         row = self.df.iloc[idx]
-        img = Image.open(row["image_path"]).convert("RGB")
+        try:
+            img = Image.open(row["image_path"]).convert("RGB")
+        except Exception as e:
+            raise RuntimeError(f"Failed to load image {row['image_path']}: {e}") from e
         if self.transform:
             img = self.transform(img)
         return img, int(row["label"])
@@ -65,25 +71,29 @@ class ImagingModelTrainer:
     def _build_transforms(self):
         aug = self.params.augmentation
         norm = aug.normalize
-        train_tf = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomVerticalFlip(),
-            transforms.RandomRotation(aug.random_rotation),
-            transforms.ColorJitter(
-                brightness=aug.color_jitter.brightness,
-                contrast=aug.color_jitter.contrast,
-                saturation=aug.color_jitter.saturation,
-                hue=aug.color_jitter.hue,
-            ),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=norm.mean, std=norm.std),
-        ])
-        val_tf = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=norm.mean, std=norm.std),
-        ])
+        train_tf = transforms.Compose(
+            [
+                transforms.Resize((224, 224)),
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomVerticalFlip(),
+                transforms.RandomRotation(aug.random_rotation),
+                transforms.ColorJitter(
+                    brightness=aug.color_jitter.brightness,
+                    contrast=aug.color_jitter.contrast,
+                    saturation=aug.color_jitter.saturation,
+                    hue=aug.color_jitter.hue,
+                ),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=norm.mean, std=norm.std),
+            ]
+        )
+        val_tf = transforms.Compose(
+            [
+                transforms.Resize((224, 224)),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=norm.mean, std=norm.std),
+            ]
+        )
         return train_tf, val_tf
 
     def _build_model(self) -> nn.Module:
@@ -114,7 +124,9 @@ class ImagingModelTrainer:
 
     def _build_sampler(self, dataset: RetinalDataset) -> WeightedRandomSampler:
         labels = [int(dataset.df.iloc[i]["label"]) for i in range(len(dataset))]
-        class_counts = np.bincount(labels, minlength=self.params.dl_training.num_classes)
+        class_counts = np.bincount(
+            labels, minlength=self.params.dl_training.num_classes
+        )
         class_weights = 1.0 / (class_counts + 1e-6)
         sample_weights = [class_weights[lbl] for lbl in labels]
         return WeightedRandomSampler(
@@ -123,7 +135,9 @@ class ImagingModelTrainer:
             replacement=True,
         )
 
-    def _log_best_model_to_mlflow(self, checkpoint_path: Path, num_classes: int) -> None:
+    def _log_best_model_to_mlflow(
+        self, checkpoint_path: Path, num_classes: int
+    ) -> None:
         if not checkpoint_path.exists():
             logger.warning("best checkpoint missing; skipping mlflow model log")
             return
@@ -227,24 +241,32 @@ class ImagingModelTrainer:
         checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
 
         import time
+
         run_suffix = f"_{int(time.time()) % 1000:03d}"
-        with mlflow.start_run(run_name=self.params.get("mlflow", {}).get("imaging_run_name", "efficientnet_b3") + run_suffix):
-            mlflow.log_params({
-                "model": self.config.model_name,
-                "pretrained": self.config.pretrained,
-                "epochs": p.epochs,
-                "batch_size": p.batch_size,
-                "lr": p.learning_rate,
-                "weight_decay": p.weight_decay,
-                "scheduler": p.scheduler,
-                "num_classes": p.num_classes,
-                "dropout": p.dropout,
-                "seed": p.seed,
-                "loss": "focal_loss",
-                "focal_gamma": 2.0,
-                "freeze_blocks": 3,
-                "device": str(self.device),
-            })
+        with mlflow.start_run(
+            run_name=self.params.get("mlflow", {}).get(
+                "imaging_run_name", "efficientnet_b3"
+            )
+            + run_suffix
+        ):
+            mlflow.log_params(
+                {
+                    "model": self.config.model_name,
+                    "pretrained": self.config.pretrained,
+                    "epochs": p.epochs,
+                    "batch_size": p.batch_size,
+                    "lr": p.learning_rate,
+                    "weight_decay": p.weight_decay,
+                    "scheduler": p.scheduler,
+                    "num_classes": p.num_classes,
+                    "dropout": p.dropout,
+                    "seed": p.seed,
+                    "loss": "focal_loss",
+                    "focal_gamma": 2.0,
+                    "freeze_blocks": 3,
+                    "device": str(self.device),
+                }
+            )
 
             for epoch in range(p.epochs):
                 model.train()
@@ -280,12 +302,15 @@ class ImagingModelTrainer:
                 EPOCH_TRAIN_LOSS.labels(pipeline="imaging").observe(avg_loss)
                 lr = float(scheduler.get_last_lr()[0])
 
-                mlflow.log_metrics({
-                    "train_loss": avg_loss,
-                    "train_acc": train_acc,
-                    "val_acc": val_acc,
-                    "lr": lr,
-                }, step=epoch)  # type: ignore[call-overload]
+                mlflow.log_metrics(
+                    {
+                        "train_loss": avg_loss,
+                        "train_acc": train_acc,
+                        "val_acc": val_acc,
+                        "lr": lr,
+                    },
+                    step=epoch,
+                )  # type: ignore[call-overload]
 
                 logger.info(
                     f"epoch={epoch + 1}/{p.epochs} "
@@ -298,7 +323,12 @@ class ImagingModelTrainer:
                 if val_acc > best_val_acc:
                     best_val_acc = val_acc
                     patience_counter = 0
-                    torch.save(model.state_dict(), checkpoint_path)
+                    try:
+                        torch.save(model.state_dict(), checkpoint_path)
+                    except Exception as e:
+                        raise RuntimeError(
+                            f"Failed to save model checkpoint: {e}"
+                        ) from e
                     BEST_VAL_ACCURACY.labels(pipeline="imaging").set(best_val_acc)
                     logger.info(f"checkpoint saved: val_acc={val_acc:.4f}")
                 else:

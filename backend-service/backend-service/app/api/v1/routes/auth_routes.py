@@ -27,7 +27,11 @@ COOKIE_SECURE = settings.APP_ENV == "production"
 
 def _token_response(access: str, refresh: str) -> JSONResponse:
     response = JSONResponse(
-        content={"access_token": access, "refresh_token": refresh, "token_type": "bearer"}
+        content={
+            "access_token": access,
+            "refresh_token": refresh,
+            "token_type": "bearer",
+        }
     )
     response.set_cookie(
         key="rxa_access_token",
@@ -94,7 +98,9 @@ async def refresh_token(
     user = await user_service.get_by_id(uuid.UUID(payload.sub))
     access_token = create_access_token(user.id)
     new_refresh_token = create_refresh_token(user.id)
-    await session_service.rotate_refresh_token(data.refresh_token, new_refresh_token, expires_in_days=7)
+    await session_service.rotate_refresh_token(
+        data.refresh_token, new_refresh_token, expires_in_days=7
+    )
     return _token_response(access_token, new_refresh_token)
 
 
@@ -116,9 +122,7 @@ async def logout_all(
     user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    await db.execute(
-        delete(AuthSession).where(AuthSession.user_id == user.id)
-    )
+    await db.execute(delete(AuthSession).where(AuthSession.user_id == user.id))
     await db.flush()
     response = JSONResponse(content={"status": "ok"})
     response.delete_cookie(key="rxa_access_token", path="/")
@@ -128,6 +132,7 @@ async def logout_all(
 
 @router.post("/cleanup-sessions")
 async def cleanup_sessions(
+    user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     from datetime import datetime, timezone
