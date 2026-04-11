@@ -32,7 +32,7 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-          cache-dependency-path: mlops-service/requirements-ci.txt
+          cache-dependency-path: mlops-service/requirements.txt
 
       - name: Install ruff
         run: pip install "ruff>=0.4.0"
@@ -55,19 +55,19 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-          cache-dependency-path: mlops-service/requirements-ci.txt
+          cache-dependency-path: mlops-service/requirements.txt
 
       - name: Cache pip packages
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-ci-${{ hashFiles('mlops-service/requirements-ci.txt') }}
+          key: ${{ runner.os }}-pip-ci-${{ hashFiles('mlops-service/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-ci-
 
       - name: Install CI dependencies
         working-directory: mlops-service
-        run: pip install -r requirements-ci.txt && pip install --no-deps -e .
+        run: pip install -r requirements.txt && pip install --no-deps -e .
 
       - name: Run tests
         working-directory: mlops-service/mlops-service
