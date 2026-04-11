@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 import PageContainer from '@/components/layout/page-container';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getDashboardStats, DashboardStats } from '@/lib/api';
 import { toast } from 'sonner';
+import { fadeInUp, staggerContainer, staggerItem, buttonTap } from '@/lib/animations';
 
 const severityLabels: Record<number, string> = {
   0: 'No DR',
@@ -32,6 +34,7 @@ const severityLabels: Record<number, string> = {
 export default function OverViewPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
     loadStats();
@@ -104,15 +107,22 @@ export default function OverViewPage() {
 
   return (
     <PageContainer>
-      <div className="flex flex-1 flex-col space-y-2">
+      <motion.div
+        variants={shouldReduceMotion ? {} : fadeInUp}
+        initial="hidden"
+        animate="visible"
+        className="flex flex-1 flex-col space-y-2"
+      >
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-2xl font-bold tracking-tight">
             Dashboard Overview
           </h2>
           <div className="hidden items-center space-x-2 md:flex">
-            <Button onClick={loadStats} disabled={loading}>
-              {loading ? 'Loading...' : 'Refresh'}
-            </Button>
+            <motion.div variants={shouldReduceMotion ? {} : buttonTap}>
+              <Button onClick={loadStats} disabled={loading}>
+                {loading ? 'Loading...' : 'Refresh'}
+              </Button>
+            </motion.div>
           </div>
         </div>
         <Tabs defaultValue="overview" className="space-y-4">
@@ -123,40 +133,53 @@ export default function OverViewPage() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="overview" className="space-y-4">
-            <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
-              <StatCard
-                title="Total Patients"
-                value={stats?.totals.patients ?? 0}
-                icon={IconUsers}
-                trend={patientsTrend}
-                trendLabel={`${stats?.recent_activity.new_patients ?? 0} new this week`}
-                footer="Active patients in system"
-              />
-              <StatCard
-                title="Total Predictions"
-                value={stats?.totals.predictions ?? 0}
-                icon={IconScan}
-                trend={predictionsTrend}
-                trendLabel={`${stats?.recent_activity.new_predictions ?? 0} this week`}
-                footer="AI predictions processed"
-              />
-              <StatCard
-                title="Reports Generated"
-                value={stats?.totals.reports ?? 0}
-                icon={IconFileText}
-                trend={reportsTrend}
-                trendLabel={`${stats?.recent_activity.new_reports ?? 0} this week`}
-                footer="Clinical reports created"
-              />
-              <StatCard
-                title="Avg Confidence"
-                value={confidenceTrend}
-                icon={IconChartBar}
-                trend={confidenceTrend > 80 ? 5 : confidenceTrend > 60 ? 0 : -5}
-                trendLabel={confidenceTrend > 80 ? 'High accuracy' : confidenceTrend > 60 ? 'Moderate accuracy' : 'Review needed'}
-                footer="Model prediction confidence"
-              />
-            </div>
+            <motion.div
+              variants={shouldReduceMotion ? {} : staggerContainer}
+              initial="hidden"
+              animate="visible"
+              className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4"
+            >
+              <motion.div variants={shouldReduceMotion ? {} : staggerItem}>
+                <StatCard
+                  title="Total Patients"
+                  value={stats?.totals.patients ?? 0}
+                  icon={IconUsers}
+                  trend={patientsTrend}
+                  trendLabel={`${stats?.recent_activity.new_patients ?? 0} new this week`}
+                  footer="Active patients in system"
+                />
+              </motion.div>
+              <motion.div variants={shouldReduceMotion ? {} : staggerItem}>
+                <StatCard
+                  title="Total Predictions"
+                  value={stats?.totals.predictions ?? 0}
+                  icon={IconScan}
+                  trend={predictionsTrend}
+                  trendLabel={`${stats?.recent_activity.new_predictions ?? 0} this week`}
+                  footer="AI predictions processed"
+                />
+              </motion.div>
+              <motion.div variants={shouldReduceMotion ? {} : staggerItem}>
+                <StatCard
+                  title="Reports Generated"
+                  value={stats?.totals.reports ?? 0}
+                  icon={IconFileText}
+                  trend={reportsTrend}
+                  trendLabel={`${stats?.recent_activity.new_reports ?? 0} this week`}
+                  footer="Clinical reports created"
+                />
+              </motion.div>
+              <motion.div variants={shouldReduceMotion ? {} : staggerItem}>
+                <StatCard
+                  title="Avg Confidence"
+                  value={confidenceTrend}
+                  icon={IconChartBar}
+                  trend={confidenceTrend > 80 ? 5 : confidenceTrend > 60 ? 0 : -5}
+                  trendLabel={confidenceTrend > 80 ? 'High accuracy' : confidenceTrend > 60 ? 'Moderate accuracy' : 'Review needed'}
+                  footer="Model prediction confidence"
+                />
+              </motion.div>
+            </motion.div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7">
               <div className="col-span-4">
                 <BarGraph data={stats?.predictions_timeline} loading={loading} />
@@ -170,7 +193,7 @@ export default function OverViewPage() {
             </div>
           </TabsContent>
         </Tabs>
-      </div>
+      </motion.div>
     </PageContainer>
   );
 }

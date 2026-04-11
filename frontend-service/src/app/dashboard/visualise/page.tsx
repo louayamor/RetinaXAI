@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 import { apiFetch } from '@/lib/auth';
 import PageContainer from '@/components/layout/page-container';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +24,7 @@ import {
   Radar,
   Legend,
 } from 'recharts';
+import { fadeInUp, slideInUp, staggerItem } from '@/lib/animations';
 
 const COLORS = ['#20bdbe', '#c8a951', '#e74c3c', '#3498db', '#9b59b6', '#2ecc71'];
 const GRADE_COLORS: Record<string, string> = {
@@ -51,6 +53,7 @@ interface OCTStats {
 export default function VisualisePage() {
   const [stats, setStats] = useState<OCTStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
     apiFetch<OCTStats>('/api/v1/oct-stats/stats')
@@ -105,67 +108,91 @@ export default function VisualisePage() {
 
   return (
     <PageContainer>
-      <div className='flex flex-col gap-8'>
+      <motion.div
+        variants={shouldReduceMotion ? {} : fadeInUp}
+        initial="hidden"
+        animate="visible"
+        className="flex flex-col gap-8"
+      >
       {/* Hero */}
-      <div className='relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0a2e3e] via-[#0d3a4c] to-[#104a5e] p-10 text-white'>
-        <div className='absolute right-0 top-0 h-full w-1/3 opacity-10'>
+      <motion.div
+        variants={shouldReduceMotion ? {} : slideInUp}
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0a2e3e] via-[#0d3a4c] to-[#104a5e] p-10 text-white"
+      >
+        <div className="absolute right-0 top-0 h-full w-1/3 opacity-10">
           <Image
-            src='https://images.unsplash.com/photo-1551076805-e1869033e561?w=800&q=80'
-            alt='Data Visualization'
+            src="https://images.unsplash.com/photo-1551076805-e1869033e561?w=800&q=80"
+            alt="Data Visualization"
             fill
-            className='object-cover'
+            className="object-cover"
             unoptimized
           />
         </div>
-        <div className='relative z-10'>
-          <h1 className='text-3xl font-bold tracking-tight mb-2'>Visualise</h1>
-          <p className='text-white/70 text-lg max-w-xl'>
+        <div className="relative z-10">
+          <h1 className="text-3xl font-bold tracking-tight mb-2">Visualise</h1>
+          <p className="text-white/70 text-lg max-w-xl">
             Clinical insights from {stats.total_reports} OCT reports — powered by AI
           </p>
         </div>
-      </div>
+      </motion.div>
 
       {/* Summary Cards */}
-      <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-4'>
-        <Card>
-          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-sm font-medium'>Total Reports</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className='text-3xl font-bold'>{stats.total_reports}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-sm font-medium'>Avg Reports / Patient</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className='text-3xl font-bold'>{stats.avg_reports_per_patient}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-sm font-medium'>Edema Rate</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className='text-3xl font-bold'>
-              {stats.edema.present + stats.edema.absent > 0
-                ? `${((stats.edema.present / (stats.edema.present + stats.edema.absent)) * 100).toFixed(1)}%`
-                : 'N/A'}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-sm font-medium'>Avg Image Quality</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className='text-3xl font-bold'>
-              {stats.avg_image_quality ?? 'N/A'}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <motion.div
+        variants={shouldReduceMotion ? {} : {
+          hidden: { opacity: 0 },
+          visible: { opacity: 1, transition: { staggerChildren: 0.08 } }
+        }}
+        initial="hidden"
+        animate="visible"
+        className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
+      >
+        <motion.div variants={shouldReduceMotion ? {} : staggerItem}>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Reports</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{stats.total_reports}</div>
+            </CardContent>
+          </Card>
+        </motion.div>
+        <motion.div variants={shouldReduceMotion ? {} : staggerItem}>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Avg Reports / Patient</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{stats.avg_reports_per_patient}</div>
+            </CardContent>
+          </Card>
+        </motion.div>
+        <motion.div variants={shouldReduceMotion ? {} : staggerItem}>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Edema Rate</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">
+                {stats.edema.present + stats.edema.absent > 0
+                  ? `${((stats.edema.present / (stats.edema.present + stats.edema.absent)) * 100).toFixed(1)}%`
+                  : 'N/A'}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+        <motion.div variants={shouldReduceMotion ? {} : staggerItem}>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Avg Image Quality</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">
+                {stats.avg_image_quality ?? 'N/A'}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
 
       {/* Charts Row 1 */}
       <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
@@ -273,7 +300,7 @@ export default function VisualisePage() {
           </CardContent>
         </Card>
       </div>
-      </div>
+      </motion.div>
     </PageContainer>
   );
 }

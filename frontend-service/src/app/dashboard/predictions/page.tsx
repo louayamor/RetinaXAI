@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 import {
   createPrediction,
   uploadScans,
@@ -53,6 +54,7 @@ import {
 import Image from 'next/image';
 import { toast } from 'sonner';
 import type { Patient, Prediction, PredictionStatus, DRSeverity } from '@/types';
+import { fadeInUp, slideInUp, staggerContainer, staggerItemFast, buttonTap, scaleIn, dialogOverlay, dialogContent, borderPulse } from '@/lib/animations';
 
 const SEVERITY_COLORS: Record<DRSeverity, string> = {
   no_dr: 'bg-green-500',
@@ -99,6 +101,7 @@ export default function PredictionsPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [generatingReport, setGeneratingReport] = useState(false);
   const [patientNames, setPatientNames] = useState<Record<string, string>>({});
+  const shouldReduceMotion = useReducedMotion();
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -281,9 +284,17 @@ export default function PredictionsPage() {
 
   return (
     <PageContainer>
-      <div className="flex flex-col gap-8">
+      <motion.div
+        variants={shouldReduceMotion ? {} : fadeInUp}
+        initial="hidden"
+        animate="visible"
+        className="flex flex-col gap-8"
+      >
         {/* Hero */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0a2e3e] via-[#0d3a4c] to-[#104a5e] p-10 text-white">
+        <motion.div
+          variants={shouldReduceMotion ? {} : slideInUp}
+          className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0a2e3e] via-[#0d3a4c] to-[#104a5e] p-10 text-white"
+        >
           <div className="absolute right-0 top-0 h-full w-1/3 opacity-10">
             <Image
               src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&q=80"
@@ -299,157 +310,170 @@ export default function PredictionsPage() {
               Upload scans and run DR grading predictions — AI-assisted retinal analysis
             </p>
           </div>
-        </div>
+        </motion.div>
 
         {/* Upload Section */}
-        <Card className="border-dashed">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5" />
-              New Prediction
-            </CardTitle>
-            <CardDescription>
-              Select a patient and upload fundus images to run AI prediction
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Patient Selector */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                <User className="mr-1 inline-block h-4 w-4" />
-                Select Patient
-              </label>
-              <Select value={selectedPatientId} onValueChange={setSelectedPatientId}>
-                <SelectTrigger className="w-full max-w-md">
-                  <SelectValue placeholder="Choose a patient..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {patients.map((patient) => (
-                    <SelectItem key={patient.id} value={patient.id}>
-                      {patient.first_name} {patient.last_name} (MRN: {patient.medical_record_number})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* File Upload Area */}
-            <div className="grid gap-6 md:grid-cols-2">
-              {/* Left Eye */}
+        <motion.div variants={shouldReduceMotion ? {} : slideInUp}>
+          <Card className="border-dashed">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                New Prediction
+              </CardTitle>
+              <CardDescription>
+                Select a patient and upload fundus images to run AI prediction
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Patient Selector */}
               <div className="space-y-2">
-                <label className="text-sm font-medium">Left Eye (OS)</label>
-                <div
-                  className={`relative flex h-48 flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${
-                    leftEyeFile
-                      ? "border-primary bg-primary/5"
-                      : "border-muted-foreground/25 hover:border-muted-foreground/50"
-                  }`}
-                >
-                  {leftEyeFile ? (
-                    <div className="relative h-full w-full p-4">
-                      <img
-                        src={leftEyeFile.preview}
-                        alt="Left eye preview"
-                        className="h-full w-full rounded object-contain"
-                      />
-                      <button
-                        onClick={() => clearFile("left")}
-                        className="absolute right-2 top-2 rounded-full bg-destructive p-1 text-white hover:bg-destructive/90"
+                <label className="text-sm font-medium">
+                  <User className="mr-1 inline-block h-4 w-4" />
+                  Select Patient
+                </label>
+                <Select value={selectedPatientId} onValueChange={setSelectedPatientId}>
+                  <SelectTrigger className="w-full max-w-md">
+                    <SelectValue placeholder="Choose a patient..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {patients.map((patient) => (
+                      <SelectItem key={patient.id} value={patient.id}>
+                        {patient.first_name} {patient.last_name} (MRN: {patient.medical_record_number})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* File Upload Area */}
+              <div className="grid gap-6 md:grid-cols-2">
+                {/* Left Eye */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Left Eye (OS)</label>
+                  <motion.div
+                    variants={shouldReduceMotion ? {} : borderPulse}
+                    className={`relative flex h-48 flex-col items-center justify-center rounded-lg border-2 border-dashed ${
+                      leftEyeFile
+                        ? "border-primary bg-primary/5"
+                        : "border-muted-foreground/25 hover:border-primary"
+                    }`}
+                  >
+                    {leftEyeFile ? (
+                      <motion.div
+                        variants={shouldReduceMotion ? {} : scaleIn}
+                        className="relative h-full w-full p-4"
                       >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="flex cursor-pointer flex-col items-center justify-center gap-2 p-6">
-                      <FileImage className="h-10 w-10 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">
-                        Click to upload left eye image
-                      </span>
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => handleFileSelect(e, "left")}
-                      />
-                    </label>
-                  )}
+                        <img
+                          src={leftEyeFile.preview}
+                          alt="Left eye preview"
+                          className="h-full w-full rounded object-contain"
+                        />
+                        <button
+                          onClick={() => clearFile("left")}
+                          className="absolute right-2 top-2 rounded-full bg-destructive p-1 text-white hover:bg-destructive/90"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </motion.div>
+                    ) : (
+                      <label className="flex cursor-pointer flex-col items-center justify-center gap-2 p-6">
+                        <FileImage className="h-10 w-10 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
+                          Click to upload left eye image
+                        </span>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleFileSelect(e, "left")}
+                        />
+                      </label>
+                    )}
+                  </motion.div>
+                </div>
+
+                {/* Right Eye */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Right Eye (OD)</label>
+                  <motion.div
+                    variants={shouldReduceMotion ? {} : borderPulse}
+                    className={`relative flex h-48 flex-col items-center justify-center rounded-lg border-2 border-dashed ${
+                      rightEyeFile
+                        ? "border-primary bg-primary/5"
+                        : "border-muted-foreground/25 hover:border-primary"
+                    }`}
+                  >
+                    {rightEyeFile ? (
+                      <motion.div
+                        variants={shouldReduceMotion ? {} : scaleIn}
+                        className="relative h-full w-full p-4"
+                      >
+                        <img
+                          src={rightEyeFile.preview}
+                          alt="Right eye preview"
+                          className="h-full w-full rounded object-contain"
+                        />
+                        <button
+                          onClick={() => clearFile("right")}
+                          className="absolute right-2 top-2 rounded-full bg-destructive p-1 text-white hover:bg-destructive/90"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </motion.div>
+                    ) : (
+                      <label className="flex cursor-pointer flex-col items-center justify-center gap-2 p-6">
+                        <FileImage className="h-10 w-10 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
+                          Click to upload right eye image
+                        </span>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleFileSelect(e, "right")}
+                        />
+                      </label>
+                    )}
+                  </motion.div>
                 </div>
               </div>
 
-              {/* Right Eye */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Right Eye (OD)</label>
-                <div
-                  className={`relative flex h-48 flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${
-                    rightEyeFile
-                      ? "border-primary bg-primary/5"
-                      : "border-muted-foreground/25 hover:border-muted-foreground/50"
-                  }`}
-                >
-                  {rightEyeFile ? (
-                    <div className="relative h-full w-full p-4">
-                      <img
-                        src={rightEyeFile.preview}
-                        alt="Right eye preview"
-                        className="h-full w-full rounded object-contain"
-                      />
-                      <button
-                        onClick={() => clearFile("right")}
-                        className="absolute right-2 top-2 rounded-full bg-destructive p-1 text-white hover:bg-destructive/90"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="flex cursor-pointer flex-col items-center justify-center gap-2 p-6">
-                      <FileImage className="h-10 w-10 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">
-                        Click to upload right eye image
-                      </span>
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => handleFileSelect(e, "right")}
-                      />
-                    </label>
-                  )}
-                </div>
+              {/* Submit Button */}
+              <div className="flex justify-end">
+                <motion.div variants={shouldReduceMotion ? {} : buttonTap}>
+                  <Button
+                    onClick={handleUploadAndPredict}
+                    disabled={!selectedPatientId || !leftEyeFile || !rightEyeFile || uploading}
+                    className="min-w-[200px]"
+                  >
+                    {uploading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload & Predict
+                      </>
+                    )}
+                  </Button>
+                </motion.div>
               </div>
-            </div>
-
-            {/* Submit Button */}
-            <div className="flex justify-end">
-              <Button
-                onClick={handleUploadAndPredict}
-                disabled={!selectedPatientId || !leftEyeFile || !rightEyeFile || uploading}
-                className="min-w-[200px]"
-              >
-                {uploading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload & Predict
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Predictions List */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Recent Predictions</CardTitle>
-            <Button variant="outline" size="sm" onClick={loadPredictions}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Refresh
-            </Button>
-          </CardHeader>
+        <motion.div variants={shouldReduceMotion ? {} : fadeInUp}>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Recent Predictions</CardTitle>
+              <Button variant="outline" size="sm" onClick={loadPredictions}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Refresh
+              </Button>
+            </CardHeader>
           <CardContent>
             {predictionsLoading ? (
               <div className="py-8 text-center">
@@ -526,6 +550,7 @@ export default function PredictionsPage() {
             )}
           </CardContent>
         </Card>
+        </motion.div>
 
         {/* Prediction Detail Dialog */}
         <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
@@ -674,7 +699,7 @@ export default function PredictionsPage() {
             )}
           </DialogContent>
         </Dialog>
-      </div>
+      </motion.div>
     </PageContainer>
   );
 }

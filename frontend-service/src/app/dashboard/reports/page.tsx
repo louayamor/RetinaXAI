@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 import {
   getPatients,
   getPatient,
@@ -10,7 +11,7 @@ import {
   triggerRagReindex,
   checkLlmoopsHealth,
   getOperationStatus,
-  OperationStatus
+  type OperationStatus
 } from '@/lib/api';
 import PageContainer from '@/components/layout/page-container';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -45,6 +46,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Report, ReportStatus } from '@/types';
+import { fadeInUp, slideInUp, staggerItemFast, buttonTap, statusPulse } from '@/lib/animations';
 
 const STATUS_COLORS: Record<ReportStatus, string> = {
   pending: 'bg-yellow-500',
@@ -66,6 +68,7 @@ export default function ReportsPage() {
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [patientNames, setPatientNames] = useState<Record<string, string>>({});
+  const shouldReduceMotion = useReducedMotion();
   
   // RAG state
   const [ragStatus, setRagStatus] = useState<{
@@ -83,18 +86,30 @@ export default function ReportsPage() {
     loadReports();
     loadRagStatus();
     
-    const interval = setInterval(async () => {
-      if (!llmopsDown) {
-        try {
-          const op = await getOperationStatus();
-          setOperation(op);
-        } catch {
-          // Ignore errors during polling
-        }
-      }
-    }, 2000);
+    let intervalId: NodeJS.Timeout | null = null;
     
-    return () => clearInterval(interval);
+    const pollStatus = async () => {
+      if (llmopsDown) return;
+      try {
+        const op = await getOperationStatus();
+        setOperation(op);
+      } catch {
+        setLlmopsDown(true);
+      }
+    };
+    
+    const schedulePoll = () => {
+      const isActive = operation && !["idle", "error"].includes(operation.state);
+      const delay = isActive ? 2000 : 30000;
+      intervalId = setTimeout(pollStatus, delay);
+    };
+    
+    pollStatus();
+    schedulePoll();
+    
+    return () => {
+      if (intervalId) clearTimeout(intervalId);
+    };
   }, [llmopsDown]);
 
   const loadRagStatus = async () => {
@@ -186,9 +201,17 @@ export default function ReportsPage() {
 
   return (
     <PageContainer>
-      <div className="flex flex-col gap-8">
+      <motion.div
+        variants={shouldReduceMotion ? {} : fadeInUp}
+        initial="hidden"
+        animate="visible"
+        className="flex flex-col gap-8"
+      >
         {/* Hero */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0a2e3e] via-[#0d3a4c] to-[#104a5e] p-10 text-white">
+        <motion.div
+          variants={shouldReduceMotion ? {} : slideInUp}
+          className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0a2e3e] via-[#0d3a4c] to-[#104a5e] p-10 text-white"
+        >
           <div className="absolute right-0 top-0 h-full w-1/3 opacity-10">
             <div className="h-full w-full bg-gradient-to-br from-white/20 to-transparent" />
           </div>
@@ -198,93 +221,102 @@ export default function ReportsPage() {
               LLM-generated clinical reports and summaries powered by AI
             </p>
           </div>
-        </div>
+        </motion.div>
 
         {/* Operation Status Card */}
         {operation && operation.state !== 'idle' && (
-          <Card className="border-primary">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                {operation.state === 'indexing' && <Database className="h-5 w-5 animate-pulse" />}
-                {operation.state === 'retrieving' && <Search className="h-5 w-5 animate-pulse" />}
-                {operation.state === 'generating' && <Sparkles className="h-5 w-5 animate-pulse" />}
-                {operation.state === 'indexing' && 'Indexing RAG'}
-                {operation.state === 'retrieving' && 'Retrieving Context'}
-                {operation.state === 'generating' && 'Generating Report'}
-              </CardTitle>
-              <CardDescription>{operation.message}</CardDescription>
-            </CardHeader>
-          </Card>
+          <motion.div variants={shouldReduceMotion ? {} : slideInUp}>
+            <Card className={operation.state === 'error' ? 'border-destructive bg-red-50' : 'border-primary'}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  {operation.state === 'indexing' && <motion.div variants={shouldReduceMotion ? {} : statusPulse}><Database className="h-5 w-5" /></motion.div>}
+                  {operation.state === 'retrieving' && <motion.div variants={shouldReduceMotion ? {} : statusPulse}><Search className="h-5 w-5" /></motion.div>}
+                  {operation.state === 'generating' && <motion.div variants={shouldReduceMotion ? {} : statusPulse}><Sparkles className="h-5 w-5" /></motion.div>}
+                  {operation.state === 'error' && <AlertCircle className="h-5 w-5 text-destructive" />}
+                  {operation.state === 'indexing' && 'Indexing RAG'}
+                  {operation.state === 'retrieving' && 'Retrieving Context'}
+                  {operation.state === 'generating' && 'Generating Report'}
+                  {operation.state === 'error' && 'Error'}
+                </CardTitle>
+                <CardDescription className={operation.state === 'error' ? 'text-destructive font-medium' : ''}>
+                  {operation.message}
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </motion.div>
         )}
 
         {/* RAG Status Card - Service Down */}
         {llmopsDown ? (
-          <Card className="border-destructive">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-destructive">
-                <WifiOff className="h-5 w-5" />
-                LLMOps Service Unavailable
-              </CardTitle>
-              <CardDescription>
-                The LLMOps service is currently down or unreachable.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-4">
-                <div className="h-2 w-2 animate-pulse rounded-full bg-destructive" />
-                <span className="text-sm text-muted-foreground">
-                  Attempting to reconnect...
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={loadRagStatus}
-                  disabled={ragLoading}
-                >
-                  <RefreshCw className={`mr-2 h-4 w-4 ${ragLoading ? 'animate-spin' : ''}`} />
-                  Retry
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Database className="h-5 w-5" />
-                  RAG Index
+          <motion.div variants={shouldReduceMotion ? {} : slideInUp}>
+            <Card className="border-destructive">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-destructive">
+                  <WifiOff className="h-5 w-5" />
+                  LLMOps Service Unavailable
                 </CardTitle>
                 <CardDescription>
-                  Current state of the Retrieval-Augmented Generation index
+                  The LLMOps service is currently down or unreachable.
                 </CardDescription>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={loadRagStatus}
-                  disabled={ragLoading}
-                >
-                  <RefreshCw className={`mr-2 h-4 w-4 ${ragLoading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={handleReindex}
-                  disabled={reindexing}
-                >
-                  {reindexing ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="mr-2 h-4 w-4" />
-                  )}
-                  Reindex
-                </Button>
-              </div>
-            </CardHeader>
-          <CardContent>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-4">
+                  <div className="h-2 w-2 animate-pulse rounded-full bg-destructive" />
+                  <span className="text-sm text-muted-foreground">
+                    Attempting to reconnect...
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={loadRagStatus}
+                    disabled={ragLoading}
+                  >
+                    <RefreshCw className={`mr-2 h-4 w-4 ${ragLoading ? 'animate-spin' : ''}`} />
+                    Retry
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ) : (
+          <motion.div variants={shouldReduceMotion ? {} : slideInUp}>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Database className="h-5 w-5" />
+                    RAG Index
+                  </CardTitle>
+                  <CardDescription>
+                    Current state of the Retrieval-Augmented Generation index
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={loadRagStatus}
+                    disabled={ragLoading}
+                  >
+                    <RefreshCw className={`mr-2 h-4 w-4 ${ragLoading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleReindex}
+                    disabled={reindexing}
+                  >
+                    {reindexing ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="mr-2 h-4 w-4" />
+                    )}
+                    Reindex
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
             {ragLoading && !ragStatus ? (
               <div className="py-4 text-center">
                 <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
@@ -324,6 +356,7 @@ export default function ReportsPage() {
             )}
           </CardContent>
         </Card>
+        </motion.div>
         )}
 
         {/* Reports List */}
@@ -491,7 +524,7 @@ export default function ReportsPage() {
             )}
           </DialogContent>
         </Dialog>
-      </div>
+      </motion.div>
     </PageContainer>
   );
 }
