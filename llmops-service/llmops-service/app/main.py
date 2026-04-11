@@ -8,18 +8,20 @@ middleware, exception handling, and service dependencies.
 from __future__ import annotations
 
 import logging
-import os
 import time
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
-
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from loguru import logger
+
+try:
+    logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
+except Exception:
+    pass
 
 from app.api.routes import router
 from app.core.config import settings

@@ -34,7 +34,7 @@ class ImagingDataTransformation:
             indices,
             test_size=split_cfg.test_size,
             random_state=split_cfg.seed,
-            stratify=ds["label_code"],
+            stratify=list(ds["label_code"]),  # type: ignore[arg-type]
         )
         logger.info(f"stratified split: {len(train_idx)} train, {len(test_idx)} test")
 
@@ -58,16 +58,20 @@ class ImagingDataTransformation:
                     continue
                 img_path = output_dir / f"{idx}.png"
                 self._resize_and_save(img, img_path)
-                records.append({
-                    "image_path": str(img_path),
-                    "label": sample["label_code"],
-                    "source": "eyepacs",
-                })
+                records.append(
+                    {
+                        "image_path": str(img_path),
+                        "label": sample["label_code"],
+                        "source": "eyepacs",
+                    }
+                )
                 if i % 500 == 0 or i == total:
                     logger.info(f"eyepacs {split_name}: {i}/{total} processed")
 
             pd.DataFrame(records).to_csv(csv_path, index=False)
-            logger.info(f"eyepacs {split_name} CSV saved: {csv_path} ({len(records)} rows)")
+            logger.info(
+                f"eyepacs {split_name} CSV saved: {csv_path} ({len(records)} rows)"
+            )
 
     def _transform_samaya(self) -> None:
         label_mapping = dict(self.schema.ml_dataset.label_mapping)
@@ -85,7 +89,9 @@ class ImagingDataTransformation:
         df["label"] = df["label"].astype(int)
 
         logger.info(f"samaya usable samples: {len(df)}")
-        logger.info(f"samaya label distribution: {df['label'].value_counts().sort_index().to_dict()}")
+        logger.info(
+            f"samaya label distribution: {df['label'].value_counts().sort_index().to_dict()}"
+        )
 
         output_dir = self.config.root_dir / "images" / "samaya"
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -101,11 +107,13 @@ class ImagingDataTransformation:
                 continue
             img_path = output_dir / f"{i}.png"
             self._resize_and_save(Image.open(src_path), img_path)
-            records.append({
-                "image_path": str(img_path),
-                "label": row["label"],
-                "source": "samaya",
-            })
+            records.append(
+                {
+                    "image_path": str(img_path),
+                    "label": row["label"],
+                    "source": "samaya",
+                }
+            )
             if i % 10 == 0 or i == total:
                 logger.info(f"samaya: {i}/{total} processed")
 

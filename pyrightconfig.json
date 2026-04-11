@@ -2,6 +2,10 @@
   "venvPath": "backend-service",
   "venv": ".venv",
   "pythonVersion": "3.12",
+  "typeCheckingMode": "basic",
+  "reportMissingImports": "none",
+  "reportMissingTypeStubs": false,
+  "reportUnknownMemberType": false,
   "executionEnvironments": [
     {
       "root": "backend-service/backend-service",

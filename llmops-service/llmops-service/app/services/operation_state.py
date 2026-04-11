@@ -2,8 +2,9 @@
 Operation state tracker for LLMOps service.
 Tracks current operation: indexing, retrieval, generation.
 """
+
 from threading import Lock
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Literal
 

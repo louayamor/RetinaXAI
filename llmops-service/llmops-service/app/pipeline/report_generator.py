@@ -4,14 +4,13 @@ Report Generation Handler for Async Job Processing.
 This module provides the handler for async report generation jobs,
 including token counting and retry logic.
 """
+
 from __future__ import annotations
 
 from loguru import logger
 
 from app.core.config import settings
-from app.llm.client import get_llm_client
 from app.pipeline.inference_pipeline import InferencePipeline
-from app.prompts.templates import REPORT_SYSTEM_PROMPT, REPORT_USER_PROMPT
 from app.services.job_manager import Job
 from app.utils.helpers import dump_compact
 

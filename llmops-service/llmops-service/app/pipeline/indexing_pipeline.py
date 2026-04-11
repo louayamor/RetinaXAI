@@ -9,7 +9,7 @@ from loguru import logger
 
 from app.core.config import settings
 from app.rag.manifest_client import fetch_manifest
-from app.services.operation_state import set_operation, clear_operation
+from app.services.operation_state import set_operation
 from app.vectorstore.chroma_store import ChromaStore
 from app.vectorstore.document_loader import normalize_artifact
 

@@ -141,12 +141,12 @@ class ClinicalModelTrainer:
             test_preds = model.predict(X_test)
             train_acc = accuracy_score(y_train, train_preds)
             test_acc = accuracy_score(y_test, test_preds)
-            BEST_VAL_ACCURACY.labels(pipeline="clinical").set(test_acc)
+            BEST_VAL_ACCURACY.labels(pipeline="clinical").set(float(test_acc))
 
             mlflow.log_metrics(
                 {
-                    "train_accuracy": round(train_acc, 4),
-                    "test_accuracy": round(test_acc, 4),
+                    "train_accuracy": float(round(train_acc, 4)),
+                    "test_accuracy": float(round(test_acc, 4)),
                 }
             )
 

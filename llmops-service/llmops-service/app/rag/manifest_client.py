@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Any, Literal
+from typing import Any
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
@@ -82,6 +82,8 @@ def fetch_manifest(url: str, timeout: float = 30.0) -> RagManifest:
         raise ValueError(f"Invalid RAG manifest payload: {exc}") from exc
 
     if parsed.artifact_count != len(parsed.artifacts):
-        raise ValueError("Invalid RAG manifest payload: artifact_count does not match artifacts length")
+        raise ValueError(
+            "Invalid RAG manifest payload: artifact_count does not match artifacts length"
+        )
 
     return RagManifest.model_validate(parsed.model_dump())

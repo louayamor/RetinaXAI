@@ -8,7 +8,7 @@ from loguru import logger
 from app.core.config import settings
 from app.llm.client import get_llm_client
 from app.prompts.templates import REPORT_SYSTEM_PROMPT, REPORT_USER_PROMPT
-from app.services.operation_state import set_operation, clear_operation
+from app.services.operation_state import set_operation
 from app.utils.helpers import dump_compact
 from app.vectorstore.chroma_store import ChromaStore
 

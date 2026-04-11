@@ -18,7 +18,7 @@ class ClinicalDataTransformation:
         if self.config.train_csv.exists() and self.config.test_csv.exists():
             logger.info("transformation outputs already exist, skipping")
             return
-        
+
         logger.info("clinical data transformation started")
 
         cleaned_csv = self.config.root_dir / "cleaned.csv"
@@ -66,29 +66,34 @@ class ClinicalDataTransformation:
             df_features,
             test_size=self.params.ml_training.test_size,
             random_state=self.params.ml_training.seed,
-            stratify=df_features["label"],
+            stratify=df_features["label"],  # type: ignore[arg-type]
         )
 
         self.config.train_csv.parent.mkdir(parents=True, exist_ok=True)
         train_df.to_csv(self.config.train_csv, index=False)  # type: ignore[union-attr]
         test_df.to_csv(self.config.test_csv, index=False)  # type: ignore[union-attr]
 
-        logger.info(f"clinical train CSV: {self.config.train_csv} ({len(train_df)} rows)")
+        logger.info(
+            f"clinical train CSV: {self.config.train_csv} ({len(train_df)} rows)"
+        )
         logger.info(f"clinical test CSV: {self.config.test_csv} ({len(test_df)} rows)")
 
-        save_json(self.config.feature_file, {
-            "numeric_features": numeric_features,
-            "categorical_features": categorical_features,
-            "available_features": feature_cols,
-            "missing_features": list(missing_features),
-            "train_samples": len(train_df),
-            "test_samples": len(test_df),
-            "label_offset": label_offset,
-            "categorical_encoders": categorical_encoders,
-            "numeric_medians": {
-                col: float(df[col].median())
-                for col in numeric_features
-                if col in df.columns
+        save_json(
+            self.config.feature_file,
+            {
+                "numeric_features": numeric_features,
+                "categorical_features": categorical_features,
+                "available_features": feature_cols,
+                "missing_features": list(missing_features),
+                "train_samples": len(train_df),
+                "test_samples": len(test_df),
+                "label_offset": label_offset,
+                "categorical_encoders": categorical_encoders,
+                "numeric_medians": {
+                    col: float(df[col].median())
+                    for col in numeric_features
+                    if col in df.columns
+                },
             },
-        })
+        )
         logger.info("clinical data transformation complete")
