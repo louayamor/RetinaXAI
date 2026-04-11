@@ -100,11 +100,13 @@ def test_generate_report_includes_retrieved_context(monkeypatch):
 
     def fake_generate(prompt: str, system_prompt=None) -> str:
         captured["prompt"] = prompt
-        return "{\"content\": \"ok\", \"summary\": \"ok\"}"
+        return '{"content": "ok", "summary": "ok"}'
 
     monkeypatch.setattr(pipeline.client, "generate", fake_generate)
 
-    pipeline.generate_report({"cleaned_summary": "summary text", "raw_ocr_text": "ocr text"})
+    pipeline.generate_report(
+        {"cleaned_summary": "summary text", "raw_ocr_text": "ocr text"}
+    )
 
-    assert "Retrieved Context:" in captured["prompt"]
+    assert "REFERENCE CONTEXT:" in captured["prompt"]
     assert "retrieved chunk" in captured["prompt"]

@@ -10,7 +10,15 @@ load_dotenv()
 
 
 def _get_service_root() -> Path:
-    """Get this service's root directory (where this config file lives)."""
+    """Get this service's root directory (where this config file lives).
+
+    If RETINAXAI_BASE_DIR is set, use that as base; otherwise derive from __file__.
+    """
+    import os
+
+    base_dir = os.environ.get("RETINAXAI_BASE_DIR")
+    if base_dir:
+        return Path(base_dir) / "llmops-service" / "llmops-service"
     return Path(__file__).parent.parent
 
 
@@ -77,7 +85,15 @@ class Settings(BaseSettings):
 
     @property
     def data_dir(self) -> Path:
-        """Service-relative data directory."""
+        """Service-relative data directory.
+
+        If RETINAXAI_BASE_DIR is set, use that as base; otherwise derive from __file__.
+        """
+        import os
+
+        base_dir = os.environ.get("RETINAXAI_BASE_DIR")
+        if base_dir:
+            return Path(base_dir) / "data"
         return _get_service_root() / "data"
 
     @property
