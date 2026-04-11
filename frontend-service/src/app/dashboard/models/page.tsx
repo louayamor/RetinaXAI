@@ -140,7 +140,7 @@ export default function ModelsPage() {
           />
         </div>
         <div className='relative z-10'>
-          <h1 className='text-3xl font-bold tracking-tight mb-2'>Models</h1>
+          <h1 className='text-3xl font-bold tracking-tight mb-2'>AI Models</h1>
           <p className='text-white/70 text-lg max-w-xl'>
             Model performance, training and evaluation metrics of EfficientNet-B3 + XGBoost
           </p>

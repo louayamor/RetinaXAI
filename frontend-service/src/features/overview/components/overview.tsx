@@ -16,12 +16,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AreaGraph } from './area-graph';
 import { BarGraph } from './bar-graph';
 import { PieGraph } from './pie-graph';
-import { IconTrendingUp, IconTrendingDown, IconUsers, IconScan, IconChartBar, IconFileText } from '@tabler/icons-react';
+import { IconTrendingUp, IconTrendingDown, IconUsers, IconScan, IconChartBar, IconFileText, IconActivity } from '@tabler/icons-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getDashboardStats, DashboardStats } from '@/lib/api';
 import { toast } from 'sonner';
-import { fadeInUp, staggerContainer, staggerItem, buttonTap } from '@/lib/animations';
+import { fadeInUp, staggerContainer, staggerItem, buttonTap, slideInUp } from '@/lib/animations';
+import Image from 'next/image';
 
 const severityLabels: Record<number, string> = {
   0: 'No DR',
@@ -115,7 +116,7 @@ export default function OverViewPage() {
       >
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-2xl font-bold tracking-tight">
-            Dashboard Overview
+            Clinical Dashboard
           </h2>
           <div className="hidden items-center space-x-2 md:flex">
             <motion.div variants={shouldReduceMotion ? {} : buttonTap}>
@@ -126,12 +127,6 @@ export default function OverViewPage() {
           </div>
         </div>
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="analytics" disabled>
-              Analytics
-            </TabsTrigger>
-          </TabsList>
           <TabsContent value="overview" className="space-y-4">
             <motion.div
               variants={shouldReduceMotion ? {} : staggerContainer}
@@ -180,15 +175,22 @@ export default function OverViewPage() {
                 />
               </motion.div>
             </motion.div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7">
-              <div className="col-span-4">
-                <BarGraph data={stats?.predictions_timeline} loading={loading} />
+            
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <IconActivity className="h-5 w-5 text-[#20bdbe]" />
+                <h3 className="text-lg font-semibold">Analytics</h3>
               </div>
-              <div className="col-span-4">
-                <AreaGraph data={stats?.severity_distribution} loading={loading} />
-              </div>
-              <div className="col-span-4 md:col-span-3">
-                <PieGraph data={stats?.gender_distribution} loading={loading} />
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <motion.div variants={shouldReduceMotion ? {} : slideInUp}>
+                  <BarGraph data={stats?.predictions_timeline} loading={loading} />
+                </motion.div>
+                <motion.div variants={shouldReduceMotion ? {} : slideInUp}>
+                  <AreaGraph data={stats?.severity_distribution} loading={loading} />
+                </motion.div>
+                <motion.div variants={shouldReduceMotion ? {} : slideInUp} className="md:col-span-2 lg:col-span-1">
+                  <PieGraph data={stats?.gender_distribution} loading={loading} />
+                </motion.div>
               </div>
             </div>
           </TabsContent>

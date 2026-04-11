@@ -26,11 +26,21 @@ class PipelineResult(TypedDict):
 class IndexingPipeline:
     def run(self) -> PipelineResult:
         start_time = time.time()
+        try:
+            return self._run_internal(start_time)
+        except Exception as e:
+            logger.error(f"Indexing failed: {e}")
+            set_operation("error", str(e)[:200])
+            raise
+
+    def _run_internal(self, start_time: float) -> PipelineResult:
         set_operation("indexing", "Fetching manifest from MLOps...")
 
         logger.info("Fetching manifest from MLOps...")
         manifest = fetch_manifest(settings.rag_manifest_url)
-        logger.info(f"Manifest: run_id={manifest.run_id}, artifacts={manifest.artifact_count}")
+        logger.info(
+            f"Manifest: run_id={manifest.run_id}, artifacts={manifest.artifact_count}"
+        )
 
         set_operation("indexing", "Initializing ChromaDB store...")
         logger.info("Initializing ChromaDB store...")
@@ -117,20 +127,23 @@ class IndexingPipeline:
             if not settings.mlflow_tracking_uri:
                 return
 
-            with mlflow.start_run(run_name=f"llmops_indexing_{manifest.run_id}_{run_index:03d}"):
-                mlflow.log_params({
-                    "run_id": manifest.run_id,
-                    "pipeline": manifest.pipeline,
-                    "schema_version": manifest.schema_version,
-                })
-                mlflow.log_metrics({
-                    "artifact_count": manifest.artifact_count,
-                    "document_count": document_count,
-                    "chunk_count": chunk_count,
-                    "indexing_duration_seconds": elapsed_time,
-                    "embedding_model": settings.rag_embedding_model,
-                    "chunk_size": settings.rag_chunk_size,
-                    "chunk_overlap": settings.rag_chunk_overlap,
-                })
+            with mlflow.start_run(
+                run_name=f"llmops_indexing_{manifest.run_id}_{run_index:03d}"
+            ):
+                mlflow.log_params(
+                    {
+                        "run_id": manifest.run_id,
+                        "pipeline": manifest.pipeline,
+                        "schema_version": manifest.schema_version,
+                    }
+                )
+                mlflow.log_metrics(
+                    {
+                        "artifact_count": manifest.artifact_count,
+                        "document_count": document_count,
+                        "chunk_count": chunk_count,
+                        "indexing_duration_seconds": elapsed_time,
+                    }
+                )  # type: ignore[arg-type]
         except Exception:
             pass

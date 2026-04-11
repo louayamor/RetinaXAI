@@ -2,7 +2,7 @@ import { NavItem } from '@/types';
 
 export const navItems: NavItem[] = [
   {
-    title: 'Overview',
+    title: 'Dashboard',
     url: '/dashboard/overview',
     icon: 'dashboard',
     isActive: false,
@@ -10,7 +10,7 @@ export const navItems: NavItem[] = [
     items: []
   },
   {
-    title: 'Visualise',
+    title: 'OCT Analytics',
     url: '/dashboard/visualise',
     icon: 'chart',
     isActive: false,
@@ -18,7 +18,7 @@ export const navItems: NavItem[] = [
     items: []
   },
   {
-    title: 'Patients',
+    title: 'Patient Registry',
     url: '/dashboard/patients',
     icon: 'user',
     isActive: false,
@@ -26,7 +26,7 @@ export const navItems: NavItem[] = [
     items: []
   },
   {
-    title: 'Predictions',
+    title: 'DR Screening',
     url: '/dashboard/predictions',
     icon: 'media',
     isActive: false,
@@ -34,7 +34,7 @@ export const navItems: NavItem[] = [
     items: []
   },
   {
-    title: 'Reports',
+    title: 'Clinical Reports',
     url: '/dashboard/reports',
     icon: 'post',
     isActive: false,
@@ -42,7 +42,7 @@ export const navItems: NavItem[] = [
     items: []
   },
   {
-    title: 'Models',
+    title: 'AI Models',
     url: '/dashboard/models',
     icon: 'settings',
     isActive: false,

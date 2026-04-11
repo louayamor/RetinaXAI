@@ -19,6 +19,7 @@ class ReportService:
         self.repo = ReportRepository(db)
         self.prediction_repo = PredictionRepository(db)
         self.patient_repo = PatientRepository(db)
+        self.db = db
 
     async def generate(
         self, data: ReportGenerateRequest, generated_by: uuid.UUID
@@ -34,9 +35,13 @@ class ReportService:
 
         existing = await self.repo.get_by_prediction_id(data.prediction_id)
         if existing:
-            raise ConflictException(
-                "A report for this prediction already exists."
-            )
+            if existing.status == ReportStatus.FAILED:
+                await self.db.delete(existing)
+                await self.db.flush()
+            else:
+                raise ConflictException(
+                    "A report for this prediction already exists."
+                )
 
         patient = await self.patient_repo.get_by_id(prediction.patient_id)
         if not patient:

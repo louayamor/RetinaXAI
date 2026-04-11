@@ -15,16 +15,24 @@ from app.vectorstore.chroma_store import ChromaStore
 
 class InferencePipeline:
     def __init__(self) -> None:
-        provider = settings.llm_provider.value if hasattr(settings.llm_provider, "value") else str(settings.llm_provider)
+        provider = (
+            settings.llm_provider.value
+            if hasattr(settings.llm_provider, "value")
+            else str(settings.llm_provider)
+        )
         token = settings.github_token if provider == "github" else settings.llm_api_key
-        base_url = settings.github_endpoint if provider == "github" else settings.llm_base_url
+        base_url = (
+            settings.github_endpoint if provider == "github" else settings.llm_base_url
+        )
 
         client_kwargs: dict[str, str] = {"model": settings.llm_model}
         if provider == "github":
             client_kwargs["token"] = token if token is not None else ""
             client_kwargs["endpoint"] = base_url if base_url is not None else ""
         elif provider == "ollama":
-            client_kwargs["base_url"] = base_url if base_url is not None else settings.ollama_base_url
+            client_kwargs["base_url"] = (
+                base_url if base_url is not None else settings.ollama_base_url
+            )
         else:
             client_kwargs["token"] = token if token is not None else ""
             client_kwargs["base_url"] = base_url if base_url is not None else ""
@@ -66,18 +74,28 @@ class InferencePipeline:
             text = getattr(doc, "page_content", str(doc)).strip()
             metadata = getattr(doc, "metadata", {}) or {}
             if text:
-                snippets.append(f"[source: {metadata.get('artifact_id', 'unknown')}] {text}")
+                snippets.append(
+                    f"[source: {metadata.get('artifact_id', 'unknown')}] {text}"
+                )
 
         logger.info(f"Retrieved {len(snippets)} context snippets")
         return "\n".join(snippets), time.time() - start_time
 
     def generate_report(self, payload: dict) -> dict[str, str]:
+        try:
+            return self._generate_report_internal(payload)
+        except Exception as e:
+            logger.error(f"Report generation failed: {e}")
+            set_operation("error", str(e)[:200])
+            raise
+
+    def _generate_report_internal(self, payload: dict) -> dict[str, str]:
         model_name = str(payload.get("model") or settings.llm_model)
-        
+
         logger.info("Building retrieval context...")
         set_operation("retrieving", "Retrieving context from RAG...")
         retrieved_context, retrieval_time = self._build_retrieval_context(payload)
-        
+
         logger.info(f"Generating report with {model_name}...")
         set_operation("generating", "Generating report with LLM...")
         start_time = time.time()
@@ -102,10 +120,17 @@ class InferencePipeline:
         except json.JSONDecodeError:
             parsed = None
 
-        if isinstance(parsed, dict):
+        # Store full structured JSON content for new format
+        if isinstance(parsed, dict) and "patient_info" in parsed:
+            # New structured format - store the full JSON
+            report_content = json.dumps(parsed)
+            summary = str(parsed.get("summary", ""))
+        elif isinstance(parsed, dict):
+            # Old format with content key
             report_content = str(parsed.get("content", content))
             summary = str(parsed.get("summary", report_content[:400]))
         else:
+            # Plain text - not structured
             report_content = content
             summary = content[:400]
 
@@ -136,15 +161,19 @@ class InferencePipeline:
                 return
 
             with mlflow.start_run(run_name=f"llmops_inference_{run_index:03d}"):
-                mlflow.log_params({
-                    "model": model_name,
-                    "report_type": "clinical",
-                })
-                mlflow.log_metrics({
-                    "retrieval_latency_seconds": retrieval_time,
-                    "generation_latency_seconds": generation_time,
-                    "total_latency_seconds": retrieval_time + generation_time,
-                    "retrieved_doc_count": int(has_retrieved_context),
-                })
+                mlflow.log_params(
+                    {
+                        "model": model_name,
+                        "report_type": "clinical",
+                    }
+                )
+                mlflow.log_metrics(
+                    {
+                        "retrieval_latency_seconds": retrieval_time,
+                        "generation_latency_seconds": generation_time,
+                        "total_latency_seconds": retrieval_time + generation_time,
+                        "retrieved_doc_count": int(has_retrieved_context),
+                    }
+                )
         except Exception:
             pass
