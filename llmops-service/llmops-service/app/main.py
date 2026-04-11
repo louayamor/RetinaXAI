@@ -198,7 +198,10 @@ def create_app() -> FastAPI:
     )
 
     # API Key authentication middleware
-    app.add_middleware(APIKeyMiddleware)
+    app.add_middleware(
+        APIKeyMiddleware,
+        exempt_paths=["/health", "/ready", "/api/health", "/api/ready"],
+    )
 
     # Rate limiting middleware
     if settings.enable_rate_limiting:

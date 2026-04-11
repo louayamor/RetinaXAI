@@ -17,7 +17,9 @@ def _serialize_content(content: Any) -> str:
     return str(content)
 
 
-def normalize_artifact(artifact: RagArtifact, run_id: str | None = None) -> list[Document]:
+def normalize_artifact(
+    artifact: RagArtifact, run_id: str | None = None
+) -> list[Document]:
     content = _serialize_content(artifact.content)
     text = normalize_whitespace(content)
     metadata = {
@@ -51,6 +53,7 @@ def chunk_documents(
         content_hash = str(chunk.metadata.get("content_hash", ""))
         chunk_index = len(result)
         chunk.id = f"{artifact_id}:{content_hash}:{chunk_index}"
+        chunk.metadata["chunk_index"] = chunk_index
         if run_id is not None:
             chunk.metadata["run_id"] = run_id
         result.append(chunk)

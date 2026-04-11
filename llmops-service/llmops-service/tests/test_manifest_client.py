@@ -3,7 +3,12 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from app.rag.manifest_client import RagArtifact, RagManifest
-from app.rag.manifest_client import RagArtifactId, RagArtifactType, RagPipeline, RagSchemaVersion
+from app.rag.manifest_client import (
+    RagArtifactId,
+    RagArtifactType,
+    RagPipeline,
+    RagSchemaVersion,
+)
 
 
 def test_indexing_pipeline_fetches_manifest(monkeypatch):
@@ -13,7 +18,9 @@ def test_indexing_pipeline_fetches_manifest(monkeypatch):
         schema_version=RagSchemaVersion.V1,
         run_id="run-123",
         pipeline=RagPipeline.COMBINED,
-        generated_at=__import__("datetime").datetime.now(__import__("datetime").timezone.utc),
+        generated_at=__import__("datetime").datetime.now(
+            __import__("datetime").timezone.utc
+        ),
         artifact_count=4,
         artifacts=[
             RagArtifact(
@@ -29,7 +36,8 @@ def test_indexing_pipeline_fetches_manifest(monkeypatch):
         ],
     )
 
-    monkeypatch.setattr(ip, "fetch_manifest", lambda url: manifest)
+    monkeypatch.setattr(ip, "fetch_manifest", lambda url, timeout=None: manifest)
+
     class DummyStore:
         def __init__(self, *args, **kwargs):
             self.persist_directory = None
