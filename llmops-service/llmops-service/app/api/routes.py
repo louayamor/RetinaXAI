@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 
 from app.core.config import settings
 from app.pipeline.indexing_pipeline import IndexingPipeline
+from app.pipeline.inference_pipeline import InferencePipeline
 from app.services.operation_state import get_operation
 from app.pipeline.report_generator import generate_report_sync
 from app.services.job_manager import JobStatus, get_job_manager
@@ -59,7 +60,8 @@ async def generate(payload: GenerateRequest) -> dict[str, str]:
     For long-running reports, use /generate/async instead.
     """
     try:
-        result = await generate_report_sync(payload.model_dump())
+        pipeline = InferencePipeline()
+        result = pipeline.generate_report(payload.model_dump())
         return {"response": json.dumps(result)}
     except Exception as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
