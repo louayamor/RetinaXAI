@@ -1,7 +1,7 @@
 import enum
 import uuid
 
-from sqlalchemy import String, Text, ForeignKey, Enum
+from sqlalchemy import String, Text, ForeignKey, Enum, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -16,6 +16,7 @@ class ReportStatus(str, enum.Enum):
 
 class Report(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "reports"
+    __table_args__ = (Index("ix_reports_status", "status"),)
 
     patient_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),

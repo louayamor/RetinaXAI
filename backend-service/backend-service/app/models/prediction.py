@@ -1,7 +1,7 @@
 import enum
 import uuid
 
-from sqlalchemy import String, Float, ForeignKey, Enum, JSON
+from sqlalchemy import String, Float, ForeignKey, Enum, JSON, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -16,6 +16,9 @@ class PredictionStatus(str, enum.Enum):
 
 class Prediction(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "predictions"
+    __table_args__ = (
+        Index("ix_predictions_patient_created", "patient_id", "created_at"),
+    )
 
     patient_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
