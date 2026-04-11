@@ -3,22 +3,26 @@
 Usage:
     cd backend-service/backend-service
     source .venv/bin/activate
-    RETINAXAI_BASE_DIR=/path/to/retinaxai python -m app.scripts.import_oct_reports
+    python -m app.scripts.import_oct_reports
 """
 
-import os
 import asyncio
 import uuid
 from pathlib import Path
 
 import asyncpg
 
-base_dir = os.environ.get("RETINAXAI_BASE_DIR", "/home/louay/RetinaXAI")
-OCR_CSV = Path(base_dir) / os.environ.get(
-    "OCR_OUTPUT_CSV",
-    "mlops-service/mlops-service/artifacts/ocr/output/reports.csv",
+from app.core.config import settings
+
+OCR_CSV = (
+    Path(__file__).parent.parent.parent.parent
+    / "mlops-service"
+    / "mlops-service"
+    / "artifacts"
+    / "ocr"
+    / "output"
+    / "reports.csv"
 )
-DATABASE_URL = "postgresql://retinaxai:retinaxai_secret@localhost:5432/retinaxai"
 
 THICKNESS_COLS = [
     "thickness_center_fovea",
@@ -45,7 +49,7 @@ async def main():
     df = pd.read_csv(OCR_CSV)
     print(f"Loaded {len(df)} OCR reports from CSV")
 
-    conn = await asyncpg.connect(DATABASE_URL)
+    conn = await asyncpg.connect(settings.DATABASE_URL)
     imported = 0
     skipped = 0
 
