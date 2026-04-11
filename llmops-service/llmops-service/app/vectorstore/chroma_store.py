@@ -20,13 +20,19 @@ class ChromaStore:
         embedding_model: str | None = None,
         embedding_function: Any | None = None,
     ) -> None:
-        base_dir = Path(os.environ.get("RETINAXAI_BASE_DIR", "/home/louay/RetinaXAI"))
-        self.persist_directory = Path(
-            persist_directory or base_dir / "llmops-service" / "llmops-service" / "data" / "rag" / "chroma"
-        )
+        if persist_directory:
+            self.persist_directory = Path(persist_directory)
+        else:
+            service_root = Path(__file__).parent.parent.parent
+            self.persist_directory = service_root / "data" / "rag" / "chroma"
+
         self.collection_name = collection_name or "retinaxai_rag"
-        self.embedding_model = embedding_model or "sentence-transformers/all-MiniLM-L6-v2"
-        self.embedding_function = embedding_function or HuggingFaceEmbeddings(model_name=self.embedding_model)
+        self.embedding_model = (
+            embedding_model or "sentence-transformers/all-MiniLM-L6-v2"
+        )
+        self.embedding_function = embedding_function or HuggingFaceEmbeddings(
+            model_name=self.embedding_model
+        )
 
     @property
     def state_path(self) -> Path:
@@ -38,11 +44,15 @@ class ChromaStore:
 
     @property
     def staging_directory(self) -> Path:
-        return self.persist_directory.with_name(f"{self.persist_directory.name}.staging")
+        return self.persist_directory.with_name(
+            f"{self.persist_directory.name}.staging"
+        )
 
     @property
     def backup_directory(self) -> Path:
-        return self.persist_directory.with_name(f"{self.persist_directory.name}.previous")
+        return self.persist_directory.with_name(
+            f"{self.persist_directory.name}.previous"
+        )
 
     def ensure_ready(self) -> None:
         self.persist_directory.mkdir(parents=True, exist_ok=True)
@@ -109,18 +119,24 @@ class ChromaStore:
             persist_directory=str(persist_directory),
         )
 
-    def upsert_documents(self, documents: list[Document]) -> None:
+    def upsert_documents(
+        self, documents: list[Document], batch_size: int = 1000
+    ) -> None:
         if not documents:
             return
 
         vectorstore = self._make_vectorstore(self.persist_directory)
-        vectorstore.add_documents(documents)
+        for i in range(0, len(documents), batch_size):
+            batch = documents[i : i + batch_size]
+            vectorstore.add_documents(batch)
 
     def query(self, text: str, top_k: int = 4) -> list[tuple[Any, float]]:
         vectorstore = self._make_vectorstore(self.persist_directory)
         return vectorstore.similarity_search_with_score(text, k=top_k)
 
-    def rebuild_collection_atomically(self, documents: list[Document], state: dict[str, Any]) -> None:
+    def rebuild_collection_atomically(
+        self, documents: list[Document], state: dict[str, Any]
+    ) -> None:
         self.ensure_ready()
 
         with self.acquire_rebuild_lock():
@@ -146,7 +162,9 @@ class ChromaStore:
 
     def write_state(self, state: dict[str, Any]) -> None:
         self.persist_directory.mkdir(parents=True, exist_ok=True)
-        payload = json.dumps(state, ensure_ascii=True, sort_keys=True, default=str, indent=2)
+        payload = json.dumps(
+            state, ensure_ascii=True, sort_keys=True, default=str, indent=2
+        )
         self.state_path.write_text(payload, encoding="utf-8")
 
     def read_state(self) -> dict[str, Any] | None:

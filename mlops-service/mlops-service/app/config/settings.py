@@ -7,54 +7,25 @@ from pydantic_settings import BaseSettings
 load_dotenv()
 
 
-def _get_base_dir() -> str:
-    """Get base directory from environment or fallback to default."""
-    return os.environ.get("RETINAXAI_BASE_DIR", "/home/louay/RetinaXAI")
+def _get_service_root() -> Path:
+    """Get this service's root directory (where this config file lives)."""
+    return Path(__file__).parent.parent
 
 
 class Settings(BaseSettings):
     app_name: str = "RetinaXAI MLOps Service"
     app_version: str = "0.1.0"
-    app_env: str = "development"
+    app_env: str = "production"
     app_host: str = "0.0.0.0"
     app_port: int = 8001
 
-    # MLflow / DagsHub
     mlflow_tracking_uri: str = ""
     mlflow_tracking_username: str = ""
     mlflow_tracking_password: str = ""
 
-    # Inter-service URLs
     llmops_service_url: str = "http://llmops-service:8002"
     backend_service_url: str = "http://backend-service:8000"
     timeout_seconds: int = 30
-
-    # Paths are injected via .env as absolute service-local locations.
-    data_dir: Path = Path()
-    upload_dir: Path = Path()
-    fundus_dir: Path = Path()
-    oct_dir: Path = Path()
-    output_dir: Path = Path()
-    gradcam_dir: Path = Path()
-    model_dir: Path = Path()
-    vectorstore_dir: Path = Path()
-
-    imaging_model_path: Path = Path()
-    clinical_model_path: Path = Path()
-    clinical_feature_importance_path: Path = Path()
-
-    imaging_metrics_path: Path = Path()
-    clinical_metrics_path: Path = Path()
-
-    artifacts_root: Path = Path()
-    imaging_artifacts_dir: Path = Path()
-    clinical_artifacts_dir: Path = Path()
-    imaging_data_dir: Path = Path()
-    clinical_data_dir: Path = Path()
-    monitoring_dir: Path = Path()
-    training_jobs_file: Path = Path()
-    ocr_input_dir: Path = Path()
-    ocr_output_dir: Path = Path()
 
     prometheus_metrics_port: int = 9091
 
@@ -63,25 +34,115 @@ class Settings(BaseSettings):
         env_file_encoding = "utf-8"
         extra = "ignore"
 
-    def __init__(self, **data):
-        super().__init__(**data)
-        self._resolve_paths()
+    @property
+    def data_dir(self) -> Path:
+        """Service-relative data directory."""
+        return _get_service_root() / "data"
 
-    def _resolve_paths(self):
-        """Resolve relative paths to absolute using RETINAXAI_BASE_DIR env var."""
-        base = Path(_get_base_dir())
-        
-        path_fields = [
-            "data_dir", "upload_dir", "fundus_dir", "oct_dir", 
-            "output_dir", "gradcam_dir", "model_dir", "vectorstore_dir",
-            "imaging_model_path", "clinical_model_path", 
-            "clinical_feature_importance_path", "ocr_output_dir"
-        ]
-        
-        for field in path_fields:
-            value = getattr(self, field)
-            if value and not Path(value).is_absolute():
-                setattr(self, field, base / value)
+    @property
+    def upload_dir(self) -> Path:
+        return self.data_dir / "uploads"
+
+    @property
+    def fundus_dir(self) -> Path:
+        return self.upload_dir / "fundus"
+
+    @property
+    def oct_dir(self) -> Path:
+        return self.upload_dir / "oct"
+
+    @property
+    def output_dir(self) -> Path:
+        return self.data_dir / "outputs"
+
+    @property
+    def gradcam_dir(self) -> Path:
+        return self.output_dir / "gradcam"
+
+    @property
+    def model_dir(self) -> Path:
+        return self.data_dir / "models"
+
+    @property
+    def vectorstore_dir(self) -> Path:
+        return self.data_dir / "vectorstore"
+
+    @property
+    def artifacts_root(self) -> Path:
+        """Artifacts directory - sibling to mlops-service/."""
+        return _get_service_root().parent / "artifacts"
+
+    @property
+    def imaging_artifacts_dir(self) -> Path:
+        return self.artifacts_root / "model" / "imaging"
+
+    @property
+    def clinical_artifacts_dir(self) -> Path:
+        return self.artifacts_root / "model" / "clinical"
+
+    @property
+    def imaging_model_path(self) -> Path:
+        return self.imaging_artifacts_dir / "model.pth"
+
+    @property
+    def clinical_model_path(self) -> Path:
+        return self.clinical_artifacts_dir / "model.pkl"
+
+    @property
+    def clinical_feature_importance_path(self) -> Path:
+        return self.clinical_artifacts_dir / "feature_importance.json"
+
+    @property
+    def imaging_metrics_path(self) -> Path:
+        return self.imaging_artifacts_dir / "metrics.json"
+
+    @property
+    def clinical_metrics_path(self) -> Path:
+        return self.clinical_artifacts_dir / "metrics.json"
+
+    @property
+    def imaging_data_dir(self) -> Path:
+        return self.artifacts_root / "data" / "processed" / "imaging"
+
+    @property
+    def clinical_data_dir(self) -> Path:
+        return self.artifacts_root / "data" / "processed" / "clinical"
+
+    @property
+    def monitoring_dir(self) -> Path:
+        return self.artifacts_root / "monitoring"
+
+    @property
+    def training_jobs_file(self) -> Path:
+        return self.artifacts_root / "training_jobs.json"
+
+    @property
+    def ocr_input_dir(self) -> Path:
+        return self.data_dir / "ocr_reports"
+
+    @property
+    def ocr_output_dir(self) -> Path:
+        return self.artifacts_root / "ocr" / "output"
+
+    @property
+    def imaging_train_csv(self) -> Path:
+        return self.imaging_data_dir / "train.csv"
+
+    @property
+    def imaging_test_csv(self) -> Path:
+        return self.imaging_data_dir / "test.csv"
+
+    @property
+    def imaging_samaya_csv(self) -> Path:
+        return self.imaging_data_dir / "samaya.csv"
+
+    @property
+    def clinical_train_csv(self) -> Path:
+        return self.clinical_data_dir / "train.csv"
+
+    @property
+    def clinical_test_csv(self) -> Path:
+        return self.clinical_data_dir / "test.csv"
 
 
 settings = Settings()
