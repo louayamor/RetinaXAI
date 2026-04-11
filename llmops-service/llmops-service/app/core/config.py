@@ -10,9 +10,9 @@ from pydantic_settings import BaseSettings
 load_dotenv()
 
 
-def _get_base_dir() -> str:
-    """Get base directory from environment or fallback to default."""
-    return os.environ.get("RETINAXAI_BASE_DIR", "/home/louay/RetinaXAI")
+def _get_service_root() -> Path:
+    """Get this service's root directory (where this config file lives)."""
+    return Path(__file__).parent.parent
 
 
 class LLMProvider(StrEnum):
@@ -26,51 +26,44 @@ class LLMProvider(StrEnum):
 class Settings(BaseSettings):
     app_name: str = "RetinaXAI LLMOps Service"
     app_version: str = "0.1.0"
-    app_env: str = "development"
+    app_env: str = "production"
     app_host: str = "0.0.0.0"
     app_port: int = 8002
 
-    # Inter-service
-    backend_service_url: str = Field(default="http://backend-service:8000", validation_alias="BACKEND_SERVICE_URL")
-    mlops_service_url: str = Field(default="http://mlops-service:8001", validation_alias="MLOPS_SERVICE_URL")
+    backend_service_url: str = Field(
+        default="http://backend-service:8000", validation_alias="BACKEND_SERVICE_URL"
+    )
+    mlops_service_url: str = Field(
+        default="http://mlops-service:8001", validation_alias="MLOPS_SERVICE_URL"
+    )
     timeout_seconds: int = 60
-    rag_manifest_url: str = Field(default="http://mlops-service:8001/rag/manifest", validation_alias="RAG_MANIFEST_URL")
+    rag_manifest_url: str = Field(
+        default="http://mlops-service:8001/rag/manifest",
+        validation_alias="RAG_MANIFEST_URL",
+    )
 
-    # Local storage only; LLMOps receives context from backend.
-    DATA_DIR: Path = Path()
-    CACHE_DIR: Path = Path()
-    rag_chroma_persist_directory: Path = Path("llmops-service/llmops-service/data/rag/chroma")
-    rag_chroma_collection_name: str = "retinaxai_rag"
-    rag_embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
-    rag_chunk_size: int = 800
-    rag_chunk_overlap: int = 80
-
-    # LLM Configuration
     llm_provider: LLMProvider = LLMProvider.GITHUB
     llm_model: str = "openai/gpt-4.1-mini"
     llm_api_key: Optional[str] = Field(default=None, validation_alias="OPENAI_API_KEY")
     llm_base_url: Optional[str] = None
 
-    # GitHub AI Inference (Azure)
-    github_token: Optional[str] = Field(default=None, validation_alias="GITHUB_ACCESS_TOKEN")
+    github_token: Optional[str] = Field(
+        default=None, validation_alias="GITHUB_ACCESS_TOKEN"
+    )
     github_endpoint: str = "https://models.github.ai/inference"
 
-    # Inter-service Authentication
-    api_key: str = Field(default="dev-api-key", validation_alias="LLMOPS_API_KEY")
-    backend_api_key: str = Field(default="dev-api-key", validation_alias="BACKEND_API_KEY")
+    api_key: str = Field(default="", validation_alias="LLMOPS_API_KEY")
+    backend_api_key: str = Field(default="", validation_alias="BACKEND_API_KEY")
 
-    # Rate Limiting
     rate_limit_max_requests: int = 100
     rate_limit_window_seconds: int = 60
     enable_rate_limiting: bool = True
 
-    # DagsHub / MLflow
     mlflow_tracking_uri: str = ""
     mlflow_tracking_username: str = ""
     mlflow_tracking_password: str = ""
     mlflow_experiment_name: str = "retinaxai-llmops"
 
-    # Ollama (fallback/local)
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama2"
 
@@ -81,16 +74,34 @@ class Settings(BaseSettings):
         env_file_encoding = "utf-8"
         extra = "ignore"
 
-    def __init__(self, **data):
-        super().__init__(**data)
-        self._resolve_paths()
+    @property
+    def data_dir(self) -> Path:
+        """Service-relative data directory."""
+        return _get_service_root() / "data"
 
-    def _resolve_paths(self):
-        base = Path(_get_base_dir())
-        path_fields = ["DATA_DIR", "CACHE_DIR", "rag_chroma_persist_directory"]
-        for field in path_fields:
-            value = getattr(self, field)
-            if value and not Path(value).is_absolute():
-                setattr(self, field, base / value)
+    @property
+    def cache_dir(self) -> Path:
+        return self.data_dir / "cache"
+
+    @property
+    def rag_chroma_persist_directory(self) -> Path:
+        return self.data_dir / "rag" / "chroma"
+
+    @property
+    def rag_chroma_collection_name(self) -> str:
+        return "retinaxai_rag"
+
+    @property
+    def rag_embedding_model(self) -> str:
+        return "sentence-transformers/all-MiniLM-L6-v2"
+
+    @property
+    def rag_chunk_size(self) -> int:
+        return 800
+
+    @property
+    def rag_chunk_overlap(self) -> int:
+        return 80
+
 
 settings = Settings()
