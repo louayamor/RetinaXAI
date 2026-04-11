@@ -16,7 +16,6 @@ from app.core.config import settings
 from app.pipeline.indexing_pipeline import IndexingPipeline
 from app.pipeline.inference_pipeline import InferencePipeline
 from app.services.operation_state import get_operation
-from app.pipeline.report_generator import generate_report_sync
 from app.services.job_manager import JobStatus, get_job_manager
 from app.vectorstore.chroma_store import ChromaStore
 
