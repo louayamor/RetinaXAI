@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     app_host: str = "0.0.0.0"
     app_port: int = 8002
 
+    cors_origins: list[str] = ["http://localhost:3000"]
+
     backend_service_url: str = Field(
         default="http://backend-service:8000", validation_alias="BACKEND_SERVICE_URL"
     )
