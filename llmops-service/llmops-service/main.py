@@ -1,14 +1,17 @@
 #!/usr/bin/env python
 """LLMOps CLI entry point."""
+
+import argparse
 import os
 import sys
 from pathlib import Path
 
+import uvicorn
+
+
 root = Path(__file__).parent
 os.chdir(root / "llmops-service")
 sys.path.insert(0, str(root / "llmops-service"))
-
-import uvicorn
 
 
 def serve():
@@ -31,12 +34,12 @@ def reindex():
 
 
 def main():
-    import argparse
-
     parser = argparse.ArgumentParser(description="RetinaXAI LLMOps Service")
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("serve")
-    subparsers.add_parser("pipeline").add_argument("--task", choices=["reindex"], default="reindex")
+    subparsers.add_parser("pipeline").add_argument(
+        "--task", choices=["reindex"], default="reindex"
+    )
 
     args = parser.parse_args()
 

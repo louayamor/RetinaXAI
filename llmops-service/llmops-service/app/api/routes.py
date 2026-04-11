@@ -4,6 +4,7 @@ API Routes for LLMOps Service.
 Includes synchronous and asynchronous report generation,
 job status tracking, and RAG management.
 """
+
 from __future__ import annotations
 
 import json
@@ -14,7 +15,6 @@ from pydantic import BaseModel, Field
 from app.core.config import settings
 from app.pipeline.indexing_pipeline import IndexingPipeline
 from app.services.operation_state import get_operation
-from app.pipeline.inference_pipeline import InferencePipeline
 from app.pipeline.report_generator import generate_report_sync
 from app.services.job_manager import JobStatus, get_job_manager
 from app.vectorstore.chroma_store import ChromaStore
@@ -120,7 +120,9 @@ def get_job_status(job_id: str) -> JobStatusResponse:
 
 @router.get("/jobs")
 def list_jobs(
-    status: str | None = Query(None, description="Filter by status: pending, running, completed, failed"),
+    status: str | None = Query(
+        None, description="Filter by status: pending, running, completed, failed"
+    ),
     limit: int = Query(100, ge=1, le=1000),
 ) -> dict:
     """
@@ -182,7 +184,9 @@ def rag_status() -> RagStatusResponse:
     state = store.read_state() or {}
     return RagStatusResponse(
         status="ok" if state else "idle",
-        schema_version=str(state.get("schema_version")) if state.get("schema_version") else None,
+        schema_version=str(state.get("schema_version"))
+        if state.get("schema_version")
+        else None,
         run_id=str(state.get("run_id")) if state.get("run_id") else None,
         artifact_count=int(state.get("artifact_count") or 0),
         collection_name=store.collection_name,

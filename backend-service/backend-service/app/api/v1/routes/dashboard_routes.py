@@ -9,7 +9,7 @@ from app.auth.dependencies import CurrentUser
 from app.db.session import get_db
 from app.models.patient import Patient
 from app.models.prediction import Prediction, PredictionStatus
-from app.models.report import Report, ReportStatus
+from app.models.report import Report
 from app.models.mri_scan import MRIScan
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
