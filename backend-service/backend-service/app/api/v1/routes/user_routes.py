@@ -33,7 +33,6 @@ async def list_patients(
     service = PatientService(db)
     patients, _ = await service.get_all(skip=skip, limit=limit)  # type: ignore[assignment]
     return patients
-    return patients
 
 
 @router.get("/{patient_id}", response_model=PatientRead)
