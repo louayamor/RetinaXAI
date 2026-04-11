@@ -33,6 +33,14 @@ class ChromaStore:
         self.embedding_function = embedding_function or HuggingFaceEmbeddings(
             model_name=self.embedding_model
         )
+        self._client: Chroma | None = None
+
+    def close(self) -> None:
+        """Explicit cleanup for Chroma client."""
+        if self._client is not None:
+            self._client = None
+        if self.embedding_function is not None:
+            self.embedding_function = None
 
     @property
     def state_path(self) -> Path:

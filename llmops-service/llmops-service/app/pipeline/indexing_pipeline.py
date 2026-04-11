@@ -37,7 +37,9 @@ class IndexingPipeline:
         set_operation("indexing", "Fetching manifest from MLOps...")
 
         logger.info("Fetching manifest from MLOps...")
-        manifest = fetch_manifest(settings.rag_manifest_url)
+        manifest = fetch_manifest(
+            settings.rag_manifest_url, timeout=settings.timeout_seconds
+        )
         logger.info(
             f"Manifest: run_id={manifest.run_id}, artifacts={manifest.artifact_count}"
         )

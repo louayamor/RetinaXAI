@@ -14,7 +14,18 @@ from app.vectorstore.chroma_store import ChromaStore
 
 
 class InferencePipeline:
+    _instance: InferencePipeline | None = None
+
+    def __new__(cls) -> InferencePipeline:
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+
     def __init__(self) -> None:
+        if self._initialized:
+            return
+
         provider = (
             settings.llm_provider.value
             if hasattr(settings.llm_provider, "value")
@@ -25,7 +36,12 @@ class InferencePipeline:
             settings.github_endpoint if provider == "github" else settings.llm_base_url
         )
 
-        client_kwargs: dict[str, str] = {"model": settings.llm_model}
+        timeout = settings.timeout_seconds
+
+        client_kwargs: dict[str, str | int] = {
+            "model": settings.llm_model,
+            "timeout_seconds": timeout,
+        }
         if provider == "github":
             client_kwargs["token"] = token if token is not None else ""
             client_kwargs["endpoint"] = base_url if base_url is not None else ""
@@ -43,6 +59,7 @@ class InferencePipeline:
             settings.rag_chroma_collection_name,
             settings.rag_embedding_model,
         )
+        self._initialized = True
 
     def _build_retrieval_context(self, payload: dict) -> tuple[str, float]:
         start_time = time.time()
