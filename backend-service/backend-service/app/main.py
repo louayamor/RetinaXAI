@@ -2,14 +2,16 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.router import api_router
+from app.api.v1.websockets import router as ws_router
 from app.core.config import settings
 from app.core.exceptions import AppException
 from app.core.logging import setup_logging
 from app.core.middleware.cors import add_cors_middleware
-from app.core.middleware.request_id import RequestIDMiddleware
 from app.core.middleware.rate_limit import RateLimitMiddleware
+from app.core.middleware.request_id import RequestIDMiddleware
 
 
 @asynccontextmanager
@@ -36,6 +38,13 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(api_router)
+    app.include_router(ws_router, tags=["websocket"])
+
+    app.mount(
+        "/uploads",
+        StaticFiles(directory=str(settings.data_dir / "uploads")),
+        name="uploads",
+    )
 
     @app.exception_handler(AppException)
     async def app_exception_handler(request: Request, exc: AppException):
@@ -57,6 +66,14 @@ def create_app() -> FastAPI:
     @app.get("/health", tags=["health"])
     async def health():
         return {"status": "ok", "version": settings.APP_VERSION}
+
+    @app.get("/test-uploads/{path:path}")
+    async def test_uploads(path: str):
+        import os
+
+        full_path = settings.data_dir / "uploads" / path
+        exists = os.path.exists(full_path)
+        return {"path": str(full_path), "exists": exists}
 
     return app
 
