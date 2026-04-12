@@ -27,6 +27,7 @@ class ImagingDataTransformation:
         source_path = self.config.source_dir / "huggingface" / "train_clean"
         logger.info(f"loading clean eyepacs dataset: {source_path}")
         ds = load_from_disk(str(source_path))
+        logger.info(f"eyepacs source samples: {len(ds)}")
 
         split_cfg = self.schema.dl_dataset.train_test_split
         indices = list(range(len(ds)))
@@ -46,6 +47,9 @@ class ImagingDataTransformation:
             output_dir.mkdir(parents=True, exist_ok=True)
             records = []
             total = len(split_indices)
+            logger.info(
+                f"eyepacs {split_name} split: total={total}, output_dir={output_dir}, csv={csv_path}"
+            )
 
             for i, idx in enumerate(split_indices, 1):
                 sample = ds[idx]
@@ -81,6 +85,7 @@ class ImagingDataTransformation:
             logger.warning(f"samaya reports CSV not found: {source_csv}")
             return
 
+        logger.info(f"loading samaya reports CSV: {source_csv}")
         df = pd.read_csv(source_csv)
         df = df.dropna(subset=["clinical_npdr_grade", "image_fundus_infrared_path"])
         df = df.drop_duplicates(subset=["image_fundus_infrared_path"], keep="first")
@@ -89,12 +94,14 @@ class ImagingDataTransformation:
         df["label"] = df["label"].astype(int)
 
         logger.info(f"samaya usable samples: {len(df)}")
+        logger.info(f"samaya label mapping: {label_mapping}")
         logger.info(
             f"samaya label distribution: {df['label'].value_counts().sort_index().to_dict()}"
         )
 
         output_dir = self.config.root_dir / "images" / "samaya"
         output_dir.mkdir(parents=True, exist_ok=True)
+        logger.info(f"samaya output_dir: {output_dir}, csv={self.config.samaya_csv}")
 
         records = []
         skipped = 0
@@ -124,10 +131,19 @@ class ImagingDataTransformation:
         logger.info(f"samaya CSV saved: {self.config.samaya_csv} ({len(records)} rows)")
 
     def run(self) -> None:
-        if self.config.train_csv.exists() and self.config.test_csv.exists():
+        images_dir = self.config.root_dir / "images" / "eyepacs"
+        if (
+            self.config.train_csv.exists()
+            and self.config.test_csv.exists()
+            and images_dir.exists()
+            and any(images_dir.iterdir())
+        ):
             logger.info("transformation outputs already exist, skipping")
             return
         logger.info("imaging data transformation started")
+        logger.info(
+            f"transformation config: source_dir={self.config.source_dir}, root_dir={self.config.root_dir}, image_size={self.config.image_size}, train_csv={self.config.train_csv}, test_csv={self.config.test_csv}, samaya_csv={self.config.samaya_csv}"
+        )
         self._transform_eyepacs()
         self._transform_samaya()
         logger.info("imaging data transformation complete")
