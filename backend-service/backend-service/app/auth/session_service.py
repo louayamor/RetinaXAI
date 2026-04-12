@@ -1,39 +1,116 @@
+import json
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
+import redis.asyncio as aioredis
+from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.auth_session import AuthSession
+from app.core.config import get_settings
 from app.core.exceptions import UnauthorizedException
+from app.models.auth_session import AuthSession
+
+_redis: aioredis.Redis | None = None
+
+
+async def get_session_redis() -> aioredis.Redis | None:
+    global _redis
+    if _redis is None:
+        settings = get_settings()
+        try:
+            _redis = aioredis.from_url(
+                settings.REDIS_URL,
+                encoding="utf-8",
+                decode_responses=True,
+            )
+            await _redis.ping()
+            logger.info("Session Redis connection established")
+        except Exception as e:
+            logger.warning(f"Redis not available for sessions: {e}")
+            _redis = None
+    return _redis
 
 
 class AuthSessionService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create_session(self, user_id: uuid.UUID, refresh_token: str, expires_in_days: int) -> AuthSession:
+    async def create_session(
+        self, user_id: uuid.UUID, refresh_token: str, expires_in_days: int
+    ) -> AuthSession:
         session = AuthSession(
             user_id=user_id,
             refresh_token=refresh_token,
-            expires_at=datetime.now(timezone.utc) + timedelta(days=expires_in_days),
+            expires_at=datetime.now(UTC) + timedelta(days=expires_in_days),
         )
         self.db.add(session)
         await self.db.flush()
         await self.db.refresh(session)
+
+        redis = await get_session_redis()
+        if redis:
+            try:
+                key = f"session:{refresh_token}"
+                ttl = expires_in_days * 86400
+                session_data = {
+                    "user_id": str(session.user_id),
+                    "session_id": str(session.id),
+                    "created_at": session.created_at.isoformat(),
+                    "expires_at": session.expires_at.isoformat(),
+                }
+                await redis.setex(key, ttl, json.dumps(session_data))
+                logger.debug(f"Session cached in Redis: {key}")
+            except Exception as e:
+                logger.warning(f"Failed to cache session in Redis: {e}")
+
         return session
 
     async def get_by_refresh_token(self, refresh_token: str) -> AuthSession | None:
+        redis = await get_session_redis()
+        if redis:
+            try:
+                key = f"session:{refresh_token}"
+                cached = await redis.get(key)
+                if cached:
+                    data = json.loads(cached)
+                    expires_at = datetime.fromisoformat(data["expires_at"])
+                    if expires_at > datetime.now(UTC):
+                        logger.debug(f"Session found in Redis cache: {key}")
+                        result = await self.db.execute(
+                            select(AuthSession).where(
+                                AuthSession.refresh_token == refresh_token
+                            )
+                        )
+                        return result.scalar_one_or_none()
+                    else:
+                        await redis.delete(key)
+                        logger.debug(f"Session expired in Redis, removed: {key}")
+            except Exception as e:
+                logger.warning(f"Redis cache lookup failed: {e}")
+
         result = await self.db.execute(
             select(AuthSession).where(AuthSession.refresh_token == refresh_token)
         )
         return result.scalar_one_or_none()
 
     async def is_active(self, refresh_token: str) -> bool:
+        redis = await get_session_redis()
+        if redis:
+            try:
+                key = f"session:{refresh_token}"
+                cached = await redis.get(key)
+                if cached:
+                    data = json.loads(cached)
+                    expires_at = datetime.fromisoformat(data["expires_at"])
+                    return expires_at > datetime.now(UTC)
+            except Exception as e:
+                logger.warning(f"Redis active check failed: {e}")
+
         session = await self.get_by_refresh_token(refresh_token)
         if not session or session.revoked:
             return False
-        return session.expires_at > datetime.now(timezone.utc)
+        return session.expires_at > datetime.now(UTC)
 
     async def revoke_refresh_token(self, refresh_token: str) -> None:
         session = await self.get_by_refresh_token(refresh_token)
@@ -41,10 +118,31 @@ class AuthSessionService:
             session.revoked = True
             await self.db.flush()
 
-    async def rotate_refresh_token(self, old_refresh_token: str, new_refresh_token: str, expires_in_days: int) -> str:
+        redis = await get_session_redis()
+        if redis:
+            try:
+                key = f"session:{refresh_token}"
+                await redis.delete(key)
+                logger.debug(f"Session revoked in Redis: {key}")
+            except Exception as e:
+                logger.warning(f"Failed to revoke session in Redis: {e}")
+
+    async def rotate_refresh_token(
+        self, old_refresh_token: str, new_refresh_token: str, expires_in_days: int
+    ) -> str:
         session = await self.get_by_refresh_token(old_refresh_token)
         if not session or session.revoked:
             raise UnauthorizedException("Refresh token revoked or expired.")
         session.revoked = True
         await self.create_session(session.user_id, new_refresh_token, expires_in_days)
+
+        redis = await get_session_redis()
+        if redis:
+            try:
+                old_key = f"session:{old_refresh_token}"
+                await redis.delete(old_key)
+                logger.debug(f"Old session removed from Redis: {old_key}")
+            except Exception as e:
+                logger.warning(f"Failed to clean old session in Redis: {e}")
+
         return new_refresh_token
