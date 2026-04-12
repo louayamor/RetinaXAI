@@ -20,6 +20,17 @@ services:
     networks:
       - retinaxai-network
 
+  redis:
+    image: redis:7-alpine
+    container_name: retinaxai-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - retinaxai-network
+    command: redis-server --appendonly yes
+
   backend-service:
     build:
       context: ../../backend-service/backend-service
@@ -34,6 +45,7 @@ services:
       ML_SERVICE_API_KEY: ml-api-key
       LLM_SERVICE_API_KEY: llm-api-key
       CORS_ORIGINS: '["http://localhost:3000"]'
+      REDIS_URL: redis://redis:6379
     ports:
       - "8000:8000"
     volumes:
@@ -41,6 +53,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - retinaxai-network
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
@@ -53,6 +67,7 @@ services:
     environment:
       APP_ENV: production
       MLFLOW_TRACKING_URI: ""
+      BACKEND_WS_URL: ws://backend-service:8000/ws
     ports:
       - "8001:8001"
     volumes:
@@ -60,6 +75,7 @@ services:
       - mlops_artifacts:/app/artifacts
     depends_on:
       - backend-service
+      - redis
     networks:
       - retinaxai-network
     command: uvicorn app.api.main:app --host 0.0.0.0 --port 8001
@@ -72,6 +88,7 @@ services:
     environment:
       APP_ENV: production
       BACKEND_SERVICE_URL: http://backend-service:8000
+      BACKEND_WS_URL: ws://backend-service:8000/ws
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       OLLAMA_MODEL: llama2
     ports:
@@ -80,6 +97,7 @@ services:
       - llmops_data:/app/data
     depends_on:
       - backend-service
+      - redis
     networks:
       - retinaxai-network
     extra_hosts:
@@ -103,6 +121,7 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
   backend_data:
   mlops_data:
   mlops_artifacts:
