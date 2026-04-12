@@ -124,3 +124,17 @@ export interface ApiError {
   detail: string;
   status: number;
 }
+
+export interface OCTReport {
+  id: string;
+  patient_id: string;
+  eye: string;
+  dr_grade: string | null;
+  edema: boolean;
+  erm_status: string | null;
+  image_quality: number | null;
+  thickness_center_fovea: number | null;
+  thickness_average_thickness: number | null;
+  thickness_total_volume_mm3: number | null;
+  created_at: string;
+}
