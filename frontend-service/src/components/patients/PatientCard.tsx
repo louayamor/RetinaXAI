@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,8 @@ import {
   User,
   AlertCircle,
   FileText,
-  Scan
+  Scan,
+  Eye
 } from 'lucide-react';
 import type { Patient } from '@/types';
 import { slideInUp } from '@/lib/animations';
@@ -27,6 +29,7 @@ interface PatientCardProps {
 
 export function PatientCard({ patient, onEdit, onDelete }: PatientCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const router = useRouter();
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName[0]}${lastName[0]}`.toUpperCase();
@@ -103,6 +106,14 @@ export function PatientCard({ patient, onEdit, onDelete }: PatientCardProps) {
               )}
             </div>
             <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => router.push(`/dashboard/patients/${patient.id}`)}
+              >
+                <Eye className="h-4 w-4 mr-1" />
+                View
+              </Button>
               <Button 
                 variant="outline" 
                 size="sm" 

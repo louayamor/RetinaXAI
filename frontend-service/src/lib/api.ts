@@ -1,6 +1,6 @@
 import { authHeaders, refreshIfNeeded, getAccessToken, clearTokens } from './auth';
 import type { TokenPair, AuthUser } from './auth';
-import type { Patient, MRIScan, Prediction, Report, PaginatedResponse } from '@/types';
+import type { Patient, MRIScan, Prediction, Report, PaginatedResponse, OCTReport } from '@/types';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
 
@@ -134,6 +134,14 @@ export async function uploadScans(patientId: string, form: FormData) {
     method: 'POST',
     body: form
   });
+}
+
+export async function getPatientScans(patientId: string) {
+  return request<MRIScan[]>(`/api/v1/patients/${patientId}/scans`);
+}
+
+export async function getPatientOctReports(patientId: string) {
+  return request<OCTReport[]>(`/api/v1/oct-reports/patients/${patientId}`);
 }
 
 export interface PredictionRequest {
