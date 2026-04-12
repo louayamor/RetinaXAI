@@ -1,0 +1,36 @@
+target-version = "py312"
+
+[lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "T20", "SIM"]
+ignore = [
+    "E402",  # Import not at top of file
+    "F401",  # Unused import
+    "E501",  # Line too long
+    "B008",  # Call in default argument
+    "B904",  # Raise in except without from
+    "UP035",  # Deprecated typing.List
+    "UP042",  # str, Enum inheritance
+    "UP045",  # Optional -> | None
+    "UP017",  # datetime.now(timezone.utc)
+    "UP011",  # Unnecessary parentheses to lru_cache
+    "I001",  # Import block unsorted
+    "W291",  # Trailing whitespace
+    "W292",  # No newline at end of file
+    "W293",  # Blank line contains whitespace
+    "N806",  # Variable should be lowercase
+    "N812",  # Lowercase imported as non-lowercase
+    "SIM105",  # Use contextlib.suppress
+    "SIM108",  # Use ternary operator
+    "B905",  # zip without strict parameter
+    "T201",  # Print found
+    "UP037",  # Remove quotes from type annotation
+    "UP041",  # Replace aliased errors
+    "SIM102",  # Nested if statements
+]
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"**/mri_scan_routes.py" = ["E501", "B008"]
+"**/websockets.py" = ["E501"]
+"**/jwt_handler.py" = ["B904"]
+"**/scripts/*.py" = ["T201"]
