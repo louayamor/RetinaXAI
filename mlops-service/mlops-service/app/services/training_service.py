@@ -1,10 +1,12 @@
 import json
 import os
 import uuid
+import asyncio
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 from loguru import logger
+import threading
 
 import dagshub
 import mlflow
@@ -24,6 +26,49 @@ from monitoring.prometheus_metrics import (
     TRAINING_RUNS_TOTAL,
     ACTIVE_TRAINING_JOBS,
 )
+
+try:
+    from app.services.websocket_client import get_websocket_client
+
+    _ws_client = get_websocket_client()
+except ImportError:
+    _ws_client = None
+    logger.warning("WebSocket client not available, skipping real-time events")
+
+
+def _emit_stage_event(
+    job_id: str,
+    pipeline: str,
+    stage: str,
+    status: str,
+    progress: int,
+    message: str | None = None,
+    metrics: dict[str, float] | None = None,
+    error: str | None = None,
+) -> None:
+    """Emit training stage event to connected clients."""
+    if _ws_client is None:
+        return
+
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(
+            _ws_client.send_training_event(
+                job_id=job_id,
+                pipeline=pipeline,
+                stage=stage,
+                status=status,
+                progress=progress,
+                message=message,
+                metrics=metrics,
+                error=error,
+            )
+        )
+        loop.close()
+    except Exception as e:
+        logger.warning(f"Failed to emit WebSocket event: {e}")
+
 
 _JOB_FILE = Path(os.environ.get("TRAINING_JOBS_FILE", "artifacts/training_jobs.json"))
 _job_store: dict = {}
@@ -79,26 +124,314 @@ def run_pipeline_task(job_id: str, pipeline: str) -> None:
 
     logger.info(f"pipeline job started: job_id={job_id} pipeline={pipeline}")
 
+    _emit_stage_event(
+        job_id, pipeline, "pipeline", "started", 0, "Training pipeline started"
+    )
+
     try:
         _configure_mlflow()
 
         if pipeline in ("imaging", "both"):
-            img_s1()
-            img_s2()
-            img_s3()
-            img_s4()
-            img_s5()
+            _emit_stage_event(
+                job_id,
+                pipeline,
+                "data_ingestion",
+                "started",
+                0,
+                "Starting data ingestion...",
+            )
+            try:
+                img_s1()
+                _emit_stage_event(
+                    job_id,
+                    pipeline,
+                    "data_ingestion",
+                    "completed",
+                    100,
+                    "Data ingestion complete",
+                )
+            except Exception as e:
+                _emit_stage_event(
+                    job_id,
+                    pipeline,
+                    "data_ingestion",
+                    "failed",
+                    0,
+                    str(e),
+                    error=str(e),
+                )
+                raise
+
+            _emit_stage_event(
+                job_id,
+                pipeline,
+                "data_cleaning",
+                "started",
+                0,
+                "Starting data cleaning...",
+            )
+            try:
+                img_s2()
+                _emit_stage_event(
+                    job_id,
+                    pipeline,
+                    "data_cleaning",
+                    "completed",
+                    100,
+                    "Data cleaning complete",
+                )
+            except Exception as e:
+                _emit_stage_event(
+                    job_id, pipeline, "data_cleaning", "failed", 0, str(e), error=str(e)
+                )
+                raise
+
+            _emit_stage_event(
+                job_id,
+                pipeline,
+                "data_transformation",
+                "started",
+                0,
+                "Starting data transformation...",
+            )
+            try:
+                img_s3()
+                _emit_stage_event(
+                    job_id,
+                    pipeline,
+                    "data_transformation",
+                    "completed",
+                    100,
+                    "Data transformation complete",
+                )
+            except Exception as e:
+                _emit_stage_event(
+                    job_id,
+                    pipeline,
+                    "data_transformation",
+                    "failed",
+                    0,
+                    str(e),
+                    error=str(e),
+                )
+                raise
+
+            _emit_stage_event(
+                job_id,
+                pipeline,
+                "model_training",
+                "started",
+                0,
+                "Starting model training...",
+            )
+            try:
+                img_s4()
+                _emit_stage_event(
+                    job_id,
+                    pipeline,
+                    "model_training",
+                    "completed",
+                    100,
+                    "Model training complete",
+                )
+            except Exception as e:
+                _emit_stage_event(
+                    job_id,
+                    pipeline,
+                    "model_training",
+                    "failed",
+                    0,
+                    str(e),
+                    error=str(e),
+                )
+                raise
+
+            _emit_stage_event(
+                job_id,
+                pipeline,
+                "model_evaluation",
+                "started",
+                0,
+                "Starting model evaluation...",
+            )
+            try:
+                img_s5()
+                _emit_stage_event(
+                    job_id,
+                    pipeline,
+                    "model_evaluation",
+                    "completed",
+                    100,
+                    "Model evaluation complete",
+                )
+            except Exception as e:
+                _emit_stage_event(
+                    job_id,
+                    pipeline,
+                    "model_evaluation",
+                    "failed",
+                    0,
+                    str(e),
+                    error=str(e),
+                )
+                raise
 
         if pipeline in ("clinical", "both"):
-            clin_s1()
-            clin_s2()
-            clin_s3()
-            clin_s4()
-            clin_s5()
+            _emit_stage_event(
+                job_id,
+                pipeline,
+                "data_ingestion",
+                "started",
+                0,
+                "Starting clinical data ingestion...",
+            )
+            try:
+                clin_s1()
+                _emit_stage_event(
+                    job_id,
+                    pipeline,
+                    "data_ingestion",
+                    "completed",
+                    100,
+                    "Clinical data ingestion complete",
+                )
+            except Exception as e:
+                _emit_stage_event(
+                    job_id,
+                    pipeline,
+                    "data_ingestion",
+                    "failed",
+                    0,
+                    str(e),
+                    error=str(e),
+                )
+                raise
+
+            _emit_stage_event(
+                job_id,
+                pipeline,
+                "data_cleaning",
+                "started",
+                0,
+                "Starting clinical data cleaning...",
+            )
+            try:
+                clin_s2()
+                _emit_stage_event(
+                    job_id,
+                    pipeline,
+                    "data_cleaning",
+                    "completed",
+                    100,
+                    "Clinical data cleaning complete",
+                )
+            except Exception as e:
+                _emit_stage_event(
+                    job_id, pipeline, "data_cleaning", "failed", 0, str(e), error=str(e)
+                )
+                raise
+
+            _emit_stage_event(
+                job_id,
+                pipeline,
+                "data_transformation",
+                "started",
+                0,
+                "Starting clinical data transformation...",
+            )
+            try:
+                clin_s3()
+                _emit_stage_event(
+                    job_id,
+                    pipeline,
+                    "data_transformation",
+                    "completed",
+                    100,
+                    "Clinical data transformation complete",
+                )
+            except Exception as e:
+                _emit_stage_event(
+                    job_id,
+                    pipeline,
+                    "data_transformation",
+                    "failed",
+                    0,
+                    str(e),
+                    error=str(e),
+                )
+                raise
+
+            _emit_stage_event(
+                job_id,
+                pipeline,
+                "model_training",
+                "started",
+                0,
+                "Starting clinical model training...",
+            )
+            try:
+                clin_s4()
+                _emit_stage_event(
+                    job_id,
+                    pipeline,
+                    "model_training",
+                    "completed",
+                    100,
+                    "Clinical model training complete",
+                )
+            except Exception as e:
+                _emit_stage_event(
+                    job_id,
+                    pipeline,
+                    "model_training",
+                    "failed",
+                    0,
+                    str(e),
+                    error=str(e),
+                )
+                raise
+
+            _emit_stage_event(
+                job_id,
+                pipeline,
+                "model_evaluation",
+                "started",
+                0,
+                "Starting clinical model evaluation...",
+            )
+            try:
+                clin_s5()
+                _emit_stage_event(
+                    job_id,
+                    pipeline,
+                    "model_evaluation",
+                    "completed",
+                    100,
+                    "Clinical model evaluation complete",
+                )
+            except Exception as e:
+                _emit_stage_event(
+                    job_id,
+                    pipeline,
+                    "model_evaluation",
+                    "failed",
+                    0,
+                    str(e),
+                    error=str(e),
+                )
+                raise
 
         _job_store[job_id]["status"] = "completed"
         _job_store[job_id]["completed_at"] = datetime.utcnow().isoformat()
         _save_jobs()
+        _emit_stage_event(
+            job_id,
+            pipeline,
+            "pipeline",
+            "completed",
+            100,
+            "Training pipeline completed successfully",
+        )
         logger.info(f"pipeline job completed: job_id={job_id}")
 
     except Exception as e:
@@ -106,6 +439,9 @@ def run_pipeline_task(job_id: str, pipeline: str) -> None:
         _job_store[job_id]["error"] = str(e)
         _job_store[job_id]["completed_at"] = datetime.utcnow().isoformat()
         _save_jobs()
+        _emit_stage_event(
+            job_id, pipeline, "pipeline", "failed", 0, str(e), error=str(e)
+        )
         logger.error(f"pipeline job failed: job_id={job_id} error={e}")
 
     finally:
