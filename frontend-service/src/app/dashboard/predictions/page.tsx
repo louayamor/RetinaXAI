@@ -53,6 +53,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'sonner';
+import { useWebSocket } from '@/hooks/use-websocket';
 import type { Patient, Prediction, PredictionStatus, DRSeverity } from '@/types';
 import { fadeInUp, slideInUp, staggerContainer, staggerItemFast, buttonTap, scaleIn, dialogOverlay, dialogContent, borderPulse } from '@/lib/animations';
 
@@ -103,37 +104,24 @@ export default function PredictionsPage() {
   const [patientNames, setPatientNames] = useState<Record<string, string>>({});
   const shouldReduceMotion = useReducedMotion();
 
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const { connected, subscribe } = useWebSocket();
+
+  // WebSocket subscription for real-time updates
+  useEffect(() => {
+    const unsub = subscribe('training_stage', () => {
+      // When any training event occurs, refresh predictions to get updated statuses
+      loadPredictions();
+    });
+
+    return () => {
+      unsub();
+    };
+  }, [subscribe]);
 
   useEffect(() => {
     loadPatients();
     loadPredictions();
-
-    return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-      }
-    };
   }, []);
-
-  useEffect(() => {
-    const hasPending = predictions.some((p) => p.status === 'pending');
-
-    if (hasPending) {
-      pollingRef.current = setInterval(() => {
-        loadPredictions();
-      }, 3000);
-    } else if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-      pollingRef.current = null;
-    }
-
-    return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-      }
-    };
-  }, [predictions]);
 
   const loadPatients = async () => {
     try {

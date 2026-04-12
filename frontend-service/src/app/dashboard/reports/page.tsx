@@ -41,6 +41,7 @@ import { ReportCard } from '@/components/reports/ReportCard';
 import { ReportFilters } from '@/components/reports/ReportFilters';
 import { StatsCard } from '@/components/ui/stats-card';
 import Image from 'next/image';
+import { useWebSocket } from '@/hooks/use-websocket';
 
 type FilterStatus = 'all' | 'completed' | 'pending' | 'running' | 'failed';
 
@@ -82,35 +83,44 @@ export default function ReportsPage() {
   const [llmopsDown, setLlmopsDown] = useState(false);
   const [operation, setOperation] = useState<OperationStatus | null>(null);
 
+  const { connected, subscribe } = useWebSocket();
+
+  // WebSocket subscription for operation status
+  useEffect(() => {
+    const unsub = subscribe('llmops_event', (data) => {
+      const event = data as { event: string; data: { status: string; progress: number; message: string; details?: Record<string, unknown> } };
+      const { status, progress, message, details } = event.data;
+      
+      // Update operation state from WebSocket
+      if (details?.state) {
+        setOperation({
+          state: details.state as string,
+          message: message,
+          progress: progress,
+          started_at: new Date().toISOString(),
+        });
+      }
+
+      // Show toast notifications
+      if (status === 'completed') {
+        toast.success(message || 'Operation completed');
+      } else if (status === 'failed') {
+        toast.error(message || 'Operation failed');
+      } else if (status === 'running') {
+        toast(message || 'Processing...', { icon: '🔄' });
+      }
+    });
+
+    return () => {
+      unsub();
+    };
+  }, [subscribe]);
+
+  // Initial load
   useEffect(() => {
     loadReports();
     loadRagStatus();
-    
-    let intervalId: NodeJS.Timeout | null = null;
-    
-    const pollStatus = async () => {
-      if (llmopsDown) return;
-      try {
-        const op = await getOperationStatus();
-        setOperation(op);
-      } catch {
-        setLlmopsDown(true);
-      }
-    };
-    
-    const schedulePoll = () => {
-      const isActive = operation && !["idle", "error"].includes(operation.state);
-      const delay = isActive ? 2000 : 30000;
-      intervalId = setTimeout(pollStatus, delay);
-    };
-    
-    pollStatus();
-    schedulePoll();
-    
-    return () => {
-      if (intervalId) clearTimeout(intervalId);
-    };
-  }, [llmopsDown]);
+  }, []);
 
   const loadRagStatus = async () => {
     try {

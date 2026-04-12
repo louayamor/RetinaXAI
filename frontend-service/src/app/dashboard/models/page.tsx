@@ -23,6 +23,9 @@ import {
 } from 'recharts';
 import { Loader2, Play, RefreshCw } from 'lucide-react';
 import Image from 'next/image';
+import { useWebSocket } from '@/hooks/use-websocket';
+import { TrainingProgress } from '@/components/training-progress';
+import { toast } from 'sonner';
 
 const MLOPS_BASE = process.env.NEXT_PUBLIC_MLOPS_URL || 'http://localhost:8001';
 
@@ -50,11 +53,57 @@ interface JobStatus {
   error: string | null;
 }
 
+interface TrainingEvent {
+  event: string;
+  data: {
+    job_id: string;
+    pipeline: string;
+    stage: string;
+    status: string;
+    progress: number;
+    message?: string;
+    metrics?: { accuracy: number; qwk: number };
+    error?: string;
+  };
+}
+
 export default function ModelsPage() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [training, setTraining] = useState<string | null>(null);
+  const [trainingProgress, setTrainingProgress] = useState<{
+    stage: string;
+    progress: number;
+    status: 'started' | 'running' | 'completed' | 'failed';
+    message?: string;
+  } | null>(null);
+
+  const { connected, subscribe } = useWebSocket();
+
+  useEffect(() => {
+    const unsubStage = subscribe('training_stage', (data) => {
+      const event = data as TrainingEvent;
+      const { stage, status, progress, message, error } = event.data;
+      setTrainingProgress({ stage, progress, status: status as 'started' | 'running' | 'completed' | 'failed', message });
+
+      if (status === 'completed') {
+        toast.success(message || 'Training completed successfully!');
+        setTraining(null);
+        fetchMetrics();
+        fetchStatus();
+      } else if (status === 'failed') {
+        toast.error(error || message || 'Training failed');
+        setTraining(null);
+      } else if (status === 'started' || status === 'running') {
+        toast(message || `Stage: ${stage}`, { icon: '🔄' });
+      }
+    },);
+
+    return () => {
+      unsubStage();
+    };
+  }, [subscribe]);
 
   const fetchMetrics = async () => {
     try {
@@ -191,7 +240,22 @@ export default function ModelsPage() {
                 {jobStatus?.pipeline} — {jobStatus?.status}
               </Badge>
             )}
+            {!connected && (
+              <Badge variant='outline' className='ml-2 text-orange-500'>
+                Offline
+              </Badge>
+            )}
           </div>
+          {trainingProgress && (
+            <div className='mt-4 p-4 bg-muted/50 rounded-lg'>
+              <TrainingProgress
+                stage={trainingProgress.stage}
+                progress={trainingProgress.progress}
+                status={trainingProgress.status}
+                message={trainingProgress.message}
+              />
+            </div>
+          )}
           {jobStatus?.error && (
             <p className='text-sm text-destructive mt-4'>{jobStatus.error}</p>
           )}
