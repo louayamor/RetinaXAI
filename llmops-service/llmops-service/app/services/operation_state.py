@@ -3,6 +3,7 @@ Operation state tracker for LLMOps service.
 Tracks current operation: indexing, retrieval, generation.
 """
 
+import asyncio
 from threading import Lock
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -10,6 +11,30 @@ from typing import Literal
 
 _operation_lock = Lock()
 _current_operation: dict | None = None
+
+_emit_history: list[dict] = []
+
+
+def _try_emit_ws(
+    event_type: str,
+    status: str,
+    progress: int,
+    message: str,
+    details: dict | None = None,
+) -> None:
+    """Try to emit WebSocket event, silently fail if not available."""
+    try:
+        from app.services.websocket_client import get_websocket_client
+
+        ws_client = get_websocket_client()
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(
+            ws_client.send_llmops_event(event_type, status, progress, message, details)
+        )
+        loop.close()
+    except Exception:
+        pass
 
 
 @dataclass
@@ -21,8 +46,8 @@ class OperationState:
 
 
 def set_operation(state: str, message: str, progress: float | None = None):
+    global _current_operation
     with _operation_lock:
-        global _current_operation
         _current_operation = {
             "state": state,
             "message": message,
@@ -30,11 +55,30 @@ def set_operation(state: str, message: str, progress: float | None = None):
             "started_at": datetime.now(timezone.utc).isoformat(),
         }
 
+    status_map = {
+        "idle": "completed",
+        "indexing": "running",
+        "retrieving": "running",
+        "generating": "running",
+    }
+    _try_emit_ws(
+        event_type="llmops_operation",
+        status=status_map.get(state, "running"),
+        progress=int(progress or 0),
+        message=message,
+    )
+
 
 def clear_operation():
+    global _current_operation
     with _operation_lock:
-        global _current_operation
         _current_operation = None
+    _try_emit_ws(
+        event_type="llmops_operation",
+        status="completed",
+        progress=100,
+        message="Operation cleared",
+    )
 
 
 def get_operation() -> OperationState:
