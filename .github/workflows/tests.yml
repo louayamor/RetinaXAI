@@ -37,7 +37,7 @@ jobs:
           APP_NAME=retinaxai-backend
           DATABASE_URL=postgresql+asyncpg://test:test@localhost:5432/test_db
           SECRET_KEY=test-secret-key
-          ML_SERVICE_URL=http://localhost:8001
+          ML_SERVICE_URL=http://localhost:8004
           ML_SERVICE_API_KEY=test-api-key
           LLM_SERVICE_URL=http://localhost:8002
           LLM_SERVICE_API_KEY=test-api-key

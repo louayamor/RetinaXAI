@@ -11,7 +11,6 @@ import uuid
 from pathlib import Path
 
 import asyncpg
-
 from app.core.config import settings
 
 OCR_CSV = (

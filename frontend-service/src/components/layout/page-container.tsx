@@ -1,11 +1,10 @@
 import React from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Heading } from '../ui/heading';
 import type { InfobarContent } from '@/components/ui/infobar';
 
 function PageSkeleton() {
   return (
-    <div className='flex flex-1 animate-pulse flex-col gap-4 p-4 md:px-6'>
+    <div className='flex flex-1 flex-col gap-4 p-4 md:px-6'>
       <div className='flex items-center justify-between'>
         <div>
           <div className='bg-muted mb-2 h-8 w-48 rounded' />
@@ -20,7 +19,6 @@ function PageSkeleton() {
 
 export default function PageContainer({
   children,
-  scrollable = true,
   isloading = false,
   access = true,
   accessFallback,
@@ -30,7 +28,6 @@ export default function PageContainer({
   pageHeaderAction
 }: {
   children: React.ReactNode;
-  scrollable?: boolean;
   isloading?: boolean;
   access?: boolean;
   accessFallback?: React.ReactNode;
@@ -53,22 +50,8 @@ export default function PageContainer({
 
   const content = isloading ? <PageSkeleton /> : children;
 
-  return scrollable ? (
-    <ScrollArea className='h-[calc(100dvh-52px)]'>
-      <div className='flex flex-1 flex-col p-4 md:px-6'>
-        <div className='mb-4 flex items-start justify-between'>
-          <Heading
-            title={pageTitle ?? ''}
-            description={pageDescription ?? ''}
-            infoContent={infoContent}
-          />
-          {pageHeaderAction && <div>{pageHeaderAction}</div>}
-        </div>
-        {content}
-      </div>
-    </ScrollArea>
-  ) : (
-    <div className='flex flex-1 flex-col p-4 md:px-6'>
+  return (
+    <div className='flex flex-col p-4 md:px-6 w-full'>
       <div className='mb-4 flex items-start justify-between'>
         <Heading
           title={pageTitle ?? ''}

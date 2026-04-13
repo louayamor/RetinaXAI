@@ -3,7 +3,11 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.exceptions import ConflictException, NotFoundException, UnprocessableEntityException
+from app.core.exceptions import (
+    ConflictException,
+    NotFoundException,
+    UnprocessableEntityException,
+)
 from app.models.prediction import PredictionStatus
 from app.models.report import Report, ReportStatus
 from app.patients.repository import PatientRepository

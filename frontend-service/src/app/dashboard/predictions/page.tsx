@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, useReducedMotion } from 'motion/react';
 import {
   createPrediction,
@@ -91,6 +92,7 @@ interface FileUpload {
 }
 
 export default function PredictionsPage() {
+  const router = useRouter();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState<string>('');
   const [leftEyeFile, setLeftEyeFile] = useState<FileUpload | null>(null);
@@ -523,7 +525,7 @@ export default function PredictionsPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => viewPredictionDetails(prediction)}
+                            onClick={() => router.push(`/dashboard/predictions/${prediction.id}/gradcam`)}
                             disabled={prediction.status !== "success"}
                           >
                             <Eye className="mr-2 h-4 w-4" />

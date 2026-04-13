@@ -11,17 +11,17 @@ from loguru import logger
 load_dotenv()
 os.chdir(Path(__file__).parent)
 
-from app.pipeline.imaging.stage_01_data_ingestion import run as img_ingest # noqa: E402
-from app.pipeline.imaging.stage_02_data_cleaning import run as img_clean # noqa: E402
-from app.pipeline.imaging.stage_03_data_transformation import run as img_transform # noqa: E402
-from app.pipeline.imaging.stage_04_model_trainer import run as img_train # noqa: E402
-from app.pipeline.imaging.stage_05_model_evaluation import run as img_evaluate # noqa: E402
+from app.pipeline.imaging.stage_01_data_ingestion import run as img_ingest  # noqa: E402
+from app.pipeline.imaging.stage_02_data_cleaning import run as img_clean  # noqa: E402
+from app.pipeline.imaging.stage_03_data_transformation import run as img_transform  # noqa: E402
+from app.pipeline.imaging.stage_04_model_trainer import run as img_train  # noqa: E402
+from app.pipeline.imaging.stage_05_model_evaluation import run as img_evaluate  # noqa: E402
 
-from app.pipeline.clinical.stage_01_data_ingestion import run as clin_ingest # noqa: E402
-from app.pipeline.clinical.stage_02_data_cleaning import run as clin_clean # noqa: E402
-from app.pipeline.clinical.stage_03_data_transformation import run as clin_transform # noqa: E402
-from app.pipeline.clinical.stage_04_model_trainer import run as clin_train # noqa: E402
-from app.pipeline.clinical.stage_05_model_evaluation import run as clin_evaluate # noqa: E402
+from app.pipeline.clinical.stage_01_data_ingestion import run as clin_ingest  # noqa: E402
+from app.pipeline.clinical.stage_02_data_cleaning import run as clin_clean  # noqa: E402
+from app.pipeline.clinical.stage_03_data_transformation import run as clin_transform  # noqa: E402
+from app.pipeline.clinical.stage_04_model_trainer import run as clin_train  # noqa: E402
+from app.pipeline.clinical.stage_05_model_evaluation import run as clin_evaluate  # noqa: E402
 
 IMAGING_PIPELINE: Dict[str, Callable] = {
     "ingest": img_ingest,
@@ -41,6 +41,7 @@ CLINICAL_PIPELINE: Dict[str, Callable] = {
 
 PIPELINE_ORDER = ["ingest", "clean", "transform", "train", "evaluate"]
 
+
 def configure_mlflow() -> None:
     dagshub.init(
         repo_owner="louayamor",
@@ -49,6 +50,7 @@ def configure_mlflow() -> None:
     )
     mlflow.set_experiment("retinaxai-dr-classification")
     logger.info("MLflow configured via DagsHub")
+
 
 def run_stage(stage: str, pipeline: Dict[str, Callable]) -> None:
     if stage not in pipeline:
@@ -80,22 +82,22 @@ def run_pipeline(stage: str, target: str) -> None:
         else:
             run_stage(stage, pipe)
 
+
 def serve() -> None:
     import uvicorn
     from app.config.settings import Settings
 
     settings = Settings()
 
-    logger.info(
-        f"Starting API server at {settings.app_host}:{settings.app_port}"
-    )
+    logger.info(f"Starting API server at {settings.app_host}:{settings.app_port}")
 
     uvicorn.run(
         "app.api.app:app",
         host=settings.app_host,
         port=settings.app_port,
-        reload=True,
+        reload=False,
     )
+
 
 def main():
     parser = argparse.ArgumentParser(description="RetinaXAI MLOps Service")

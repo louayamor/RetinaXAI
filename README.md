@@ -40,7 +40,7 @@
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
 │  MLOps Service  │     │  LLMOps Service  │     │   Local Data    │
 │   (FastAPI)     │     │    (FastAPI)     │     │   Directories   │
-│   Port 8001     │     │    Port 8002     │     │                 │
+│   Port 8004     │     │    Port 8002     │     │                 │
 └─────────────────┘     └──────────────────┘     └─────────────────┘
 
 - Imaging: EfficientNet-B3        - RAG with ChromaDB           - backend-service/data/
@@ -78,7 +78,7 @@ Services available at:
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:8000
 - API Docs: http://localhost:8000/docs
-- MLOps API: http://localhost:8001
+- MLOps API: http://localhost:8004
 - LLMOps API: http://localhost:8002
 
 ### Option 2: Manual Setup
@@ -94,7 +94,7 @@ uvicorn backend-service.app.main:app --reload --port 8000
 cd mlops-service
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn mlops-service.app.api.app:app --reload --port 8001
+uvicorn mlops-service.app.api.app:app --reload --port 8004
 
 # 3. LLMOps Service
 cd llmops-service
@@ -141,7 +141,7 @@ RetinaXAI/
 │   │   ├── components/       # UI components
 │   │   └── lib/              # API client, auth
 │   └── Dockerfile
-├── mlops-service/            # ML training/inference (port 8001)
+├── mlops-service/            # ML training/inference (port 8004)
 │   ├── mlops-service/app/
 │   │   ├── api/              # Routes (predict, train, health)
 │   │   ├── services/         # Inference, training
@@ -175,7 +175,7 @@ Create `.env` files in each service directory:
 ```env
 DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/retinaxai
 SECRET_KEY=your-secret-key
-ML_SERVICE_URL=http://localhost:8001
+ML_SERVICE_URL=http://localhost:8004
 LLM_SERVICE_URL=http://localhost:8002
 ```
 
@@ -206,7 +206,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 | `/api/v1/predictions/` | POST | Run ML prediction |
 | `/api/v1/reports/` | POST | Generate LLM report |
 
-### MLOps Service (Port 8001)
+### MLOps Service (Port 8004)
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|

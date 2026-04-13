@@ -83,6 +83,18 @@ export async function getPatients() {
   return request<Patient[]>('/api/v1/patients/');
 }
 
+export interface PatientStats {
+  total: number;
+  avg_age: number;
+  male_count: number;
+  female_count: number;
+  this_month: number;
+}
+
+export async function getPatientStats() {
+  return request<PatientStats>('/api/v1/patients/stats');
+}
+
 export async function searchPatients(query: string) {
   const params = new URLSearchParams({ q: query });
   return request<Patient[]>(`/api/v1/patients/?${params.toString()}`);

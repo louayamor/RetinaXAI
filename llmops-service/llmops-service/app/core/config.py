@@ -43,11 +43,11 @@ class Settings(BaseSettings):
         default="http://backend-service:8000", validation_alias="BACKEND_SERVICE_URL"
     )
     mlops_service_url: str = Field(
-        default="http://mlops-service:8001", validation_alias="MLOPS_SERVICE_URL"
+        default="http://mlops-service:8004", validation_alias="MLOPS_SERVICE_URL"
     )
     timeout_seconds: int = 60
     rag_manifest_url: str = Field(
-        default="http://mlops-service:8001/rag/manifest",
+        default="http://mlops-service:8004/rag/manifest",
         validation_alias="RAG_MANIFEST_URL",
     )
 

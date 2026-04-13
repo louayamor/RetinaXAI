@@ -1,0 +1,3 @@
+Requirement already satisfied: pytorch-gradcam in ./.venv/lib/python3.12/site-packages (0.2.1)
+Requirement already satisfied: opencv-python in ./.venv/lib/python3.12/site-packages (from pytorch-gradcam) (4.13.0.92)
+Requirement already satisfied: numpy in ./.venv/lib/python3.12/site-packages (from pytorch-gradcam) (2.4.2)

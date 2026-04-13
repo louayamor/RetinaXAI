@@ -23,7 +23,9 @@ class PredictionService:
         self.mri_scan_repo = MRIScanRepository(db)
 
     async def run(self, data: PredictionRequest, requested_by: uuid.UUID) -> Prediction:
-        logger.info(f"[PREDICT SERVICE] Starting prediction for patient={data.patient_id} scan={data.mri_scan_id}")
+        logger.info(
+            f"[PREDICT SERVICE] Starting prediction for patient={data.patient_id} scan={data.mri_scan_id}"
+        )
 
         patient = await self.patient_repo.get_by_id(data.patient_id)
         if not patient:
@@ -33,8 +35,12 @@ class PredictionService:
         if not scan:
             raise NotFoundException("MRIScan", data.mri_scan_id)  # type: ignore[reportArgumentType]
 
-        logger.info(f"[PREDICT SERVICE] Patient found: {patient.first_name} age={patient.age} gender={patient.gender}")
-        logger.info(f"[PREDICT SERVICE] Scan found: left={scan.left_scan_path} right={scan.right_scan_path}")
+        logger.info(
+            f"[PREDICT SERVICE] Patient found: {patient.first_name} age={patient.age} gender={patient.gender}"
+        )
+        logger.info(
+            f"[PREDICT SERVICE] Scan found: left={scan.left_scan_path} right={scan.right_scan_path}"
+        )
 
         prediction = Prediction(
             patient_id=data.patient_id,
@@ -60,13 +66,24 @@ class PredictionService:
             )
             logger.info("[PREDICT SERVICE] Calling ml_client.predict()")
             ml_response = await ml_client.predict(ml_request)
-            logger.info(f"[PREDICT SERVICE] ml_client.predict() succeeded: confidence={ml_response.confidence_score}")
-            prediction.output_payload = ml_response.prediction
+            logger.info(
+                f"[PREDICT SERVICE] ml_client.predict() succeeded: confidence={ml_response.confidence_score}"
+            )
+
+            output_payload = {**ml_response.prediction}
+            if ml_response.gradcam_left:
+                output_payload["gradcam_left"] = ml_response.gradcam_left
+            if ml_response.gradcam_right:
+                output_payload["gradcam_right"] = ml_response.gradcam_right
+
+            prediction.output_payload = output_payload
             prediction.confidence_score = ml_response.confidence_score
             prediction.status = PredictionStatus.SUCCESS
             logger.info(f"[PREDICT SERVICE] Prediction SUCCESS: {prediction.id}")
         except Exception as e:
-            logger.error(f"[PREDICT SERVICE] Prediction FAILED: {type(e).__name__}: {e}")
+            logger.error(
+                f"[PREDICT SERVICE] Prediction FAILED: {type(e).__name__}: {e}"
+            )
             logger.error(f"[PREDICT SERVICE] Traceback: {traceback.format_exc()}")
             prediction.status = PredictionStatus.FAILED
             prediction.error_message = f"{type(e).__name__}: {e}"

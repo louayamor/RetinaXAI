@@ -6,11 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser
 from app.db.session import get_db
+from app.patients.service import PatientService
 from app.schemas.common import MessageResponse
 from app.schemas.patient_schema import PatientCreate, PatientRead, PatientUpdate
-from app.patients.service import PatientService
 
-router = APIRouter(prefix="/patients", tags=["patients"])
+router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.post("/", response_model=PatientRead, status_code=201)

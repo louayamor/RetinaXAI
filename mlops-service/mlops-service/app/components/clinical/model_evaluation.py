@@ -56,6 +56,7 @@ class ClinicalModelEvaluation:
             logger.warning("less than 2 classes present, skipping AUC")
             return None
         try:
+            probs = probs / probs.sum(axis=1, keepdims=True)
             num_classes = len(np.unique(y))  # type: ignore[union-attr]
             if num_classes == probs.shape[1]:
                 return roc_auc_score(y, probs, multi_class="ovr", average="macro")  # type: ignore[arg-type]
@@ -91,7 +92,9 @@ class ClinicalModelEvaluation:
 
         auc_str = f"{auc:.4f}" if auc is not None else "N/A"
         logger.info(f"accuracy={accuracy:.4f} qwk={qwk:.4f} auc={auc_str}")
-        logger.info(f"label distribution: {dict(zip(*np.unique(y_test, return_counts=True)))}")
+        logger.info(
+            f"label distribution: {dict(zip(*np.unique(y_test, return_counts=True)))}"
+        )
 
         metrics = {
             "accuracy": round(accuracy, 4),
@@ -107,20 +110,22 @@ class ClinicalModelEvaluation:
             },
         }
 
-        QUADRATIC_WEIGHTED_KAPPA.labels(
-            pipeline="clinical", split="test"
-        ).set(metrics["quadratic_weighted_kappa"])
+        QUADRATIC_WEIGHTED_KAPPA.labels(pipeline="clinical", split="test").set(
+            metrics["quadratic_weighted_kappa"]
+        )
 
         save_json(self.config.metric_file, metrics)
         logger.info(f"metrics saved: {self.config.metric_file}")
 
         run_suffix = f"_{int(time.time()) % 1000:03d}"
         with mlflow.start_run(run_name=self.config.run_name + "_eval" + run_suffix):
-            mlflow.log_metrics({
-                "test_accuracy": metrics["accuracy"],
-                "test_qwk": metrics["quadratic_weighted_kappa"],
-                "test_auc": metrics["roc_auc_macro"] or 0.0,
-            })
+            mlflow.log_metrics(
+                {
+                    "test_accuracy": metrics["accuracy"],
+                    "test_qwk": metrics["quadratic_weighted_kappa"],
+                    "test_auc": metrics["roc_auc_macro"] or 0.0,
+                }
+            )
             mlflow.log_artifact(str(self.config.metric_file))
 
         logger.info("=" * 60)

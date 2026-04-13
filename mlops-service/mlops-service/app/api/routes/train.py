@@ -1,8 +1,8 @@
-from fastapi import APIRouter, BackgroundTasks, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from app.api.schemas import TrainRequest, TrainResponse
 from app.api.dependencies import get_settings
 from app.config.settings import Settings
-from app.services.training_service import create_job, run_pipeline_task
+from app.services.training_service import create_job, run_pipeline_task, cancel_job
 
 router = APIRouter()
 
@@ -51,3 +51,12 @@ def trigger_clinical_pipeline(
         status="pending",
         message="clinical training job queued",
     )
+
+
+@router.post("/train/{job_id}/stop")
+def stop_training(job_id: str):
+    """Stop a running training job."""
+    success = cancel_job(job_id)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Job not found: {job_id}")
+    return {"message": f"Job {job_id} stop requested"}

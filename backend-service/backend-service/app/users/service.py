@@ -2,7 +2,12 @@ import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import ConflictException, ForbiddenException, NotFoundException, UnauthorizedException
+from app.core.exceptions import (
+    ConflictException,
+    ForbiddenException,
+    NotFoundException,
+    UnauthorizedException,
+)
 from app.core.security import hash_password, verify_password
 from app.models.user import User
 from app.schemas.user_schema import UserCreate, UserUpdate

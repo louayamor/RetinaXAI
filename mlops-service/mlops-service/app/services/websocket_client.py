@@ -11,11 +11,9 @@ BACKEND_API_KEY = os.environ.get("ML_SERVICE_API_KEY", "")
 
 class WebSocketClient:
     _instance: "WebSocketClient | None" = None
-    _connected: bool = False
 
     def __init__(self) -> None:
-        self._client: httpx.AsyncClient | None = None
-        self._url = BACKEND_WS_URL
+        self._base_url = BACKEND_WS_URL.replace("ws://", "http://").replace("/ws", "")
 
     @classmethod
     def get_instance(cls) -> "WebSocketClient":
@@ -23,35 +21,8 @@ class WebSocketClient:
             cls._instance = cls()
         return cls._instance
 
-    async def connect(self) -> bool:
-        if self._connected:
-            return True
-
-        try:
-            self._client = httpx.AsyncClient(timeout=5.0)
-            payload = {"event": "subscribe", "data": {"room": "training:imaging"}}
-            response = await self._client.post(
-                self._url.replace("ws", "http") + "/subscribe",
-                json=payload,
-                headers={"X-API-Key": BACKEND_API_KEY} if BACKEND_API_KEY else {},
-            )
-            self._connected = response.status_code < 400
-            logger.info(f"WebSocket client connected: {self._connected}")
-            return self._connected
-        except Exception as e:
-            logger.warning(f"WebSocket connection failed: {e}")
-            self._connected = False
-            return False
-
-    async def disconnect(self) -> None:
-        if self._client:
-            await self._client.aclose()
-            self._client = None
-        self._connected = False
-
-    @property
-    def is_connected(self) -> bool:
-        return self._connected
+    async def _get_client(self) -> httpx.AsyncClient:
+        return httpx.AsyncClient(timeout=10.0)
 
     async def send_training_event(
         self,
@@ -64,9 +35,6 @@ class WebSocketClient:
         metrics: dict[str, float] | None = None,
         error: str | None = None,
     ) -> None:
-        if not self._connected:
-            await self.connect()
-
         payload = {
             "event": "training_stage",
             "data": {
@@ -82,11 +50,12 @@ class WebSocketClient:
         }
 
         room = f"training:{pipeline}"
+        emit_url = f"{self._base_url}/emit"
 
         try:
-            if self._client:
-                await self._client.post(
-                    self._url.replace("ws", "http") + "/emit",
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.post(
+                    emit_url,
                     json={
                         "event": "training_stage",
                         "data": payload.get("data", {}),
@@ -94,15 +63,22 @@ class WebSocketClient:
                     },
                     headers={"X-API-Key": BACKEND_API_KEY} if BACKEND_API_KEY else {},
                 )
-                logger.debug(f"Sent training event: {stage} - {status} to room {room}")
+                if response.status_code < 400:
+                    logger.debug(
+                        f"Sent training event: {stage} - {status} to room {room}"
+                    )
+                else:
+                    logger.warning(
+                        f"Failed to emit event: {response.status_code} {response.text}"
+                    )
         except Exception as e:
             logger.warning(f"Failed to send training event: {e}")
 
 
-_websocket_client: WebSocketClient | None = None
+_websocket_client: "WebSocketClient | None" = None
 
 
-def get_websocket_client() -> WebSocketClient:
+def get_websocket_client() -> "WebSocketClient":
     global _websocket_client
     if _websocket_client is None:
         _websocket_client = WebSocketClient.get_instance()

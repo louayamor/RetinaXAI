@@ -12,6 +12,7 @@ from torchvision import transforms
 
 from app.api.schemas import ClinicalFeatures
 from app.config.settings import Settings
+from app.services.gradcam_service import GradCAMService
 from app.utils.common import load_json, read_yaml
 from app.constants import PARAMS_FILE_PATH, SCHEMA_FILE_PATH
 from monitoring.prometheus_metrics import INFERENCE_LATENCY
@@ -42,6 +43,15 @@ class InferenceService:
         self._feature_meta = None
         self._clinical_encoders = None
         self._clinical_numeric_medians = None
+
+    def _move_to_cpu(self) -> None:
+        self.device = torch.device("cpu")
+        if self._imaging_model is not None:
+            self._imaging_model.to(self.device)
+        if self._clinical_model is not None and hasattr(self._clinical_model, "to"):
+            self._clinical_model.to(self.device)
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
     def _load_imaging_model(self) -> nn.Module:
         if self._imaging_model is not None:
@@ -77,6 +87,13 @@ class InferenceService:
                 torch.load(self.settings.imaging_model_path, map_location=self.device)
             )
         except Exception as e:
+            if self.device.type == "cuda" and "out of memory" in str(e).lower():
+                logger.warning(
+                    "[IMAGING MODEL] CUDA OOM while loading; retrying on CPU"
+                )
+                self._move_to_cpu()
+                model = self._load_imaging_model()
+                return model
             raise RuntimeError(f"Failed to load imaging model state dict: {e}") from e
 
         model.to(self.device)
@@ -150,9 +167,22 @@ class InferenceService:
         tf: nn.Module = self._build_transform()  # type: ignore[assignment]
         tensor = tf(img).unsqueeze(0).to(self.device)  # type: ignore[operator]
 
-        with torch.no_grad():
-            outputs = model(tensor)
-            probs = torch.softmax(outputs, dim=1).cpu().numpy()[0]
+        try:
+            with torch.inference_mode():
+                with torch.amp.autocast("cuda", enabled=self.device.type == "cuda"):
+                    outputs = model(tensor)
+                probs = torch.softmax(outputs, dim=1).cpu().numpy()[0]
+        except RuntimeError as e:
+            if self.device.type == "cuda" and "out of memory" in str(e).lower():
+                logger.warning("[IMAGING] CUDA OOM during inference; retrying on CPU")
+                self._move_to_cpu()
+                model = self._load_imaging_model()
+                tensor = tensor.to(self.device)
+                with torch.inference_mode():
+                    outputs = model(tensor)
+                probs = torch.softmax(outputs, dim=1).cpu().numpy()[0]
+            else:
+                raise
 
         pred_class = int(np.argmax(probs))
         confidence = float(probs[pred_class])
@@ -161,6 +191,8 @@ class InferenceService:
 
         if self.device.type == "cuda":
             torch.cuda.empty_cache()
+
+        del tensor, outputs
 
         return {
             "predicted_grade": pred_class,
@@ -225,4 +257,57 @@ class InferenceService:
                 )
                 for i, p in enumerate(probs)
             },
+        }
+
+    def predict_imaging_with_gradcam(self, image_bytes: bytes) -> dict:
+        start = time.time()
+        model = self._load_imaging_model()
+
+        try:
+            img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        except Exception as e:
+            raise ValueError(f"Failed to open image: {e}") from e
+
+        tf: nn.Module = self._build_transform()  # type: ignore[assignment]
+        tensor = tf(img).unsqueeze(0).to(self.device)  # type: ignore[operator]
+
+        try:
+            with torch.inference_mode():
+                with torch.amp.autocast("cuda", enabled=self.device.type == "cuda"):
+                    outputs = model(tensor)
+                probs = torch.softmax(outputs, dim=1).cpu().numpy()[0]
+        except RuntimeError as e:
+            if self.device.type == "cuda" and "out of memory" in str(e).lower():
+                logger.warning("[IMAGING] CUDA OOM during inference; retrying on CPU")
+                self._move_to_cpu()
+                model = self._load_imaging_model()
+                tensor = tensor.to(self.device)
+                with torch.inference_mode():
+                    outputs = model(tensor)
+                probs = torch.softmax(outputs, dim=1).cpu().numpy()[0]
+            else:
+                raise
+
+        pred_class = int(np.argmax(probs))
+        confidence = float(probs[pred_class])
+
+        gradcam_service = GradCAMService(model)
+        gradcam_base64 = gradcam_service.generate(image_bytes, tensor, pred_class)
+
+        INFERENCE_LATENCY.labels(model="efficientnet_b3").observe(time.time() - start)
+
+        if self.device.type == "cuda":
+            torch.cuda.empty_cache()
+
+        del tensor, outputs
+
+        return {
+            "predicted_grade": pred_class,
+            "predicted_label": DR_CLASSES[pred_class],
+            "severity": DR_SEVERITY.get(pred_class, "unknown"),
+            "confidence": round(confidence, 4),
+            "probabilities": {
+                DR_CLASSES[i]: round(float(p), 4) for i, p in enumerate(probs)
+            },
+            "gradcam_heatmap": gradcam_base64,
         }

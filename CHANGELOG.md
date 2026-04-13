@@ -43,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Service health monitoring with animated "service down" UI
 - Auth error boundaries for login page
 
-#### MLOps Service (Port 8001)
+#### MLOps Service (Port 8004)
 - **Imaging Model**: EfficientNet-B3 (timm) for diabetic retinopathy grading
   - Input: 224x224 RGB fundus images
   - Output: 5-class probability (No DR, Mild, Moderate, Severe, Proliferative DR)

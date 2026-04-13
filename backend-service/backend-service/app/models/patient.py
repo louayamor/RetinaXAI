@@ -1,6 +1,6 @@
 import enum
 
-from sqlalchemy import Integer, String, Enum, Text
+from sqlalchemy import Enum, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDMixin

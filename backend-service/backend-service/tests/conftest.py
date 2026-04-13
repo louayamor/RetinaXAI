@@ -85,7 +85,7 @@ def user_create_payload() -> dict[str, str]:
 def patient_create_payload() -> dict[str, object]:
     return {
         "first_name": "Louay",
-        "last_name": "Hassan",
+        "last_name": "Amor",
         "age": 70,
         "gender": "M",
         "phone": "+15550000000",

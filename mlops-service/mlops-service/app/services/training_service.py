@@ -115,6 +115,11 @@ def _configure_mlflow() -> None:
 
 
 def run_pipeline_task(job_id: str, pipeline: str) -> None:
+    # Check if job was cancelled before starting
+    if is_job_cancelled(job_id):
+        logger.info(f"Job {job_id} was cancelled before starting")
+        return
+
     _job_store[job_id]["status"] = "running"
     _job_store[job_id]["started_at"] = datetime.utcnow().isoformat()
     _save_jobs()
@@ -140,6 +145,8 @@ def run_pipeline_task(job_id: str, pipeline: str) -> None:
                 0,
                 "Starting data ingestion...",
             )
+            if is_job_cancelled(job_id):
+                raise Exception("Job cancelled by user")
             try:
                 img_s1()
                 _emit_stage_event(
@@ -170,6 +177,8 @@ def run_pipeline_task(job_id: str, pipeline: str) -> None:
                 0,
                 "Starting data cleaning...",
             )
+            if is_job_cancelled(job_id):
+                raise Exception("Job cancelled by user")
             try:
                 img_s2()
                 _emit_stage_event(
@@ -194,6 +203,8 @@ def run_pipeline_task(job_id: str, pipeline: str) -> None:
                 0,
                 "Starting data transformation...",
             )
+            if is_job_cancelled(job_id):
+                raise Exception("Job cancelled by user")
             try:
                 img_s3()
                 _emit_stage_event(
@@ -224,6 +235,8 @@ def run_pipeline_task(job_id: str, pipeline: str) -> None:
                 0,
                 "Starting model training...",
             )
+            if is_job_cancelled(job_id):
+                raise Exception("Job cancelled by user")
             try:
                 img_s4()
                 _emit_stage_event(
@@ -254,6 +267,8 @@ def run_pipeline_task(job_id: str, pipeline: str) -> None:
                 0,
                 "Starting model evaluation...",
             )
+            if is_job_cancelled(job_id):
+                raise Exception("Job cancelled by user")
             try:
                 img_s5()
                 _emit_stage_event(
@@ -285,6 +300,8 @@ def run_pipeline_task(job_id: str, pipeline: str) -> None:
                 0,
                 "Starting clinical data ingestion...",
             )
+            if is_job_cancelled(job_id):
+                raise Exception("Job cancelled by user")
             try:
                 clin_s1()
                 _emit_stage_event(
@@ -315,6 +332,8 @@ def run_pipeline_task(job_id: str, pipeline: str) -> None:
                 0,
                 "Starting clinical data cleaning...",
             )
+            if is_job_cancelled(job_id):
+                raise Exception("Job cancelled by user")
             try:
                 clin_s2()
                 _emit_stage_event(
@@ -339,6 +358,8 @@ def run_pipeline_task(job_id: str, pipeline: str) -> None:
                 0,
                 "Starting clinical data transformation...",
             )
+            if is_job_cancelled(job_id):
+                raise Exception("Job cancelled by user")
             try:
                 clin_s3()
                 _emit_stage_event(
@@ -369,6 +390,8 @@ def run_pipeline_task(job_id: str, pipeline: str) -> None:
                 0,
                 "Starting clinical model training...",
             )
+            if is_job_cancelled(job_id):
+                raise Exception("Job cancelled by user")
             try:
                 clin_s4()
                 _emit_stage_event(
@@ -399,6 +422,8 @@ def run_pipeline_task(job_id: str, pipeline: str) -> None:
                 0,
                 "Starting clinical model evaluation...",
             )
+            if is_job_cancelled(job_id):
+                raise Exception("Job cancelled by user")
             try:
                 clin_s5()
                 _emit_stage_event(
@@ -460,3 +485,21 @@ def create_job(pipeline: str) -> str:
     }
     _save_jobs()
     return job_id
+
+
+def cancel_job(job_id: str) -> bool:
+    """Cancel a running job by setting status to cancelled."""
+    if job_id not in _job_store:
+        return False
+    _job_store[job_id]["status"] = "cancelled"
+    _job_store[job_id]["completed_at"] = datetime.utcnow().isoformat()
+    _job_store[job_id]["error"] = "Cancelled by user"
+    _save_jobs()
+    logger.info(f"Job {job_id} marked as cancelled")
+    return True
+
+
+def is_job_cancelled(job_id: str) -> bool:
+    """Check if a job has been cancelled."""
+    job = _job_store.get(job_id)
+    return job is not None and job.get("status") == "cancelled"

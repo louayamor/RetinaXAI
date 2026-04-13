@@ -1,5 +1,5 @@
-from typing import Annotated
 from datetime import datetime, timedelta
+from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
@@ -7,10 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser
 from app.db.session import get_db
+from app.models.mri_scan import MRIScan
 from app.models.patient import Patient
 from app.models.prediction import Prediction, PredictionStatus
 from app.models.report import Report
-from app.models.mri_scan import MRIScan
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 

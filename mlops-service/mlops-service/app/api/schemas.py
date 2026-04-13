@@ -95,3 +95,9 @@ class PredictResponse(BaseModel):
     )
     model_name: str = Field(description="Model used for primary prediction")
     model_version: str = Field(description="Model version")
+    gradcam_left: Optional[str] = Field(
+        None, description="GradCAM heatmap for left eye (base64 PNG)"
+    )
+    gradcam_right: Optional[str] = Field(
+        None, description="GradCAM heatmap for right eye (base64 PNG)"
+    )

@@ -31,7 +31,20 @@ export const navItems: NavItem[] = [
     icon: 'media',
     isActive: false,
     shortcut: ['d', 'd'],
-    items: []
+    items: [
+      {
+        title: 'Predictions',
+        url: '/dashboard/predictions',
+        icon: 'media',
+        shortcut: ['p', 'p']
+      },
+      {
+        title: 'GradCAM',
+        url: '/dashboard/predictions/gradcam',
+        icon: 'media',
+        shortcut: ['g', 'g']
+      }
+    ]
   },
   {
     title: 'Clinical Reports',

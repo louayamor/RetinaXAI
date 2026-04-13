@@ -1,5 +1,5 @@
-from typing import Annotated
 from datetime import datetime, timedelta
+from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
@@ -8,9 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import CurrentUser
 from app.db.session import get_db
 from app.models.oct_report import OCTReport
-from app.models.report import Report
 from app.models.patient import Patient
 from app.models.prediction import Prediction
+from app.models.report import Report
 
 router = APIRouter(prefix="/oct-stats", tags=["oct_stats"])
 

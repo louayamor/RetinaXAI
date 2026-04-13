@@ -6,7 +6,11 @@ from app.components.imaging.model_evaluation import ImagingModelEvaluation
 def run():
     logger.info(">>> stage 05: imaging model evaluation started")
     manager = ConfigurationManager()
-    ImagingModelEvaluation(manager.get_imaging_model_evaluation_config()).evaluate()
+    cfg = manager.get_imaging_model_evaluation_config()
+    logger.info(
+        f"stage 05 config: model_path={cfg.model_path}, test_csv={cfg.test_csv}, samaya_csv={cfg.samaya_csv}, metric_file={cfg.metric_file}"
+    )
+    ImagingModelEvaluation(cfg).evaluate()
     logger.info(">>> stage 05: imaging model evaluation complete")
 
 
