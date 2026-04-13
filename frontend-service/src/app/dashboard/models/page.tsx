@@ -21,13 +21,13 @@ import {
   Radar,
   Legend,
 } from 'recharts';
-import { Loader2, Play, RefreshCw } from 'lucide-react';
+import { Loader2, Play, RefreshCw, Square } from 'lucide-react';
 import Image from 'next/image';
 import { useWebSocket } from '@/hooks/use-websocket';
 import { TrainingProgress } from '@/components/training-progress';
 import { toast } from 'sonner';
 
-const MLOPS_BASE = process.env.NEXT_PUBLIC_MLOPS_URL || 'http://localhost:8001';
+const MLOPS_BASE = process.env.NEXT_PUBLIC_MLOPS_URL || 'http://localhost:8004';
 
 interface Metrics {
   imaging?: {
@@ -82,9 +82,9 @@ export default function ModelsPage() {
   const { connected, subscribe } = useWebSocket();
 
   useEffect(() => {
-    const unsubStage = subscribe('training_stage', (data) => {
-      const event = data as TrainingEvent;
-      const { stage, status, progress, message, error } = event.data;
+    const unsubStage = subscribe('training_stage', (data: unknown) => {
+      const eventData = data as { stage: string; status: string; progress: number; message?: string; error?: string };
+      const { stage, status, progress, message, error } = eventData;
       setTrainingProgress({ stage, progress, status: status as 'started' | 'running' | 'completed' | 'failed', message });
 
       if (status === 'completed') {
@@ -98,7 +98,8 @@ export default function ModelsPage() {
       } else if (status === 'started' || status === 'running') {
         toast(message || `Stage: ${stage}`, { icon: '🔄' });
       }
-    },);
+      console.log('[WS] Training event received:', eventData);
+    });
 
     return () => {
       unsubStage();
@@ -146,6 +147,22 @@ export default function ModelsPage() {
       console.error(`Failed to start ${pipeline} training:`, err);
     } finally {
       setTraining(null);
+    }
+  };
+
+  const stopTraining = async () => {
+    if (!jobStatus?.job_id) return;
+    try {
+      const res = await fetch(`${MLOPS_BASE}/train/${jobStatus.job_id}/stop`, {
+        method: 'POST',
+      });
+      if (res.ok) {
+        toast.info('Training stop requested');
+        setTraining(null);
+        fetchStatus();
+      }
+    } catch (err) {
+      console.error('Failed to stop training:', err);
     }
   };
 
@@ -234,6 +251,16 @@ export default function ModelsPage() {
             >
               <RefreshCw className='h-4 w-4' />
             </Button>
+            {isTraining && (
+              <Button
+                onClick={stopTraining}
+                variant='destructive'
+                size='sm'
+              >
+                <Square className='mr-2 h-4 w-4' />
+                Stop
+              </Button>
+            )}
             {isTraining && (
               <Badge variant='secondary' className='ml-auto'>
                 <Loader2 className='mr-1 h-3 w-3 animate-spin' />

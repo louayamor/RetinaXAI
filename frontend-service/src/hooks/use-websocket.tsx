@@ -26,6 +26,19 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     wsRef.current.onopen = () => {
       setConnected(true);
       console.log('[WS] Connected');
+      // Subscribe to training events
+      wsRef.current?.send(JSON.stringify({
+        event: 'subscribe',
+        data: { room: 'training:imaging' }
+      }));
+      wsRef.current?.send(JSON.stringify({
+        event: 'subscribe',
+        data: { room: 'training:clinical' }
+      }));
+      wsRef.current?.send(JSON.stringify({
+        event: 'subscribe',
+        data: { room: 'llmops' }
+      }));
     };
     
     wsRef.current.onclose = () => {
@@ -41,6 +54,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     wsRef.current.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
+        console.log('[WS] Message received:', message);
         const callbacks = listenersRef.current.get(message.event);
         if (callbacks) {
           callbacks.forEach(cb => cb(message.data || message));

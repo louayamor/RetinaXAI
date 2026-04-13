@@ -10,6 +10,7 @@ import {
 import { IconEye, IconUsers, IconActivity, IconBrain } from '@tabler/icons-react';
 import Image from 'next/image';
 import React from 'react';
+import ScrollRestorer from '@/components/scroll-restorer';
 
 const gradeStats = [
   { grade: 'No DR', count: 0, color: 'bg-emerald-500', pct: '0%' },
@@ -38,8 +39,10 @@ export default function OverViewLayout({
   area_stats: React.ReactNode;
 }) {
   return (
+    <>
+    <ScrollRestorer />
     <PageContainer>
-      <div className='flex flex-1 flex-col gap-8'>
+      <div className='flex flex-1 flex-col gap-8 min-h-0'>
         {/* Hero Section */}
         <div className='animate-in-up relative overflow-hidden rounded-2xl border bg-gradient-to-r from-slate-900 via-cyan-900 to-teal-900 p-10 text-white shadow-lg'>
           <div className='absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(45,212,191,0.18),transparent_45%)]' />
@@ -208,5 +211,6 @@ export default function OverViewLayout({
         </div>
       </div>
     </PageContainer>
+    </>
   );
 }

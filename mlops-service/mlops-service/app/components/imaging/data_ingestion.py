@@ -8,6 +8,23 @@ from loguru import logger
 from app.entity.config_entity import ImagingIngestionConfig
 
 
+def _validate_dataset(ds) -> bool:
+    """Validate dataset is actually readable and has data."""
+    try:
+        if len(ds) == 0:
+            return False
+        _ = ds[0]
+        if "image" in ds.features:
+            try:
+                _ = ds["image"][0]
+            except KeyError:
+                pass
+        return True
+    except Exception as e:
+        logger.warning(f"Dataset validation failed: {e}")
+        return False
+
+
 class ImagingDataIngestion:
     def __init__(self, config: ImagingIngestionConfig):
         self.config = config
@@ -26,6 +43,12 @@ class ImagingDataIngestion:
                 logger.info(
                     f"loaded existing huggingface dataset: {save_path} ({existing_size} samples)"
                 )
+                if not _validate_dataset(existing_ds):
+                    logger.warning(
+                        "Existing dataset failed validation, will re-download"
+                    )
+                    existing_ds = None
+                    existing_size = 0
             except Exception as e:
                 logger.warning(
                     f"failed to load existing dataset at {save_path}, rebuilding from source: {e}"

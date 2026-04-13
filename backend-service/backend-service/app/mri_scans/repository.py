@@ -1,9 +1,8 @@
 import uuid
 
+from app.models.mri_scan import MRIScan
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.mri_scan import MRIScan
 
 
 class MRIScanRepository:

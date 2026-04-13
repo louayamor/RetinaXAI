@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 import jwt
 
@@ -9,7 +9,7 @@ from app.schemas.token_schema import TokenPayload
 
 
 def _create_token(subject: str, expire_delta: timedelta, token_type: str) -> str:
-    expire = datetime.now(timezone.utc) + expire_delta
+    expire = datetime.now(UTC) + expire_delta
     payload = {"sub": subject, "exp": int(expire.timestamp()), "token_type": token_type}
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 

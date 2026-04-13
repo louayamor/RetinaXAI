@@ -40,7 +40,7 @@ services:
       APP_ENV: production
       DATABASE_URL: postgresql+asyncpg://louay:louay@postgres:5432/retinaxai_db
       SECRET_KEY: change-me-in-production
-      ML_SERVICE_URL: http://mlops-service:8001
+      ML_SERVICE_URL: http://mlops-service:8004
       LLM_SERVICE_URL: http://llmops-service:8002
       ML_SERVICE_API_KEY: ml-api-key
       LLM_SERVICE_API_KEY: llm-api-key
@@ -69,7 +69,7 @@ services:
       MLFLOW_TRACKING_URI: ""
       BACKEND_WS_URL: ws://backend-service:8000/ws
     ports:
-      - "8001:8001"
+      - "8004:8004"
     volumes:
       - mlops_data:/app/data
       - mlops_artifacts:/app/artifacts
@@ -78,7 +78,7 @@ services:
       - redis
     networks:
       - retinaxai-network
-    command: uvicorn app.api.main:app --host 0.0.0.0 --port 8001
+    command: uvicorn app.api.main:app --host 0.0.0.0 --port 8004
 
   llmops-service:
     build:
@@ -111,7 +111,7 @@ services:
     container_name: retinaxai-frontend
     environment:
       NEXT_PUBLIC_API_URL: http://backend-service:8000
-      NEXT_PUBLIC_MLOPS_URL: http://mlops-service:8001
+      NEXT_PUBLIC_MLOPS_URL: http://mlops-service:8004
     ports:
       - "3000:3000"
     depends_on:

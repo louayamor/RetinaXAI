@@ -1,18 +1,19 @@
 import uuid
+from datetime import UTC
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel
 
-from app.core.config import settings
-from app.core.exceptions import UnauthorizedException
 from app.auth.dependencies import CurrentUser
 from app.auth.jwt_handler import create_access_token, create_refresh_token, decode_token
 from app.auth.session_service import AuthSessionService
+from app.core.config import settings
+from app.core.exceptions import UnauthorizedException
 from app.db.session import get_db
 from app.models.auth_session import AuthSession
 from app.schemas.token_schema import TokenResponse
@@ -138,7 +139,7 @@ async def cleanup_sessions(
     from datetime import datetime, timezone
 
     await db.execute(
-        delete(AuthSession).where(AuthSession.expires_at < datetime.now(timezone.utc))
+        delete(AuthSession).where(AuthSession.expires_at < datetime.now(UTC))
     )
     await db.flush()
     return {"status": "ok"}

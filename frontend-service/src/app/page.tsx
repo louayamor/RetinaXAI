@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'motion/react';
-import PageContainer from '@/components/layout/page-container';
 import { Button } from '@/components/ui/button';
 import { fadeInUp, slideInUp, staggerContainer, staggerItem, buttonTap } from '@/lib/animations';
 import Image from 'next/image';
@@ -29,7 +28,7 @@ export default function LandingPage() {
   const shouldReduceMotion = useReducedMotion();
 
   return (
-    <PageContainer>
+    <div className="min-h-screen w-full">
       <motion.div
         variants={shouldReduceMotion ? {} : fadeInUp}
         initial="hidden"
@@ -37,7 +36,7 @@ export default function LandingPage() {
         className="flex flex-col"
       >
         {/* Hero Section */}
-        <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
+        <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
           {/* Background */}
           <div className="absolute inset-0 bg-gradient-to-b from-[#0a2e3e] via-[#0d3a4c] to-[#0a2e3e]" />
           
@@ -85,21 +84,14 @@ export default function LandingPage() {
               {/* CTA Buttons */}
               <motion.div
                 variants={shouldReduceMotion ? {} : staggerItem}
-                className="flex flex-col sm:flex-row gap-4 justify-center"
+                className="flex justify-center"
               >
                 <motion.div variants={shouldReduceMotion ? {} : buttonTap}>
-                  <Link href="/auth/login">
+                  <a href="https://www.samayahospital.ae/home/" target="_blank" rel="noopener noreferrer">
                     <Button size="lg" className="text-lg px-8 py-6">
-                      Get Started
+                      Visit our website
                     </Button>
-                  </Link>
-                </motion.div>
-                <motion.div variants={shouldReduceMotion ? {} : buttonTap}>
-                  <Link href="/dashboard/overview">
-                    <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-white/30 text-white hover:bg-white/10">
-                      View Dashboard
-                    </Button>
-                  </Link>
+                  </a>
                 </motion.div>
               </motion.div>
             </motion.div>
@@ -206,6 +198,6 @@ export default function LandingPage() {
           </div>
         </footer>
       </motion.div>
-    </PageContainer>
+    </div>
   );
 }

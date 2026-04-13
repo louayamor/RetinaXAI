@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     app_version: str = "0.1.0"
     app_env: str = "production"
     app_host: str = "0.0.0.0"
-    app_port: int = 8001
+    app_port: int = 8004
 
     mlflow_tracking_uri: str = ""
     mlflow_tracking_username: str = ""

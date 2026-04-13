@@ -4,7 +4,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { motion, useReducedMotion } from 'motion/react';
 import UserAuthForm from './user-auth-form';
-import { fadeIn } from '@/lib/animations';
+import { fadeIn, slideInUp } from '@/lib/animations';
+import { SamayaLogo } from '@/components/auth/samaya-logo';
 
 export default function SignUpView() {
   const shouldReduceMotion = useReducedMotion();
@@ -52,6 +53,14 @@ export default function SignUpView() {
         className="flex h-full items-center p-4 lg:p-8"
       >
         <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+          <motion.div
+            variants={shouldReduceMotion ? {} : slideInUp}
+            initial="hidden"
+            animate="visible"
+            className="flex justify-center"
+          >
+            <SamayaLogo size="lg" animate={!shouldReduceMotion} variant="full" />
+          </motion.div>
           <div className="flex flex-col space-y-2 text-center">
             <h1 className="text-2xl font-semibold tracking-tight">
               Create an account

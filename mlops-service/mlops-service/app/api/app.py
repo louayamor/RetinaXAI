@@ -1,9 +1,17 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
 from loguru import logger
 
-from app.api.routes import health, train, status, metrics, predict, rag  # reports temporarily disabled
+from app.api.routes import (
+    health,
+    train,
+    status,
+    metrics,
+    predict,
+    rag,
+)  # reports temporarily disabled
 from app.api.dependencies import get_settings
 from monitoring.prometheus_metrics import start_metrics_server
 
@@ -28,7 +36,7 @@ def create_app() -> FastAPI:
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:3000", "http://localhost:3001"],
+        allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

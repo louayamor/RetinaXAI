@@ -14,7 +14,9 @@ router = APIRouter()
 _inference_service = None
 
 
-def get_inference_service(settings: Settings = Depends(get_settings)) -> InferenceService:
+def get_inference_service(
+    settings: Settings = Depends(get_settings),
+) -> InferenceService:
     global _inference_service
     if _inference_service is None:
         _inference_service = InferenceService(settings)
@@ -54,19 +56,22 @@ async def predict(
             f"age {request.patient_age}, model={request.model_name} v{request.model_version}"
         )
 
-        logger.info("[STEP 6] Loading/predicting imaging model (left eye)")
-        left_imaging_result = service.predict_imaging(left_bytes)
-        logger.info(f"[STEP 7] Left eye result: {left_imaging_result}")
-
-        logger.info("[STEP 8] Loading/predicting imaging model (right eye)")
-        right_imaging_result = service.predict_imaging(right_bytes)
+        logger.info("[STEP 6] Loading/predicting imaging model with GradCAM (left eye)")
+        left_imaging_result = service.predict_imaging_with_gradcam(left_bytes)
+        logger.info(
+            "[STEP 7] Loading/predicting imaging model with GradCAM (right eye)"
+        )
+        right_imaging_result = service.predict_imaging_with_gradcam(right_bytes)
+        logger.info(f"[STEP 8] Left eye result: {left_imaging_result}")
         logger.info(f"[STEP 9] Right eye result: {right_imaging_result}")
 
         logger.info(f"[STEP 10] Parsing clinical features: {request.features}")
         try:
             features = ClinicalFeatures(**request.features)
         except Exception as e:
-            logger.warning(f"[STEP 10] Clinical features parse failed: {e} — proceeding without clinical model")
+            logger.warning(
+                f"[STEP 10] Clinical features parse failed: {e} — proceeding without clinical model"
+            )
             features = None
 
         if features is not None:
@@ -86,7 +91,9 @@ async def predict(
                 "predicted_grade": clinical_result.get("predicted_grade"),
                 "predicted_label": clinical_result.get("predicted_label"),
                 "risk_score": clinical_result.get("risk_score"),
-                "severity": severity_map.get(clinical_result.get("predicted_grade", 0), "unknown"),
+                "severity": severity_map.get(
+                    clinical_result.get("predicted_grade", 0), "unknown"
+                ),
                 "probabilities": clinical_result.get("probabilities"),
             },
             "combined_grade": max(
@@ -94,7 +101,10 @@ async def predict(
                 right_imaging_result["predicted_grade"],
             ),
             "overall_severity": severity_map.get(
-                max(left_imaging_result["predicted_grade"], right_imaging_result["predicted_grade"]),
+                max(
+                    left_imaging_result["predicted_grade"],
+                    right_imaging_result["predicted_grade"],
+                ),
                 "unknown",
             ),
         }
@@ -111,10 +121,14 @@ async def predict(
             confidence_score=left_imaging_result["confidence"],
             model_name=request.model_name,
             model_version=request.model_version,
+            gradcam_left=left_imaging_result.get("gradcam_heatmap"),
+            gradcam_right=right_imaging_result.get("gradcam_heatmap"),
         )
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"[PREDICT ERROR] {type(e).__name__}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"prediction failed: {type(e).__name__}: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"prediction failed: {type(e).__name__}: {e}"
+        )

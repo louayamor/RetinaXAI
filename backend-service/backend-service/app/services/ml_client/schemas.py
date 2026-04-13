@@ -16,3 +16,5 @@ class MLPredictResponse(BaseModel):
     confidence_score: float
     model_name: str
     model_version: str
+    gradcam_left: str | None = None
+    gradcam_right: str | None = None

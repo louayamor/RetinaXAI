@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ChangeEvent } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { createPatient, deletePatient, getPatients, searchPatients, updatePatient } from '@/lib/api';
+import { createPatient, deletePatient, getPatients, getPatientStats, searchPatients, updatePatient } from '@/lib/api';
 import PageContainer from '@/components/layout/page-container';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,12 +40,22 @@ const emptyForm: PatientFormState = {
 
 export default function PatientsPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [stats, setStats] = useState<{ total: number; avg_age: number; male_count: number; female_count: number; this_month: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<PatientFormState>(emptyForm);
   const shouldReduceMotion = useReducedMotion();
+
+  const loadStats = async () => {
+    try {
+      const data = await getPatientStats();
+      setStats(data);
+    } catch (err) {
+      console.error('Failed to fetch stats:', err);
+    }
+  };
 
   const loadPatients = async (query = '') => {
     setLoading(true);
@@ -62,6 +72,7 @@ export default function PatientsPage() {
 
   useEffect(() => {
     void loadPatients();
+    void loadStats();
   }, []);
 
   useEffect(() => {
@@ -98,7 +109,7 @@ export default function PatientsPage() {
     setSaving(true);
     try {
       if (editingId) {
-        await updatePatient(editingId, {
+        const updated = await updatePatient(editingId, {
           first_name: form.first_name,
           last_name: form.last_name,
           age: ageNum,
@@ -109,8 +120,9 @@ export default function PatientsPage() {
           ocr_patient_id: form.ocr_patient_id || null
         });
         toast.success('Patient updated successfully');
+        setPatients(prev => prev.map(p => p.id === editingId ? { ...p, ...updated } : p));
       } else {
-        await createPatient({
+        const created = await createPatient({
           first_name: form.first_name,
           last_name: form.last_name,
           age: ageNum,
@@ -121,9 +133,10 @@ export default function PatientsPage() {
           ocr_patient_id: form.ocr_patient_id || null
         });
         toast.success('Patient created successfully');
+        setPatients(prev => [...prev, { ...created, created_at: new Date().toISOString() }]);
+        await loadStats();
       }
       resetForm();
-      await loadPatients(search);
     } catch (err) {
       console.error('Failed to save patient:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to save patient';
@@ -195,30 +208,26 @@ export default function PatientsPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatsCard
             title="Total Patients"
-            value={patients.length}
+            value={stats?.total ?? 0}
             icon={Users}
             subtitle="In database"
           />
           <StatsCard
             title="New This Month"
-            value={patients.filter(p => {
-              const created = new Date(p.created_at);
-              const now = new Date();
-              return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
-            }).length}
+            value={stats?.this_month ?? 0}
             icon={UserPlus}
             color="#22c55e"
           />
           <StatsCard
             title="Avg Age"
-            value={patients.length > 0 ? Math.round(patients.reduce((sum, p) => sum + p.age, 0) / patients.length) : 0}
+            value={stats?.avg_age ?? 0}
             icon={Calendar}
             color="#3b82f6"
             subtitle="years"
           />
           <StatsCard
             title="Gender Split"
-            value={`${patients.filter(p => p.gender === 'M').length} M / ${patients.filter(p => p.gender === 'F').length} F`}
+            value={`${stats?.male_count ?? 0} M / ${stats?.female_count ?? 0} F`}
             icon={UserCheck}
             color="#c8a951"
           />

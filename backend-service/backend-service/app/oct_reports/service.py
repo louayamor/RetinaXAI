@@ -1,11 +1,10 @@
 import uuid
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.exceptions import NotFoundException
 from app.models.oct_report import OCTReport
 from app.oct_reports.repository import OCTReportRepository
 from app.patients.repository import PatientRepository
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class OCTReportService:

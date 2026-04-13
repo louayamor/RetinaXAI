@@ -2,15 +2,40 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser
 from app.db.session import get_db
-from app.patients.service import PatientService
-from app.schemas.patient_schema import PatientCreate, PatientRead, PatientUpdate
+from app.patients.service import PatientService, PatientStats
 from app.schemas.common import MessageResponse
+from app.schemas.patient_schema import PatientCreate, PatientRead, PatientUpdate
 
 router = APIRouter(prefix="/patients", tags=["patients"])
+
+
+class PatientStatsResponse(BaseModel):
+    total: int
+    avg_age: float
+    male_count: int
+    female_count: int
+    this_month: int
+
+
+@router.get("/stats", response_model=PatientStatsResponse)
+async def get_patient_stats(
+    _: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    service = PatientService(db)
+    stats = await service.get_stats()
+    return PatientStatsResponse(
+        total=stats.total,
+        avg_age=stats.avg_age,
+        male_count=stats.male_count,
+        female_count=stats.female_count,
+        this_month=stats.this_month,
+    )
 
 
 @router.post("/", response_model=PatientRead, status_code=201)

@@ -1,13 +1,13 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, UploadFile, File
+from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser
 from app.db.session import get_db
-from app.mri_scans.service import MRIScanService
 from app.models.mri_scan import Modality
+from app.mri_scans.service import MRIScanService
 from app.schemas.common import MessageResponse
 from app.schemas.mri_scan_schema import MRIScanRead
 

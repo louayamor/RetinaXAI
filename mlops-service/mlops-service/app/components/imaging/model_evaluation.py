@@ -50,11 +50,13 @@ class ImagingModelEvaluation:
 
     def _build_transform(self):
         norm = self.params.augmentation.normalize
-        return transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=norm.mean, std=norm.std),
-        ])
+        return transforms.Compose(
+            [
+                transforms.Resize((224, 224)),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=norm.mean, std=norm.std),
+            ]
+        )
 
     def _run_inference(self, model: nn.Module, csv_path: Path) -> tuple:
         tf = self._build_transform()
@@ -68,11 +70,13 @@ class ImagingModelEvaluation:
 
         all_preds, all_labels, all_probs = [], [], []
         total = len(loader)
+        use_amp = self.device.type == "cuda"
 
         with torch.no_grad():
             for i, (images, labels) in enumerate(loader, 1):
                 images = images.to(self.device)
-                outputs = model(images)
+                with torch.amp.autocast("cuda", enabled=use_amp):
+                    outputs = model(images)
                 probs = torch.softmax(outputs, dim=1).cpu().numpy()
                 preds = outputs.argmax(1).cpu().tolist()
 
@@ -82,6 +86,10 @@ class ImagingModelEvaluation:
 
                 if i % 10 == 0 or i == total:
                     logger.info(f"inference progress: {i}/{total} batches")
+
+                del images, outputs, probs
+                if self.device.type == "cuda":
+                    torch.cuda.empty_cache()
 
         return all_preds, all_labels, np.array(all_probs)
 
@@ -94,6 +102,7 @@ class ImagingModelEvaluation:
             return None
 
         try:
+            probs = probs / probs.sum(axis=1, keepdims=True)
             if len(present_classes) == num_classes:
                 return roc_auc_score(  # type: ignore[arg-type]
                     labels, probs, multi_class="ovr", average="macro"
@@ -174,9 +183,9 @@ class ImagingModelEvaluation:
             "samaya_validation": samaya_metrics,
         }
 
-        QUADRATIC_WEIGHTED_KAPPA.labels(
-            pipeline="imaging", split="eyepacs_test"
-        ).set(test_metrics["quadratic_weighted_kappa"])
+        QUADRATIC_WEIGHTED_KAPPA.labels(pipeline="imaging", split="eyepacs_test").set(
+            test_metrics["quadratic_weighted_kappa"]
+        )
 
         if samaya_metrics:
             QUADRATIC_WEIGHTED_KAPPA.labels(
@@ -188,24 +197,35 @@ class ImagingModelEvaluation:
 
         run_suffix = f"_{int(time.time()) % 1000:03d}"
         with mlflow.start_run(run_name=self.config.run_name + "_eval" + run_suffix):
-            mlflow.log_metrics({
-                "test_accuracy": test_metrics["accuracy"],
-                "test_qwk": test_metrics["quadratic_weighted_kappa"],
-                "test_auc": test_metrics["roc_auc_macro"] or 0.0,
-            })
+            mlflow.log_metrics(
+                {
+                    "test_accuracy": test_metrics["accuracy"],
+                    "test_qwk": test_metrics["quadratic_weighted_kappa"],
+                    "test_auc": test_metrics["roc_auc_macro"] or 0.0,
+                }
+            )
             if samaya_metrics:
-                mlflow.log_metrics({
-                    "samaya_accuracy": samaya_metrics["accuracy"],
-                    "samaya_qwk": samaya_metrics["quadratic_weighted_kappa"],
-                    "samaya_auc": samaya_metrics["roc_auc_macro"] or 0.0,
-                })
+                mlflow.log_metrics(
+                    {
+                        "samaya_accuracy": samaya_metrics["accuracy"],
+                        "samaya_qwk": samaya_metrics["quadratic_weighted_kappa"],
+                        "samaya_auc": samaya_metrics["roc_auc_macro"] or 0.0,
+                    }
+                )
             mlflow.log_artifact(str(self.config.metric_file))
 
         logger.info("=" * 60)
         logger.info("imaging model evaluation complete")
-        logger.info(f"eyepacs test  → accuracy={test_metrics['accuracy']:.4f} qwk={test_metrics['quadratic_weighted_kappa']:.4f}")
+        logger.info(
+            f"eyepacs test  → accuracy={test_metrics['accuracy']:.4f} qwk={test_metrics['quadratic_weighted_kappa']:.4f}"
+        )
         if samaya_metrics:
-            logger.info(f"samaya domain → accuracy={samaya_metrics['accuracy']:.4f} qwk={samaya_metrics['quadratic_weighted_kappa']:.4f}")
+            logger.info(
+                f"samaya domain → accuracy={samaya_metrics['accuracy']:.4f} qwk={samaya_metrics['quadratic_weighted_kappa']:.4f}"
+            )
         logger.info("=" * 60)
+
+        if self.device.type == "cuda":
+            torch.cuda.empty_cache()
 
         return full_metrics

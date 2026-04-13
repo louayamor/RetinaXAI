@@ -338,14 +338,28 @@ export default function PatientProfilePage() {
                           </Badge>
                         </div>
                       </div>
-                      {gradeLabel && (
-                        <div className="flex items-center gap-2 mt-2 pt-2 border-t">
-                          <span className="text-sm text-muted-foreground">DR Grade:</span>
-                          <Badge className={GRADE_COLORS[String(grade)] || 'bg-muted'}>
-                            {gradeLabel}
-                          </Badge>
+                      <div className="flex items-center justify-between mt-2 pt-2 border-t">
+                        <div className="flex items-center gap-2">
+                          {gradeLabel && (
+                            <>
+                              <span className="text-sm text-muted-foreground">DR Grade:</span>
+                              <Badge className={GRADE_COLORS[String(grade)] || 'bg-muted'}>
+                                {gradeLabel}
+                              </Badge>
+                            </>
+                          )}
                         </div>
-                      )}
+                        {pred.status === 'success' && (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => router.push(`/dashboard/predictions/${pred.id}/gradcam`)}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View GradCAM
+                          </Button>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 )})}

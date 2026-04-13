@@ -1,14 +1,13 @@
 import uuid
 from pathlib import Path
 
-from fastapi import UploadFile
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.config import settings
 from app.core.exceptions import NotFoundException, UnprocessableEntityException
 from app.models.mri_scan import MRIScan
 from app.mri_scans.repository import MRIScanRepository
 from app.patients.repository import PatientRepository
+from fastapi import UploadFile
+from sqlalchemy.ext.asyncio import AsyncSession
 
 ALLOWED_CONTENT_TYPES = {"image/png", "image/jpeg"}
 
