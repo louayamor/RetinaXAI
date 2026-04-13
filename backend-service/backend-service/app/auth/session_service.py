@@ -18,16 +18,41 @@ async def get_session_redis() -> aioredis.Redis | None:
     global _redis
     if _redis is None:
         settings = get_settings()
+
+        redis_url = settings.REDIS_URL
+
+        # Check for optional env var to disable Redis entirely
+        if settings.APP_ENV == "development":
+            import os
+
+            if os.environ.get("DISABLE_REDIS"):
+                logger.info("Redis disabled via DISABLE_REDIS env var")
+                return None
+
+        redis_url = settings.REDIS_URL
+
         try:
             _redis = aioredis.from_url(
-                settings.REDIS_URL,
+                redis_url,
                 encoding="utf-8",
                 decode_responses=True,
+                socket_connect_timeout=2,
+                socket_timeout=2,
             )
             await _redis.ping()
             logger.info("Session Redis connection established")
         except Exception as e:
-            logger.warning(f"Redis not available for sessions: {e}")
+            import os
+
+            app_env = getattr(
+                settings, "APP_ENV", os.environ.get("APP_ENV", "production")
+            )
+            if app_env == "production":
+                logger.warning(f"Redis not available for sessions: {e}")
+            else:
+                logger.info(
+                    f"Redis not available (running locally without Docker?): {e}"
+                )
             _redis = None
     return _redis
 
