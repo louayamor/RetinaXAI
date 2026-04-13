@@ -5,8 +5,8 @@ from typing import Any
 import httpx
 from loguru import logger
 
-BACKEND_WS_URL = os.environ.get("BACKEND_WS_URL", "ws://localhost:8000/ws")
-BACKEND_API_KEY = os.environ.get("BACKEND_API_KEY", "")
+BACKEND_WS_URL = os.environ.get("BACKEND_WS_URL", "http://localhost:8000")
+LLMOPS_API_KEY = os.environ.get("LLM_SERVICE_API_KEY", "")
 
 
 class WebSocketClient:
@@ -95,3 +95,49 @@ def get_websocket_client() -> WebSocketClient:
     if _websocket_client is None:
         _websocket_client = WebSocketClient.get_instance()
     return _websocket_client
+
+
+async def send_xai_event(
+    event: str,
+    stage: str,
+    status: str,
+    progress: int,
+    message: str,
+    prediction_id: str,
+    details: dict[str, Any] | None = None,
+    error: str | None = None,
+) -> None:
+    """Send XAI event to backend WebSocket server."""
+    payload = {
+        "event": event,
+        "data": {
+            "prediction_id": prediction_id,
+            "stage": stage,
+            "status": status,
+            "progress": progress,
+            "message": message,
+            "details": details or {},
+            "error": error,
+        },
+    }
+
+    room = f"xai:{stage}"
+    emit_url = f"{BACKEND_WS_URL}/emit"
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                emit_url,
+                json={
+                    "event": event,
+                    "data": payload.get("data", {}),
+                    "room": room,
+                },
+                headers={"X-API-Key": LLMOPS_API_KEY} if LLMOPS_API_KEY else {},
+            )
+            if response.status_code < 400:
+                logger.debug(f"Sent XAI event: {stage} - {status}")
+            else:
+                logger.warning(f"Failed to emit XAI event: {response.status_code}")
+    except Exception as e:
+        logger.warning(f"Failed to send XAI event: {e}")
