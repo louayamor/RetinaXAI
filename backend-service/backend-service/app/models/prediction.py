@@ -28,12 +28,12 @@ class Prediction(Base, UUIDMixin, TimestampMixin):
     )
     requested_by: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("users.id"),
+        ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
     )
     mri_scan_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("mri_scans.id"),
+        ForeignKey("mri_scans.id", ondelete="CASCADE"),
         nullable=False,
     )
     model_name: Mapped[str] = mapped_column(String(100), nullable=False)
