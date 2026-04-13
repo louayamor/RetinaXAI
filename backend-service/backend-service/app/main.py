@@ -17,7 +17,55 @@ from app.core.middleware.request_id import RequestIDMiddleware
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
+
+    if settings.APP_ENV == "development":
+        _start_local_redis()
+
     yield
+
+    if settings.APP_ENV == "development":
+        _stop_local_redis()
+
+
+def _start_local_redis():
+    import subprocess
+    import time
+
+    try:
+        result = subprocess.run(
+            ["redis-cli", "ping"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+        )
+        if result.returncode == 0 and "PONG" in result.stdout:
+            return
+    except Exception:
+        pass
+
+    try:
+        subprocess.Popen(
+            ["redis-server", "--daemonize", "yes"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+        for _ in range(10):
+            time.sleep(0.5)
+            result = subprocess.run(
+                ["redis-cli", "ping"],
+                capture_output=True,
+                text=True,
+                timeout=1,
+            )
+            if result.returncode == 0 and "PONG" in result.stdout:
+                return
+    except Exception:
+        pass
+
+
+def _stop_local_redis():
+    pass
 
 
 def create_app() -> FastAPI:
