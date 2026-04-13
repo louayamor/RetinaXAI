@@ -1,6 +1,5 @@
 from functools import lru_cache
 from pathlib import Path
-from typing import List
 
 from dotenv import load_dotenv
 from pydantic import field_validator
@@ -35,16 +34,19 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
-    ML_SERVICE_URL: str = "http://mlops-service:8001"
+    ML_SERVICE_URL: str = "http://localhost:8004"
     ML_SERVICE_TIMEOUT: int = 30
     ML_SERVICE_API_KEY: str = ""
 
-    LLM_SERVICE_URL: str = "http://llmops-service:8002"
+    LLM_SERVICE_URL: str = "http://localhost:8002"
     LLM_SERVICE_TIMEOUT: int = 60
     LLM_SERVICE_API_KEY: str = ""
     LLM_MODEL: str = "gpt-4o"
 
-    CORS_ORIGINS: List[str] = ["http://localhost:3000"]
+    REDIS_URL: str = "redis://localhost:6379"
+    WS_URL: str = "ws://localhost:8000/ws"
+
+    CORS_ORIGINS: list[str] = ["http://localhost:3000"]
 
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "json"
