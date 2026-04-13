@@ -1,4 +1,3 @@
-import asyncio
 import os
 from typing import Any
 
@@ -78,7 +77,7 @@ class WebSocketClient:
                 await self._client.post(
                     self._url.replace("ws", "http") + "/emit",
                     json=emit_payload,
-                    headers={"X-API-Key": BACKEND_API_KEY} if BACKEND_API_KEY else {},
+                    headers={"X-API-Key": LLMOPS_API_KEY} if LLMOPS_API_KEY else {},
                 )
                 logger.debug(
                     f"Sent LLM ops event: {event_type} - {status} to room {room or 'broadcast'}"
@@ -129,7 +128,7 @@ async def send_xai_event(
             response = await client.post(
                 emit_url,
                 json={
-                    "event": event,
+                    "event": f"{event}.{status}",
                     "data": payload.get("data", {}),
                     "room": room,
                 },
