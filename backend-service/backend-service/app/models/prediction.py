@@ -11,6 +11,7 @@ from app.db.base import Base, TimestampMixin, UUIDMixin
 class PredictionStatus(str, enum.Enum):
     PENDING = "pending"
     SUCCESS = "success"
+    PARTIAL = "partial"  # Prediction succeeded but XAI failed
     FAILED = "failed"
 
 

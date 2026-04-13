@@ -25,6 +25,8 @@ class ExplanationService:
         """Trigger XAI pipeline after prediction completes."""
         import httpx
 
+        from app.models.prediction import PredictionStatus
+
         dr_grade = prediction.output_payload.get("predicted_class", "Unknown")
         confidence = prediction.confidence_score or 0.0
         gradcam_left = prediction.output_payload.get("gradcam_left", [])
@@ -35,6 +37,7 @@ class ExplanationService:
             "gradcam_explanation": None,
             "severity_report": None,
         }
+        xai_failed = False
 
         async with httpx.AsyncClient(timeout=60.0) as client:
             if dr_grade != "Unknown":
@@ -64,6 +67,7 @@ class ExplanationService:
                             f"[EXPLAIN SERVICE] Prediction explanation created for {prediction.id}"
                         )
                 except Exception as e:
+                    xai_failed = True
                     logger.warning(f"[EXPLAIN SERVICE] XAI explain failed: {e}")
 
             if gradcam_left or gradcam_right:
@@ -96,6 +100,7 @@ class ExplanationService:
                             f"[EXPLAIN SERVICE] GradCAM explanation created for {prediction.id}"
                         )
                 except Exception as e:
+                    xai_failed = True
                     logger.warning(f"[EXPLAIN SERVICE] XAI gradcam failed: {e}")
 
             risk_factors = prediction.input_payload.get("risk_factors", [])
@@ -128,7 +133,16 @@ class ExplanationService:
                         f"[EXPLAIN SERVICE] Severity report created for {prediction.id}"
                     )
             except Exception as e:
+                xai_failed = True
                 logger.warning(f"[EXPLAIN SERVICE] XAI severity failed: {e}")
 
         await self.db.commit()
+
+        if xai_failed:
+            prediction.status = PredictionStatus.PARTIAL
+            await self.db.commit()
+            logger.info(
+                f"[EXPLAIN SERVICE] Prediction {prediction.id} marked as PARTIAL due to XAI failure"
+            )
+
         return results
