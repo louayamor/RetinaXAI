@@ -55,9 +55,8 @@ export default function UserAuthForm({ mode }: UserAuthFormProps) {
     setLoading(true);
     setServerError(null);
     try {
-      const tokens = await loginUser(values);
-      saveTokens(tokens);
-      router.push('/dashboard/overview');
+      await loginUser(values);
+      window.location.href = '/dashboard/overview';
     } catch (err: unknown) {
       const e = err as { message?: string; status?: number };
       setServerError(
@@ -75,12 +74,8 @@ export default function UserAuthForm({ mode }: UserAuthFormProps) {
     setServerError(null);
     try {
       await registerUser(values);
-      const tokens = await loginUser({
-        email: values.email,
-        password: values.password
-      });
-      saveTokens(tokens);
-      router.push('/dashboard/overview');
+      await loginUser({ email: values.email, password: values.password });
+      window.location.href = '/dashboard/overview';
     } catch (err: unknown) {
       const e = err as { message?: string; status?: number };
       setServerError(
