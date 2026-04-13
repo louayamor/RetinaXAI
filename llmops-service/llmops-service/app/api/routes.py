@@ -204,3 +204,70 @@ def operation_status() -> dict:
         "progress": op.progress,
         "started_at": op.started_at,
     }
+
+
+class XAIPredictionRequest(BaseModel):
+    prediction_id: str
+    dr_grade: str
+    confidence: float
+    clinical_features: dict | None = None
+
+
+class XAIGradCAMRequest(BaseModel):
+    prediction_id: str
+    left_eye_regions: list[str]
+    right_eye_regions: list[str]
+
+
+class XAISeverityRequest(BaseModel):
+    prediction_id: str
+    patient_data: dict
+    dr_grade: str
+    risk_factors: list[str] = []
+
+
+@router.post("/xai/explain")
+async def explain_prediction(payload: XAIPredictionRequest) -> dict:
+    """
+    Generate natural language explanation of DR prediction.
+    """
+    from app.pipeline.xai_pipeline import get_xai_pipeline
+
+    pipeline = get_xai_pipeline()
+    return await pipeline.explain_prediction(
+        prediction_id=payload.prediction_id,
+        dr_grade=payload.dr_grade,
+        confidence=payload.confidence,
+        clinical_features=payload.clinical_features,
+    )
+
+
+@router.post("/xai/gradcam")
+async def explain_gradcam(payload: XAIGradCAMRequest) -> dict:
+    """
+    Interpret highlighted regions in GradCAM heatmaps.
+    """
+    from app.pipeline.xai_pipeline import get_xai_pipeline
+
+    pipeline = get_xai_pipeline()
+    return await pipeline.explain_gradcam(
+        prediction_id=payload.prediction_id,
+        left_eye_regions=payload.left_eye_regions,
+        right_eye_regions=payload.right_eye_regions,
+    )
+
+
+@router.post("/xai/severity")
+async def generate_severity(payload: XAISeverityRequest) -> dict:
+    """
+    Generate clinical severity report with risk level and recommendations.
+    """
+    from app.pipeline.xai_pipeline import get_xai_pipeline
+
+    pipeline = get_xai_pipeline()
+    return await pipeline.generate_severity_report(
+        prediction_id=payload.prediction_id,
+        patient_data=payload.patient_data,
+        dr_grade=payload.dr_grade,
+        risk_factors=payload.risk_factors,
+    )
