@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, ReactNode, useEffect, useRef, useState, useCallback } from 'react';
+import { toast } from 'sonner';
 
 const WS_URL = (process.env.NEXT_PUBLIC_API_URL?.replace('http', 'ws') || 'ws://localhost:8000') + '/ws';
 
@@ -71,9 +72,28 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       try {
         const message = JSON.parse(event.data);
         console.log('[WS] Message received:', message);
+        const data = message.data || message;
+        
+        // Show toast for training/XAI events
+        if (message.event === 'training.pipeline') {
+          if (data.status === 'completed') {
+            toast.success('Training completed', { description: data.message });
+          } else if (data.status === 'failed') {
+            toast.error('Training failed', { description: data.message });
+          }
+        } else if (message.event?.startsWith('xai.')) {
+          if (data.status === 'completed') {
+            toast.success('XAI completed', { description: data.message });
+          } else if (data.status === 'failed') {
+            toast.error('XAI failed', { description: data.message });
+          }
+        } else if (message.event === 'notification') {
+          toast(data.message as string);
+        }
+
         const callbacks = listenersRef.current.get(message.event);
         if (callbacks) {
-          callbacks.forEach(cb => cb(message.data || message));
+          callbacks.forEach(cb => cb(data));
         }
         const allCallbacks = listenersRef.current.get('*');
         if (allCallbacks) {
