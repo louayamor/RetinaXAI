@@ -1,11 +1,18 @@
-import { Metadata } from 'next';
-import SignInView from '@/features/auth/components/sign-in-view';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'RetinaXAI Sign In',
-  robots: { index: false, follow: false }
-};
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import SignInView from '@/features/auth/components/sign-in-view';
+import { isAuthenticated } from '@/lib/auth';
 
 export default function LoginPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isAuthenticated()) {
+      router.replace('/dashboard/overview');
+    }
+  }, [router]);
+
   return <SignInView />;
 }
