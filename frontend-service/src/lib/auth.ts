@@ -15,26 +15,33 @@ export interface AuthUser {
   email: string;
 }
 
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  return match ? decodeURIComponent(match[2]) : null;
+}
+
+function deleteCookie(name: string): void {
+  if (typeof document === 'undefined') return;
+  document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+}
+
 export function saveTokens(pair: TokenPair): void {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(TOKEN_KEY, pair.access_token);
-  localStorage.setItem(REFRESH_KEY, pair.refresh_token);
+  // Tokens are now stored in httpOnly cookies by backend - no action needed
+  // But we keep this for compatibility with token refresh responses
 }
 
 export function clearTokens(): void {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(REFRESH_KEY);
+  deleteCookie(TOKEN_KEY);
+  deleteCookie(REFRESH_KEY);
 }
 
 export function getAccessToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(TOKEN_KEY);
+  return getCookie(TOKEN_KEY);
 }
 
 export function getRefreshToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(REFRESH_KEY);
+  return getCookie(REFRESH_KEY);
 }
 
 export function isAuthenticated(): boolean {
@@ -42,9 +49,9 @@ export function isAuthenticated(): boolean {
 }
 
 export function authHeaders(): HeadersInit {
-  const token = getAccessToken();
-  if (!token) return {};
-  return { Authorization: `Bearer ${token}` };
+  // Tokens now in httpOnly cookies - browser sends them automatically
+  // This function kept for backward compatibility
+  return {};
 }
 
 let refreshing = false;
