@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import traceback
 import uuid
@@ -80,6 +81,24 @@ class PredictionService:
             prediction.confidence_score = ml_response.confidence_score
             prediction.status = PredictionStatus.SUCCESS
             logger.info(f"[PREDICT SERVICE] Prediction SUCCESS: {prediction.id}")
+
+            patient_data = {
+                "name": f"{patient.first_name} {patient.last_name}",
+                "age": patient.age,
+                "gender": patient.gender.value,
+            }
+            try:
+                from app.explanations.service import ExplanationService
+
+                explain_service = ExplanationService(self.db)
+                asyncio.create_task(
+                    explain_service.trigger_xai_for_prediction(prediction, patient_data)
+                )
+                logger.info(
+                    f"[PREDICT SERVICE] XAI pipeline triggered for {prediction.id}"
+                )
+            except Exception as e:
+                logger.warning(f"[PREDICT SERVICE] Failed to trigger XAI: {e}")
         except Exception as e:
             logger.error(
                 f"[PREDICT SERVICE] Prediction FAILED: {type(e).__name__}: {e}"
