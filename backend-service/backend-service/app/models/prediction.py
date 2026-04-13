@@ -51,3 +51,12 @@ class Prediction(Base, UUIDMixin, TimestampMixin):
     patient = relationship("Patient", back_populates="predictions")
     mri_scan = relationship("MRIScan")
     report = relationship("Report", back_populates="prediction", uselist=False)
+    explanation = relationship(
+        "PredictionExplanation", back_populates="prediction", uselist=False
+    )
+    gradcam_explanation = relationship(
+        "GradCAMExplanation", back_populates="prediction", uselist=False
+    )
+    severity_report = relationship(
+        "SeverityReport", back_populates="prediction", uselist=False
+    )
