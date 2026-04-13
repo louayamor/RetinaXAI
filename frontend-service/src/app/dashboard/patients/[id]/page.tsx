@@ -7,7 +7,7 @@ import PageContainer from '@/components/layout/page-container';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import {
   Dialog,
   DialogContent,
@@ -256,260 +256,239 @@ export default function PatientProfilePage() {
           </motion.div>
         </div>
 
-        {/* Tabs */}
-        <Tabs defaultValue="scans" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="scans">Scans ({scans.length})</TabsTrigger>
-            <TabsTrigger value="predictions">Predictions ({predictions.length})</TabsTrigger>
-            <TabsTrigger value="reports">Reports ({reports.length})</TabsTrigger>
-            <TabsTrigger value="oct">OCT ({octReports.length})</TabsTrigger>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-          </TabsList>
-
-          {/* MRI Scans Tab */}
-          <TabsContent value="scans">
-            {scans.length === 0 ? (
-              <EmptyState icon={Scan} title="No MRI Scans Available" description="Add scans to see them here" />
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                {scans.map((scan) => (
-                  <Card key={scan.id}>
-                    <CardHeader>
-                      <CardTitle className="text-sm flex items-center gap-2">
-                        <Scan className="h-4 w-4 text-[#20bdbe]" />
-                        Scan {scan.id.slice(0, 8)}
-                      </CardTitle>
-                      <CardDescription>
-                        {new Date(scan.uploaded_at).toLocaleString()}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid grid-cols-2 gap-2">
-                      <div className="relative aspect-square rounded-lg bg-muted overflow-hidden">
-                        {scan.left_scan_path ? (
-                          <Image src={`${API_BASE}/` + scan.left_scan_path} alt="Left eye" fill className="object-cover" unoptimized />
-                        ) : (
-                          <div className="flex items-center justify-center h-full text-muted-foreground">No image</div>
-                        )}
-                        <span className="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">Left</span>
-                      </div>
-                      <div className="relative aspect-square rounded-lg bg-muted overflow-hidden">
-                        {scan.right_scan_path ? (
-                          <Image src={`${API_BASE}/` + scan.right_scan_path} alt="Right eye" fill className="object-cover" unoptimized />
-                        ) : (
-                          <div className="flex items-center justify-center h-full text-muted-foreground">No image</div>
-                        )}
-                        <span className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">Right</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+        {/* Expandable Sections */}
+        <Accordion type="multiple" defaultValue={["scans", "predictions"]} className="w-full">
+          {/* MRI Scans */}
+          <AccordionItem value="scans" className="border rounded-lg mb-2">
+            <AccordionTrigger className="px-4 hover:no-underline bg-muted/30 rounded-t-lg">
+              <div className="flex items-center gap-2">
+                <Scan className="h-5 w-5 text-[#20bdbe]" />
+                <span className="text-lg font-semibold">MRI Scans ({scans.length})</span>
               </div>
-            )}
-          </TabsContent>
-
-          {/* Predictions Tab */}
-          <TabsContent value="predictions">
-            {predictions.length === 0 ? (
-              <EmptyState icon={FileText} title="No Predictions Available" description="Run predictions to see them here" />
-            ) : (
-              <div className="space-y-3">
-                {predictions.map((pred) => {
-                  const grade = pred.output_payload?.combined_grade as number | undefined;
-                  const gradeLabel = grade !== undefined ? GRADE_LABELS[grade] : null;
-                  return (
-                  <Card key={pred.id}>
-                    <CardContent className="py-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                          {getStatusIcon(pred.status)}
-                          <div>
-                            <p className="font-medium">{pred.model_name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {new Date(pred.created_at).toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium">
-                            {pred.confidence_score ? `${(pred.confidence_score * 100).toFixed(1)}%` : 'N/A'}
-                          </p>
-                          <Badge variant={pred.status === 'success' ? 'default' : 'secondary'}>
-                            {pred.status}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between mt-2 pt-2 border-t">
-                        <div className="flex items-center gap-2">
-                          {gradeLabel && (
-                            <>
-                              <span className="text-sm text-muted-foreground">DR Grade:</span>
-                              <Badge className={GRADE_COLORS[String(grade)] || 'bg-muted'}>
-                                {gradeLabel}
-                              </Badge>
-                            </>
+            </AccordionTrigger>
+            <AccordionContent className="p-4">
+              {scans.length === 0 ? (
+                <EmptyState icon={Scan} title="No MRI Scans" description="Add scans to see them here" />
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {scans.map((scan) => (
+                    <Card key={scan.id}>
+                      <CardHeader>
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <Scan className="h-4 w-4 text-[#20bdbe]" />
+                          Scan {scan.id.slice(0, 8)}
+                        </CardTitle>
+                        <CardDescription>
+                          {new Date(scan.uploaded_at).toLocaleString()}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="grid grid-cols-2 gap-2">
+                        <div className="relative aspect-square rounded-lg bg-muted overflow-hidden">
+                          {scan.left_scan_path ? (
+                            <Image src={`${API_BASE}/` + scan.left_scan_path} alt="Left eye" fill className="object-cover" unoptimized />
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-muted-foreground">No image</div>
                           )}
+                          <span className="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">Left</span>
                         </div>
-                        {pred.status === 'success' && (
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => router.push(`/dashboard/predictions/${pred.id}/gradcam`)}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            View GradCAM
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )})}
-              </div>
-            )}
-          </TabsContent>
+                        <div className="relative aspect-square rounded-lg bg-muted overflow-hidden">
+                          {scan.right_scan_path ? (
+                            <Image src={`${API_BASE}/` + scan.right_scan_path} alt="Right eye" fill className="object-cover" unoptimized />
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-muted-foreground">No image</div>
+                          )}
+                          <span className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">Right</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </AccordionContent>
+          </AccordionItem>
 
-          {/* Reports Tab */}
-          <TabsContent value="reports">
-            {reports.length === 0 ? (
-              <EmptyState icon={FileText} title="No Reports Available" description="Generate reports to see them here" />
-            ) : (
-              <div className="space-y-3">
-                {reports.map((report) => (
-                  <Dialog key={report.id}>
-                    <DialogTrigger asChild>
-                      <Card className="cursor-pointer hover:shadow-md transition-shadow">
-                        <CardContent className="flex items-center justify-between py-4">
-                          <div className="flex items-center gap-3">
-                            {getStatusIcon(report.status)}
-                            <div>
-                              <p className="font-medium">{report.llm_model}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {new Date(report.created_at).toLocaleString()}
+          {/* Predictions */}
+          <AccordionItem value="predictions" className="border rounded-lg mb-2">
+            <AccordionTrigger className="px-4 hover:no-underline bg-muted/30 rounded-t-lg">
+              <div className="flex items-center gap-2">
+                <Eye className="h-5 w-5 text-amber-500" />
+                <span className="text-lg font-semibold">Predictions ({predictions.length})</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="p-4">
+              {predictions.length === 0 ? (
+                <EmptyState icon={FileText} title="No Predictions" description="Run predictions to see them here" />
+              ) : (
+                <div className="space-y-3">
+                  {predictions.map((pred) => {
+                    const grade = pred.output_payload?.combined_grade as number | undefined;
+                    const gradeLabel = grade !== undefined ? GRADE_LABELS[grade] : null;
+                    return (
+                      <Card key={pred.id}>
+                        <CardContent className="py-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              {getStatusIcon(pred.status)}
+                              <div>
+                                <p className="font-medium">{pred.model_name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {new Date(pred.created_at).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium">
+                                {pred.confidence_score ? `${(pred.confidence_score * 100).toFixed(1)}%` : 'N/A'}
                               </p>
+                              <Badge variant={pred.status === 'success' ? 'default' : 'secondary'}>
+                                {pred.status}
+                              </Badge>
                             </div>
                           </div>
-                          <Badge variant={report.status === 'completed' ? 'default' : 'secondary'}>
-                            {report.status}
-                          </Badge>
+                          <div className="flex items-center justify-between mt-2 pt-2 border-t">
+                            <div className="flex items-center gap-2">
+                              {gradeLabel && (
+                                <>
+                                  <span className="text-sm text-muted-foreground">DR Grade:</span>
+                                  <Badge className={GRADE_COLORS[String(grade)] || 'bg-muted'}>
+                                    {gradeLabel}
+                                  </Badge>
+                                </>
+                              )}
+                            </div>
+                            {pred.status === 'success' && (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => router.push(`/dashboard/predictions/${pred.id}/gradcam`)}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                View GradCAM
+                              </Button>
+                            )}
+                          </div>
                         </CardContent>
                       </Card>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>Clinical Report</DialogTitle>
-                        <DialogDescription>
-                          Generated by {report.llm_model} on {new Date(report.created_at).toLocaleString()}
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="mt-4 space-y-4">
-                        {report.summary && (
-                          <div>
-                            <h4 className="font-semibold mb-2">Summary</h4>
-                            <p className="text-sm">{report.summary}</p>
-                          </div>
-                        )}
-                        {report.content && (
-                          <div>
-                            <h4 className="font-semibold mb-2">Full Report</h4>
-                            <div className="text-sm whitespace-pre-wrap">{report.content}</div>
-                          </div>
-                        )}
-                        {!report.content && !report.summary && (
-                          <p className="text-muted-foreground">No report content available</p>
-                        )}
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                ))}
+                    );
+                  })}
+                </div>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* Clinical Reports */}
+          <AccordionItem value="reports" className="border rounded-lg mb-2">
+            <AccordionTrigger className="px-4 hover:no-underline bg-muted/30 rounded-t-lg">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-blue-500" />
+                <span className="text-lg font-semibold">Clinical Reports ({reports.length})</span>
               </div>
-            )}
-          </TabsContent>
-
-          {/* OCT Reports Tab */}
-          <TabsContent value="oct">
-            {octReports.length === 0 ? (
-              <EmptyState icon={Activity} title="No OCT Reports Available" description="Process OCT scans to see them here" />
-            ) : (
-              <Card>
-                <CardContent className="p-0">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-3">Eye</th>
-                        <th className="text-left p-3">DR Grade</th>
-                        <th className="text-left p-3">Edema</th>
-                        <th className="text-left p-3">ERM</th>
-                        <th className="text-left p-3">Quality</th>
-                        <th className="text-left p-3">Center Fovea (μm)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {octReports.map((oct) => (
-                        <tr key={oct.id} className="border-b">
-                          <td className="p-3">{oct.eye}</td>
-                          <td className="p-3">
-                            <Badge className={GRADE_COLORS[oct.dr_grade || ''] || 'bg-muted'}>
-                              {oct.dr_grade || 'N/A'}
+            </AccordionTrigger>
+            <AccordionContent className="p-4">
+              {reports.length === 0 ? (
+                <EmptyState icon={FileText} title="No Reports" description="Generate reports to see them here" />
+              ) : (
+                <div className="space-y-3">
+                  {reports.map((report) => (
+                    <Dialog key={report.id}>
+                      <DialogTrigger asChild>
+                        <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                          <CardContent className="flex items-center justify-between py-4">
+                            <div className="flex items-center gap-3">
+                              {getStatusIcon(report.status)}
+                              <div>
+                                <p className="font-medium">{report.llm_model}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {new Date(report.created_at).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                            <Badge variant={report.status === 'completed' ? 'default' : 'secondary'}>
+                              {report.status}
                             </Badge>
-                          </td>
-                          <td className="p-3">{oct.edema ? 'Yes' : 'No'}</td>
-                          <td className="p-3">{oct.erm_status || 'N/A'}</td>
-                          <td className="p-3">{oct.image_quality ? `${oct.image_quality}%` : 'N/A'}</td>
-                          <td className="p-3">{oct.thickness_center_fovea || 'N/A'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
+                          </CardContent>
+                        </Card>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>Clinical Report</DialogTitle>
+                          <DialogDescription>
+                            Generated by {report.llm_model} on {new Date(report.created_at).toLocaleString()}
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="mt-4 space-y-4">
+                          {report.summary && (
+                            <div>
+                              <h4 className="font-semibold mb-2">Summary</h4>
+                              <p className="text-sm">{report.summary}</p>
+                            </div>
+                          )}
+                          {report.content && (
+                            <div>
+                              <h4 className="font-semibold mb-2">Full Report</h4>
+                              <div className="text-sm whitespace-pre-wrap">{report.content}</div>
+                            </div>
+                          )}
+                          {!report.content && !report.summary && (
+                            <p className="text-muted-foreground">No report content available</p>
+                          )}
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  ))}
+                </div>
+              )}
+            </AccordionContent>
+          </AccordionItem>
 
-          {/* Overview Tab */}
-          <TabsContent value="overview">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Patient Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span>{patient.first_name} {patient.last_name}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>{patient.age} years old • {patient.gender === 'M' ? 'Male' : 'Female'}</span>
-                  </div>
-                  {patient.phone && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span>{patient.phone}</span>
-                    </div>
-                  )}
-                  {patient.address && (
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span>{patient.address}</span>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  <p><strong>MRN:</strong> {patient.medical_record_number}</p>
-                  <p><strong>Registered:</strong> {new Date(patient.created_at).toLocaleDateString()}</p>
-                  <p><strong>Total Scans:</strong> {scans.length}</p>
-                  <p><strong>Total Predictions:</strong> {predictions.length}</p>
-                  <p><strong>Total Reports:</strong> {reports.length}</p>
-                  <p><strong>OCT Reports:</strong> {octReports.length}</p>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
+          {/* OCT Reports */}
+          <AccordionItem value="oct" className="border rounded-lg mb-2">
+            <AccordionTrigger className="px-4 hover:no-underline bg-muted/30 rounded-t-lg">
+              <div className="flex items-center gap-2">
+                <Activity className="h-5 w-5 text-purple-500" />
+                <span className="text-lg font-semibold">OCT Reports ({octReports.length})</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="p-4">
+              {octReports.length === 0 ? (
+                <EmptyState icon={Activity} title="No OCT Reports" description="Process OCT scans to see them here" />
+              ) : (
+                <Card>
+                  <CardContent className="p-0">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-3">Eye</th>
+                          <th className="text-left p-3">DR Grade</th>
+                          <th className="text-left p-3">Edema</th>
+                          <th className="text-left p-3">ERM</th>
+                          <th className="text-left p-3">Quality</th>
+                          <th className="text-left p-3">Center Fovea (μm)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {octReports.map((oct) => (
+                          <tr key={oct.id} className="border-b">
+                            <td className="p-3">{oct.eye}</td>
+                            <td className="p-3">
+                              <Badge className={GRADE_COLORS[oct.dr_grade || ''] || 'bg-muted'}>
+                                {oct.dr_grade || 'N/A'}
+                              </Badge>
+                            </td>
+                            <td className="p-3">{oct.edema ? 'Yes' : 'No'}</td>
+                            <td className="p-3">{oct.erm_status || 'N/A'}</td>
+                            <td className="p-3">{oct.image_quality ? `${oct.image_quality}%` : 'N/A'}</td>
+                            <td className="p-3">{oct.thickness_center_fovea || 'N/A'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </CardContent>
+                </Card>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </motion.div>
     </PageContainer>
   );
