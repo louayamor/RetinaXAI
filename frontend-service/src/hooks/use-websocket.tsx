@@ -39,6 +39,22 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
         event: 'subscribe',
         data: { room: 'llmops' }
       }));
+      wsRef.current?.send(JSON.stringify({
+        event: 'subscribe',
+        data: { room: 'notifications' }
+      }));
+      wsRef.current?.send(JSON.stringify({
+        event: 'subscribe',
+        data: { room: 'xai:prediction' }
+      }));
+      wsRef.current?.send(JSON.stringify({
+        event: 'subscribe',
+        data: { room: 'xai:gradcam' }
+      }));
+      wsRef.current?.send(JSON.stringify({
+        event: 'subscribe',
+        data: { room: 'xai:severity' }
+      }));
     };
     
     wsRef.current.onclose = () => {

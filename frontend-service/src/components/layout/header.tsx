@@ -6,6 +6,7 @@ import { Breadcrumbs } from '../breadcrumbs';
 import SearchInput from '../search-input';
 import { UserNav } from './user-nav';
 import { ConnectionStatus } from '@/components/layout/connection-status';
+import { NotificationCenter } from '@/components/notifications/notification-center';
 
 export default function Header() {
   return (
@@ -21,6 +22,7 @@ export default function Header() {
           <SearchInput />
         </div>
         <ConnectionStatus />
+        <NotificationCenter />
         <Image
           src='https://www.samayahospital.ae/home/images/logo.png'
           alt='Samaya Specialized Center'
