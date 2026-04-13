@@ -20,10 +20,25 @@ class Patient(Base, UUIDMixin, TimestampMixin):
     gender: Mapped[Gender] = mapped_column(Enum(Gender), nullable=False)
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
-    medical_record_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
-    ocr_patient_id: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
+    medical_record_number: Mapped[str] = mapped_column(
+        String(50), unique=True, nullable=False, index=True
+    )
+    ocr_patient_id: Mapped[str | None] = mapped_column(
+        String(50), nullable=True, index=True
+    )
 
-    mri_scans = relationship("MRIScan", back_populates="patient", cascade="all, delete-orphan")
-    predictions = relationship("Prediction", back_populates="patient", cascade="all, delete-orphan")
-    reports = relationship("Report", back_populates="patient", cascade="all, delete-orphan")
-    oct_reports = relationship("OCTReport", back_populates="patient", cascade="all, delete-orphan")
+    mri_scans = relationship(
+        "MRIScan", back_populates="patient", cascade="all, delete-orphan"
+    )
+    predictions = relationship(
+        "Prediction", back_populates="patient", cascade="all, delete-orphan"
+    )
+    reports = relationship(
+        "Report", back_populates="patient", cascade="all, delete-orphan"
+    )
+    oct_reports = relationship(
+        "OCTReport", back_populates="patient", cascade="all, delete-orphan"
+    )
+    severity_reports = relationship(
+        "SeverityReport", back_populates="patient", cascade="all, delete-orphan"
+    )
