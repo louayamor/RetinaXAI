@@ -23,17 +23,20 @@ def create_fine_tune_split(
     eyepacs_df: pd.DataFrame,
     clinical_ratio: float = 0.7,
     no_dr_ratio: float = 0.25,
+    oversample_ratio: int = 5,
 ) -> pd.DataFrame:
     """Create Phase 2 training split with healthy anchor (No DR samples)."""
+    no_dr_count = int(len(eyepacs_df[eyepacs_df["label"] == 0]) * no_dr_ratio)
     eyepacs_no_dr = eyepacs_df[eyepacs_df["label"] == 0].sample(
-        frac=no_dr_ratio, random_state=42
+        n=max(1, no_dr_count), random_state=42
     )
+    dr_count = int(len(eyepacs_df[eyepacs_df["label"] != 0]) * (1 - no_dr_ratio))
     eyepacs_dr = eyepacs_df[eyepacs_df["label"] != 0].sample(
-        frac=(1 - no_dr_ratio), random_state=42
+        n=max(1, dr_count), random_state=42
     )
     eyepacs_subset = pd.concat([eyepacs_no_dr, eyepacs_dr], ignore_index=True)
 
-    clinical_oversampled = oversample_clinical(clinical_df, ratio=5)
+    clinical_oversampled = oversample_clinical(clinical_df, ratio=oversample_ratio)
 
     clinical_size = int(len(eyepacs_subset) * clinical_ratio / (1 - clinical_ratio))
     clinical_subset = clinical_oversampled.sample(

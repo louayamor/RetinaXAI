@@ -395,7 +395,7 @@ class ImagingModelTrainer:
                 )  # type: ignore[call-overload]
 
                 logger.info(
-                    f"epoch={epoch + 1}/{p.epochs} "
+                    f"epoch={epoch + 1}/{self.phase_epochs} "
                     f"loss={avg_loss:.4f} "
                     f"train_acc={train_acc:.4f} "
                     f"val_acc={val_acc:.4f} "
