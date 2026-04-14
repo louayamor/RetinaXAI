@@ -6,10 +6,41 @@ from datasets import load_from_disk
 from loguru import logger
 from PIL import Image
 from sklearn.model_selection import train_test_split
+from torchvision import transforms
 
 from app.entity.config_entity import ImagingTransformationConfig
 from app.utils.common import read_yaml
 from app.constants import PARAMS_FILE_PATH, SCHEMA_FILE_PATH
+
+
+def oversample_clinical(df: pd.DataFrame, ratio: int = 5) -> pd.DataFrame:
+    """Oversample clinical data by repeating samples."""
+    return pd.concat([df] * ratio, ignore_index=True)
+
+
+def create_fine_tune_split(
+    clinical_df: pd.DataFrame,
+    eyepacs_df: pd.DataFrame,
+    clinical_ratio: float = 0.7,
+    no_dr_ratio: float = 0.25,
+) -> pd.DataFrame:
+    """Create Phase 2 training split with healthy anchor (No DR samples)."""
+    eyepacs_no_dr = eyepacs_df[eyepacs_df["label"] == 0].sample(
+        frac=no_dr_ratio, random_state=42
+    )
+    eyepacs_dr = eyepacs_df[eyepacs_df["label"] != 0].sample(
+        frac=(1 - no_dr_ratio), random_state=42
+    )
+    eyepacs_subset = pd.concat([eyepacs_no_dr, eyepacs_dr], ignore_index=True)
+
+    clinical_oversampled = oversample_clinical(clinical_df, ratio=5)
+
+    clinical_size = int(len(eyepacs_subset) * clinical_ratio / (1 - clinical_ratio))
+    clinical_subset = clinical_oversampled.sample(
+        n=min(clinical_size, len(clinical_oversampled)), random_state=42
+    )
+
+    return pd.concat([clinical_subset, eyepacs_subset], ignore_index=True)
 
 
 class ImagingDataTransformation:
@@ -17,6 +48,31 @@ class ImagingDataTransformation:
         self.config = config
         self.params = read_yaml(PARAMS_FILE_PATH)
         self.schema = read_yaml(SCHEMA_FILE_PATH)
+
+    def _build_clinical_augmentation_transforms(self):
+        """Build transforms with clinical-style augmentations for domain adaptation."""
+        aug = self.params.augmentation
+        norm = aug.normalize
+
+        train_tf = transforms.Compose(
+            [
+                transforms.Resize((224, 224)),
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomVerticalFlip(),
+                transforms.RandomRotation(aug.random_rotation),
+                transforms.ColorJitter(
+                    brightness=aug.color_jitter.brightness * 1.5,
+                    contrast=aug.color_jitter.contrast * 1.5,
+                    saturation=aug.color_jitter.saturation * 1.5,
+                    hue=aug.color_jitter.hue * 1.5,
+                ),
+                transforms.RandomAdjustSharpness(sharpness_factor=2, p=0.3),
+                transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0)),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=norm.mean, std=norm.std),
+            ]
+        )
+        return train_tf
 
     def _resize_and_save(self, img, path: Path) -> None:
         img.convert("RGB").resize(

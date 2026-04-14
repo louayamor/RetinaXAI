@@ -13,7 +13,11 @@ from sklearn.metrics import (
     cohen_kappa_score,
     classification_report,
     roc_auc_score,
+    f1_score,
+    confusion_matrix,
+    ConfusionMatrixDisplay,
 )
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
@@ -132,10 +136,12 @@ class ImagingModelEvaluation:
         qwk = cohen_kappa_score(labels, preds, weights="quadratic")
         report = classification_report(labels, preds, output_dict=True, zero_division=0)  # type: ignore[call-overload]
         auc = self._compute_auc(labels, probs)
+        macro_f1 = f1_score(labels, preds, average="macro", zero_division=0)
+        cm = confusion_matrix(labels, preds)
 
         auc_str = f"{auc:.4f}" if auc is not None else "N/A"
         logger.info(
-            f"[{split_name}] accuracy={accuracy:.4f} qwk={qwk:.4f} auc={auc_str}"
+            f"[{split_name}] accuracy={accuracy:.4f} qwk={qwk:.4f} auc={auc_str} macro_f1={macro_f1:.4f}"
         )
 
         return {
@@ -143,6 +149,8 @@ class ImagingModelEvaluation:
             "accuracy": round(accuracy, 4),
             "quadratic_weighted_kappa": round(qwk, 4),
             "roc_auc_macro": round(auc, 4) if auc is not None else None,
+            "macro_f1": round(macro_f1, 4),
+            "confusion_matrix": cm.tolist(),
             "classification_report": report,
             "num_samples": len(labels),
             "label_distribution": {
@@ -202,16 +210,69 @@ class ImagingModelEvaluation:
                     "test_accuracy": test_metrics["accuracy"],
                     "test_qwk": test_metrics["quadratic_weighted_kappa"],
                     "test_auc": test_metrics["roc_auc_macro"] or 0.0,
+                    "test_macro_f1": test_metrics["macro_f1"],
                 }
             )
+
+            cm_fig_path = (
+                self.config.metric_file.parent
+                / f"confusion_matrix_{test_metrics['split']}.png"
+            )
+            try:
+                fig, ax = plt.subplots(figsize=(10, 8))
+                disp = ConfusionMatrixDisplay(
+                    confusion_matrix=test_metrics["confusion_matrix"],
+                    display_labels=[
+                        "No DR",
+                        "Mild",
+                        "Moderate",
+                        "Severe",
+                        "Proliferative DR",
+                    ],
+                )
+                disp.plot(ax=ax, cmap="Blues", values_format="d")
+                plt.title(f"Confusion Matrix - {test_metrics['split']}")
+                plt.tight_layout()
+                plt.savefig(cm_fig_path)
+                mlflow.log_artifact(str(cm_fig_path))
+                logger.info(f"Confusion matrix saved to mlflow: {cm_fig_path}")
+            except Exception as e:
+                logger.warning(f"Failed to save confusion matrix: {e}")
+
             if samaya_metrics:
                 mlflow.log_metrics(
                     {
                         "samaya_accuracy": samaya_metrics["accuracy"],
                         "samaya_qwk": samaya_metrics["quadratic_weighted_kappa"],
                         "samaya_auc": samaya_metrics["roc_auc_macro"] or 0.0,
+                        "samaya_macro_f1": samaya_metrics["macro_f1"],
                     }
                 )
+
+                samaya_cm_path = (
+                    self.config.metric_file.parent
+                    / f"confusion_matrix_{samaya_metrics['split']}.png"
+                )
+                try:
+                    fig, ax = plt.subplots(figsize=(10, 8))
+                    disp = ConfusionMatrixDisplay(
+                        confusion_matrix=samaya_metrics["confusion_matrix"],
+                        display_labels=[
+                            "No DR",
+                            "Mild",
+                            "Moderate",
+                            "Severe",
+                            "Proliferative DR",
+                        ],
+                    )
+                    disp.plot(ax=ax, cmap="Blues", values_format="d")
+                    plt.title(f"Confusion Matrix - {samaya_metrics['split']}")
+                    plt.tight_layout()
+                    plt.savefig(samaya_cm_path)
+                    mlflow.log_artifact(str(samaya_cm_path))
+                except Exception as e:
+                    logger.warning(f"Failed to save samaya confusion matrix: {e}")
+
             mlflow.log_artifact(str(self.config.metric_file))
 
         logger.info("=" * 60)

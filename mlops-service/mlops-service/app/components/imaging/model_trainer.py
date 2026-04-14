@@ -60,6 +60,9 @@ class ImagingModelTrainer:
         self,
         config: ImagingModelTrainerConfig,
         transformation_config: ImagingTransformationConfig,
+        phase: str = "phase1",
+        load_checkpoint: Path | None = None,
+        custom_train_csv: Path | None = None,
     ):
         self.config = config
         self.transformation_config = transformation_config
@@ -67,6 +70,37 @@ class ImagingModelTrainer:
         self.schema = read_yaml(SCHEMA_FILE_PATH)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         logger.info(f"training device: {self.device}")
+
+        self.phase = phase
+        self.load_checkpoint = load_checkpoint
+        self.custom_train_csv = custom_train_csv
+
+        phase_cfg = self.params.get("phase_based_training", {})
+        self.use_phase_based = phase_cfg.get("enabled", False) and phase in (
+            "phase1",
+            "phase2",
+        )
+
+        if self.use_phase_based:
+            if phase == "phase1":
+                self.phase_epochs = phase_cfg.get("phase1_epochs", 15)
+                self.phase_lr = phase_cfg.get("phase1_lr", 0.001)
+            else:
+                self.phase_epochs = phase_cfg.get("phase2_epochs", 5)
+                self.phase_lr = phase_cfg.get("phase2_lr", 0.00001)
+            self.freeze_backbone = phase_cfg.get("freeze_backbone", True)
+            self.unfreeze_last_blocks = phase_cfg.get("unfreeze_last_blocks", False)
+            self.use_class_weights = phase_cfg.get("class_weights") == "dynamic"
+        else:
+            self.phase_epochs = self.params.dl_training.epochs
+            self.phase_lr = self.params.dl_training.learning_rate
+            self.freeze_backbone = False
+            self.unfreeze_last_blocks = False
+            self.use_class_weights = False
+
+        logger.info(
+            f"phase={phase} epochs={self.phase_epochs} lr={self.phase_lr} freeze_backbone={self.freeze_backbone}"
+        )
 
     def _build_transforms(self):
         aug = self.params.augmentation
@@ -105,13 +139,34 @@ class ImagingModelTrainer:
             drop_rate=p.dropout,
         )
 
-        blocks = list(model.blocks.children()) if hasattr(model, "blocks") else []  # type: ignore[union-attr]
-        freeze_until = min(3, len(blocks))
-        for i, block in enumerate(blocks):
-            if i < freeze_until:
-                for param in block.parameters():
-                    param.requires_grad = False
-        logger.info(f"frozen first {freeze_until} blocks of {self.config.model_name}")
+        if self.use_phase_based and self.freeze_backbone:
+            blocks = list(model.blocks.children()) if hasattr(model, "blocks") else []
+            freeze_until = min(3, len(blocks))
+            for i, block in enumerate(blocks):
+                if i < freeze_until:
+                    for param in block.parameters():
+                        param.requires_grad = False
+
+            if self.unfreeze_last_blocks:
+                for name, param in model.named_parameters():
+                    if "layer3" in name or "layer4" in name:
+                        param.requires_grad = True
+
+            for module in model.modules():
+                if isinstance(module, nn.BatchNorm2d):
+                    module.eval()
+                    module.track_running_stats = False
+
+            logger.info(
+                f"Phase {self.phase}: backbone frozen, BatchNorm set to eval mode"
+            )
+        else:
+            blocks = list(model.blocks.children()) if hasattr(model, "blocks") else []
+            freeze_until = min(3, len(blocks))
+            for i, block in enumerate(blocks):
+                if i < freeze_until:
+                    for param in block.parameters():
+                        param.requires_grad = False
 
         model.set_grad_checkpointing(enable=True)  # type: ignore[operator]
         logger.info("gradient checkpointing enabled")
@@ -119,6 +174,12 @@ class ImagingModelTrainer:
         trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
         total = sum(p.numel() for p in model.parameters())
         logger.info(f"trainable params: {trainable:,} / {total:,}")
+
+        if self.load_checkpoint and self.load_checkpoint.exists():
+            logger.info(f"loading checkpoint: {self.load_checkpoint}")
+            state_dict = torch.load(self.load_checkpoint, map_location=self.device)
+            model.load_state_dict(state_dict)
+            logger.info("checkpoint loaded successfully")
 
         return model.to(self.device)
 
@@ -204,7 +265,8 @@ class ImagingModelTrainer:
         p = self.params.dl_training
         train_tf, val_tf = self._build_transforms()
 
-        train_dataset = RetinalDataset(self.transformation_config.train_csv, train_tf)
+        train_csv_path = self.custom_train_csv or self.transformation_config.train_csv
+        train_dataset = RetinalDataset(train_csv_path, train_tf)
         val_dataset = RetinalDataset(self.transformation_config.test_csv, val_tf)
 
         sampler = self._build_sampler(train_dataset)
@@ -227,13 +289,30 @@ class ImagingModelTrainer:
         model = self._build_model()
         optimizer = torch.optim.AdamW(
             filter(lambda p: p.requires_grad, model.parameters()),
-            lr=p.learning_rate,
+            lr=self.phase_lr,
             weight_decay=p.weight_decay,
         )
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            optimizer, T_max=p.epochs
+            optimizer, T_max=self.phase_epochs
         )
-        criterion = FocalLoss(gamma=2.0, num_classes=p.num_classes)
+
+        if self.use_class_weights:
+            labels = [
+                int(train_dataset.df.iloc[i]["label"])
+                for i in range(len(train_dataset))
+            ]
+            class_counts = np.bincount(labels, minlength=p.num_classes)
+            class_weights = torch.tensor(
+                [
+                    len(labels) / (p.num_classes * c) if c > 0 else 1.0
+                    for c in class_counts
+                ],
+                dtype=torch.float32,
+            ).to(self.device)
+            logger.info(f"Using class weights: {class_weights.tolist()}")
+            criterion = nn.CrossEntropyLoss(weight=class_weights)
+        else:
+            criterion = FocalLoss(gamma=2.0, num_classes=p.num_classes)
 
         best_val_acc = 0.0
         patience_counter = 0
@@ -253,22 +332,25 @@ class ImagingModelTrainer:
                 {
                     "model": self.config.model_name,
                     "pretrained": self.config.pretrained,
-                    "epochs": p.epochs,
+                    "epochs": self.phase_epochs,
                     "batch_size": p.batch_size,
-                    "lr": p.learning_rate,
+                    "lr": self.phase_lr,
                     "weight_decay": p.weight_decay,
                     "scheduler": p.scheduler,
                     "num_classes": p.num_classes,
                     "dropout": p.dropout,
                     "seed": p.seed,
-                    "loss": "focal_loss",
+                    "loss": "focal_loss"
+                    if not self.use_class_weights
+                    else "cross_entropy_weighted",
                     "focal_gamma": 2.0,
                     "freeze_blocks": 3,
                     "device": str(self.device),
+                    "phase": self.phase,
                 }
             )
 
-            for epoch in range(p.epochs):
+            for epoch in range(self.phase_epochs):
                 model.train()
                 train_loss, train_correct, train_total = 0.0, 0, 0
 

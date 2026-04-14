@@ -199,9 +199,7 @@ class InferenceService:
             "predicted_label": DR_CLASSES[pred_class],
             "severity": DR_SEVERITY.get(pred_class, "unknown"),
             "confidence": round(confidence, 4),
-            "probabilities": {
-                DR_CLASSES[i]: round(float(p), 4) for i, p in enumerate(probs)
-            },
+            "probabilities": {DR_CLASSES[i]: float(p) for i, p in enumerate(probs)},
         }
 
     def predict_clinical(self, features: ClinicalFeatures) -> dict:
@@ -252,9 +250,7 @@ class InferenceService:
             "severity": DR_SEVERITY.get(pred_original, "unknown"),
             "risk_score": round(float(max(probs)), 4),
             "probabilities": {
-                risk_labels.get(i + label_offset, str(i + label_offset)): round(
-                    float(p), 4
-                )
+                risk_labels.get(i + label_offset, str(i + label_offset)): float(p)
                 for i, p in enumerate(probs)
             },
         }
@@ -306,8 +302,6 @@ class InferenceService:
             "predicted_label": DR_CLASSES[pred_class],
             "severity": DR_SEVERITY.get(pred_class, "unknown"),
             "confidence": round(confidence, 4),
-            "probabilities": {
-                DR_CLASSES[i]: round(float(p), 4) for i, p in enumerate(probs)
-            },
+            "probabilities": {DR_CLASSES[i]: float(p) for i, p in enumerate(probs)},
             "gradcam_heatmap": gradcam_base64,
         }

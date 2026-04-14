@@ -65,8 +65,15 @@ def run_full_pipeline(pipeline: Dict[str, Callable]) -> None:
 
 
 def run_pipeline(stage: str, target: str) -> None:
+    from app.pipeline.training_pipeline import TrainingPipeline
+
     if stage in ("train", "evaluate", "all"):
         configure_mlflow()
+
+    if target == "imaging_phase":
+        pipeline = TrainingPipeline()
+        pipeline.run_imaging_phase_based()
+        return
 
     targets = []
     if target in ("imaging", "both"):
@@ -114,7 +121,7 @@ def main():
     pipeline_parser.add_argument(
         "--pipeline",
         type=str,
-        choices=["imaging", "clinical", "both"],
+        choices=["imaging", "clinical", "both", "imaging_phase"],
         default="both",
     )
 

@@ -11,6 +11,21 @@ dl_training:
   seed: 42
   freeze_blocks: 3
 
+phase_based_training:
+  enabled: true
+  phase1_epochs: 15
+  phase2_epochs: 5
+  phase1_lr: 0.001
+  phase2_lr: 0.00001
+  class_weights: dynamic
+  oversample_clinical: true
+  clinical_oversample_ratio: 5
+  freeze_backbone: true
+  unfreeze_last_blocks: false
+  clinical_ratio: 0.7
+  eyepacs_ratio: 0.3
+  keep_no_dr_ratio: 0.25
+
 dl_fine_tuning:
   epochs: 20
   batch_size: 1

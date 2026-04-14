@@ -1,4 +1,5 @@
 from loguru import logger
+from pathlib import Path
 from app.pipeline.imaging.stage_01_data_ingestion import run as imaging_ingest
 from app.pipeline.imaging.stage_02_data_cleaning import run as imaging_clean
 from app.pipeline.imaging.stage_03_data_transformation import run as imaging_transform
@@ -29,6 +30,28 @@ class TrainingPipeline:
         clinical_train()
         clinical_evaluate()
         logger.info("=== clinical pipeline complete ===")
+
+    def run_imaging_phase_based(self):
+        """Run imaging training with 2-phase approach for domain adaptation."""
+        logger.info("=== imaging phase-based training started ===")
+
+        imaging_ingest()
+        imaging_clean()
+        imaging_transform()
+
+        logger.info(">>> Phase 1: Full eyepacs training (15 epochs)")
+        phase1_checkpoint = imaging_train(phase="phase1", checkpoint_path=None)
+
+        logger.info(">>> Phase 2: Clinical fine-tuning (5 epochs)")
+        phase2_checkpoint = imaging_train(
+            phase="phase2", checkpoint_path=phase1_checkpoint
+        )
+
+        logger.info(">>> Running evaluation on final model")
+        imaging_evaluate()
+
+        logger.info("=== imaging phase-based training complete ===")
+        return phase2_checkpoint
 
     def run(self):
         logger.info("=== unified training pipeline started ===")
