@@ -1,0 +1,88 @@
+# Alert rules for RetinaXAI ML monitoring
+groups:
+  - name: retinaxai-alerts
+    interval: 30s
+    rules:
+      # High inference latency
+      - alert: HighInferenceLatency
+        expr: histogram_quantile(0.95, rate(retinaxai_inference_latency_seconds_bucket[5m])) > 2.0
+        for: 5m
+        labels:
+          severity: warning
+          service: mlops
+        annotations:
+          summary: "High inference latency detected"
+          description: "P95 inference latency is {{ $value }}s (threshold: 2.0s)"
+          remediation: "Check model serving performance and GPU utilization"
+
+      # Model drift detection
+      - alert: ModelDriftDetected
+        expr: retinaxai_drift_score > 0.3
+        for: 1h
+        labels:
+          severity: warning
+          service: mlops
+        annotations:
+          summary: "Data drift detected in {{ $labels.pipeline }} pipeline"
+          description: "Drift score is {{ $value }} (threshold: 0.3)"
+          remediation: "Review data quality, consider retraining model"
+
+      # Model performance degradation
+      - alert: ModelAccuracyDrop
+        expr: rate(retinaxai_best_val_accuracy[1h]) < -0.05
+        for: 2h
+        labels:
+          severity: critical
+          service: mlops
+        annotations:
+          summary: "Model accuracy degradation detected"
+          description: "Accuracy dropped by {{ $value }} in last hour"
+          remediation: "Investigate model performance, check for data drift"
+
+      # High training error rate
+      - alert: HighTrainingErrorRate
+        expr: rate(retinaxai_training_failures_total[5m]) > 0.05
+        for: 10m
+        labels:
+          severity: critical
+          service: mlops
+        annotations:
+          summary: "High training error rate"
+          description: "Training failure rate is {{ $value }} > 5% threshold"
+          remediation: "Check training logs and pipeline health"
+
+      # OOM kills
+      - alert: ModelOOMKills
+        expr: increase(retinaxai_inference_oom_kills[5m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          service: mlops
+        annotations:
+          summary: "Model OOM kill detected"
+          description: "Model out-of-memory kill occurred"
+          remediation: "Reduce batch size or increase memory allocation"
+
+      # High active training jobs
+      - alert: HighTrainingLoad
+        expr: retinaxai_active_training_jobs > 5
+        for: 10m
+        labels:
+          severity: warning
+          service: mlops
+        annotations:
+          summary: "High training job concurrency"
+          description: "{{ $value }} training jobs running simultaneously"
+          remediation: "Review resource utilization, consider scaling"
+
+      # Feature drift
+      - alert: FeatureDrift
+        expr: retinaxai_feature_drift_score{feature=~".+"} > 0.2
+        for: 30m
+        labels:
+          severity: warning
+          service: mlops
+        annotations:
+          summary: "Feature drift detected for {{ $labels.feature }}"
+          description: "Drift score: {{ $value }}"
+          remediation: "Review feature distribution, consider retraining"

@@ -116,6 +116,11 @@ class Settings(BaseSettings):
         return self.artifacts_root / "training_jobs.json"
 
     @property
+    def model_registry_dir(self) -> Path:
+        """Model registry directory for versioning and metadata."""
+        return self.artifacts_root / "model_registry"
+
+    @property
     def ocr_input_dir(self) -> Path:
         return self.data_dir / "ocr_reports"
 

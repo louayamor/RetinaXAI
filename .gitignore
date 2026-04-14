@@ -51,6 +51,7 @@ node_modules/
 .next/
 out/
 docs/
+mlops-service/docs
 yarn-error.log
 AGENTS.md
 /.cursor/

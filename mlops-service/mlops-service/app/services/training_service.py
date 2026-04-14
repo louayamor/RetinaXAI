@@ -21,6 +21,7 @@ from app.pipeline.clinical.stage_02_data_cleaning import run as clin_s2
 from app.pipeline.clinical.stage_03_data_transformation import run as clin_s3
 from app.pipeline.clinical.stage_04_model_trainer import run as clin_s4
 from app.pipeline.clinical.stage_05_model_evaluation import run as clin_s5
+from app.services.model_registry import ModelRegistryService
 
 from monitoring.prometheus_metrics import (
     TRAINING_RUNS_TOTAL,
@@ -470,7 +471,88 @@ def run_pipeline_task(job_id: str, pipeline: str) -> None:
                     str(e),
                     error=str(e),
                 )
-                raise
+            raise
+
+        # Register trained models in model registry
+        try:
+            _emit_stage_event(
+                job_id,
+                pipeline,
+                "model_registration",
+                "started",
+                95,
+                "Registering trained models in model registry...",
+            )
+
+            from app.config.settings import settings
+            from app.pipeline.training_pipeline import TrainingPipeline
+
+            # Initialize registry and create version
+            training_pipeline = TrainingPipeline()
+
+            # Generate version numbers
+            imaging_version = training_pipeline._generate_version("imaging")
+            clinical_version = training_pipeline._generate_version("clinical")
+
+            # Register imaging model if pipeline includes imaging
+            if pipeline in ("imaging", "both") and settings.imaging_model_path.exists():
+                # Load metrics from the evaluation output
+                imaging_metrics = {}
+                if settings.imaging_metrics_path.exists():
+                    try:
+                        with open(settings.imaging_metrics_path) as f:
+                            imaging_metrics = json.load(f)
+                    except Exception as e:
+                        logger.warning(f"Failed to load imaging metrics: {e}")
+
+                training_pipeline._register_model(
+                    pipeline="imaging",
+                    version=imaging_version,
+                    model_path=settings.imaging_model_path,
+                    metrics=imaging_metrics,
+                )
+
+            # Register clinical model if pipeline includes clinical
+            if (
+                pipeline in ("clinical", "both")
+                and settings.clinical_model_path.exists()
+            ):
+                # Load metrics from the evaluation output
+                clinical_metrics = {}
+                if settings.clinical_metrics_path.exists():
+                    try:
+                        with open(settings.clinical_metrics_path) as f:
+                            clinical_metrics = json.load(f)
+                    except Exception as e:
+                        logger.warning(f"Failed to load clinical metrics: {e}")
+
+                training_pipeline._register_model(
+                    pipeline="clinical",
+                    version=clinical_version,
+                    model_path=settings.clinical_model_path,
+                    metrics=clinical_metrics,
+                )
+
+            _emit_stage_event(
+                job_id,
+                pipeline,
+                "model_registration",
+                "completed",
+                100,
+                f"Models registered: imaging={imaging_version}, clinical={clinical_version}",
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to register models: {e}")
+            # Non-critical - don't fail job if registration fails
+            _emit_stage_event(
+                job_id,
+                pipeline,
+                "model_registration",
+                "warning",
+                95,
+                f"Model registration failed (non-critical): {e}",
+            )
 
         _job_store[job_id]["status"] = "completed"
         _job_store[job_id]["completed_at"] = datetime.utcnow().isoformat()

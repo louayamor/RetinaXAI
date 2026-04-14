@@ -1,6 +1,9 @@
 import io
 import pickle
 import time
+from pathlib import Path
+from typing import Optional
+
 import numpy as np
 import pandas as pd
 import timm
@@ -16,6 +19,8 @@ from app.services.gradcam_service import GradCAMService
 from app.utils.common import load_json, read_yaml
 from app.constants import PARAMS_FILE_PATH, SCHEMA_FILE_PATH
 from monitoring.prometheus_metrics import INFERENCE_LATENCY
+from app.services.model_registry import ModelRegistryService
+from app.services.model_registry import ModelNotFoundError as ModelRegistryNotFoundError
 
 
 DR_CLASSES = {0: "No DR", 1: "Mild", 2: "Moderate", 3: "Severe", 4: "Proliferative DR"}
@@ -43,6 +48,38 @@ class InferenceService:
         self._feature_meta = None
         self._clinical_encoders = None
         self._clinical_numeric_medians = None
+
+        # Add model registry service for loading models
+        self._registry_service = ModelRegistryService(
+            self.settings.artifacts_root / "model_registry"
+        )
+
+    def _get_current_production_model_path(self, pipeline: str) -> Optional[Path]:
+        """Get current production model path from registry, or fall back to settings paths."""
+        try:
+            current_model = self._registry_service.get_current_production(pipeline)
+            if current_model:
+                model_path = self.settings.artifacts_root / current_model.artifact_path
+                if model_path.exists():
+                    logger.info(
+                        f"Using registry model for {pipeline}: {current_model.version}"
+                    )
+                    return model_path
+                else:
+                    logger.warning(f"Registry model path doesn't exist: {model_path}")
+        except ModelRegistryNotFoundError:
+            logger.info(
+                f"No production model found in registry for {pipeline}, using default paths"
+            )
+        except Exception as e:
+            logger.warning(f"Failed to load from registry for {pipeline}: {e}")
+
+        # Fall back to settings paths
+        return (
+            self.settings.imaging_model_path
+            if pipeline == "imaging"
+            else self.settings.clinical_model_path
+        )
 
     def _move_to_cpu(self) -> None:
         self.device = torch.device("cpu")
@@ -80,12 +117,8 @@ class InferenceService:
             drop_rate=p.dropout,
         )
         try:
-            logger.info(
-                f"[IMAGING MODEL] loading state dict from {self.settings.imaging_model_path}"
-            )
-            model.load_state_dict(
-                torch.load(self.settings.imaging_model_path, map_location=self.device)
-            )
+            logger.info(f"[IMAGING MODEL] loading state dict from {model_path}")
+            model.load_state_dict(torch.load(model_path, map_location=self.device))
         except Exception as e:
             if self.device.type == "cuda" and "out of memory" in str(e).lower():
                 logger.warning(
@@ -128,7 +161,7 @@ class InferenceService:
 
         logger.info("[CLINICAL MODEL] loading pickle model")
         try:
-            with open(self.settings.clinical_model_path, "rb") as f:
+            with open(model_path, "rb") as f:
                 model = pickle.load(f)
         except Exception as e:
             raise RuntimeError(f"Failed to load clinical model: {e}") from e

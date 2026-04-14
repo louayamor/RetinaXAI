@@ -3,6 +3,63 @@ from typing import Optional
 from enum import Enum
 
 
+class ModelStage(str, Enum):
+    STAGING = "staging"
+    PRODUCTION = "production"
+    ARCHIVED = "archived"
+
+
+class ModelVersion(BaseModel):
+    version: str
+    stage: ModelStage
+    model_path: str
+    metadata: dict = {}
+    created_at: Optional[str] = None
+
+
+class ModelRegisterResponse(BaseModel):
+    version: str
+    stage: ModelStage
+    message: str
+
+
+class ModelPromotionRequest(BaseModel):
+    target_stage: ModelStage
+
+
+class ModelPromotionResponse(BaseModel):
+    version: str
+    previous_stage: ModelStage
+    current_stage: ModelStage
+    message: str
+
+
+class ModelRollbackRequest(BaseModel):
+    version: str
+
+
+class ModelDetailResponse(BaseModel):
+    version: str
+    pipeline: str
+    stage: ModelStage
+    model_path: str
+    metrics: dict
+    metadata: dict = {}
+    created_at: Optional[str] = None
+
+
+class ModelListResponse(BaseModel):
+    models: list[ModelDetailResponse]
+    total: int
+
+
+class CurrentProductionResponse(BaseModel):
+    pipeline: str
+    version: str
+    model_path: str
+    created_at: Optional[str] = None
+
+
 class PipelineType(str, Enum):
     both = "both"
     imaging = "imaging"
