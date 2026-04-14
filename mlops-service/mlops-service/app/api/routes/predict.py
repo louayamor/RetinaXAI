@@ -9,6 +9,7 @@ from app.api.dependencies import get_settings
 from app.api.schemas import ClinicalFeatures, MLPredictHttpRequest, PredictResponse
 from app.config.settings import Settings
 from app.services.inference_service import InferenceService
+from app.services.shap_service import ShapService
 
 router = APIRouter()
 _inference_service = None
@@ -82,6 +83,19 @@ async def predict(
             logger.info("[STEP 11-12] Skipping clinical model (no valid features)")
             clinical_result = {}
 
+        shap_explanation = None
+        if features is not None and request.features:
+            try:
+                logger.info("[STEP 13] Computing SHAP explanations")
+                shap_svc = ShapService(get_settings().artifacts_root)
+                shap_explanation = shap_svc.explain_prediction(
+                    features=features.model_dump(),
+                    pipeline="clinical",
+                ).to_dict()
+                logger.info("[STEP 14] SHAP explanations computed")
+            except Exception as e:
+                logger.warning(f"[SHAP] Skipping explanation: {e}")
+
         severity_map = {0: "none", 1: "low", 2: "moderate", 3: "high", 4: "critical"}
 
         combined_prediction = {
@@ -123,6 +137,7 @@ async def predict(
             model_version=request.model_version,
             gradcam_left=left_imaging_result.get("gradcam_heatmap"),
             gradcam_right=right_imaging_result.get("gradcam_heatmap"),
+            shap_explanation=shap_explanation,
         )
 
     except HTTPException:

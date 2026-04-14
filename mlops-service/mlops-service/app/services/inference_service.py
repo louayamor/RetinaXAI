@@ -21,6 +21,7 @@ from app.constants import PARAMS_FILE_PATH, SCHEMA_FILE_PATH
 from monitoring.prometheus_metrics import INFERENCE_LATENCY
 from app.services.model_registry import ModelRegistryService
 from app.services.model_registry import ModelNotFoundError as ModelRegistryNotFoundError
+from app.services.feature_store import get_feature_store
 
 
 DR_CLASSES = {0: "No DR", 1: "Mild", 2: "Moderate", 3: "Severe", 4: "Proliferative DR"}
@@ -247,6 +248,15 @@ class InferenceService:
         numeric_medians = self._clinical_numeric_medians or {}
 
         feature_dict = features.model_dump()
+
+        store = get_feature_store()
+        cache_key = f"clinical:{hash(frozenset(feature_dict.items()))}"
+
+        if store.exists(cache_key):
+            cached = store.get(cache_key)
+            logger.info(f"Clinical prediction cache hit: {cache_key}")
+            return cached
+
         row = {}
         for col in feature_cols:
             val = feature_dict.get(col)
@@ -277,7 +287,7 @@ class InferenceService:
 
         INFERENCE_LATENCY.labels(model="xgboost_clinical").observe(time.time() - start)
 
-        return {
+        result = {
             "predicted_grade": pred_original,
             "predicted_label": risk_labels.get(pred_original, "Unknown"),
             "severity": DR_SEVERITY.get(pred_original, "unknown"),
@@ -287,6 +297,10 @@ class InferenceService:
                 for i, p in enumerate(probs)
             },
         }
+
+        store.set(cache_key, result, ttl_seconds=3600)
+
+        return result
 
     def predict_imaging_with_gradcam(self, image_bytes: bytes) -> dict:
         start = time.time()
