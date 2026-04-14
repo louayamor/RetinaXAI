@@ -100,3 +100,8 @@ mlops-service/mlops-service/logs/
 # llmops artifacts (for when we build it)
 llmops-service/llmops-service/artifacts/
 
+# Local thoughts and research (personal notes)
+thoughts/
+research/
+shared/
+
