@@ -13,6 +13,7 @@ from app.api.routes import (
     rag,
     models,
     drift,
+    features,
 )  # reports temporarily disabled
 from app.api.dependencies import get_settings
 from monitoring.prometheus_metrics import start_metrics_server
@@ -52,6 +53,7 @@ def create_app() -> FastAPI:
     app.include_router(rag.router, tags=["rag"])  # type: ignore[arg-type]
     app.include_router(models.router, tags=["models"])  # type: ignore[arg-type]
     app.include_router(drift.router, tags=["drift"])  # type: ignore[arg-type]
+    app.include_router(features.router, tags=["features"])  # type: ignore[arg-type]
     # app.include_router(reports.router, tags=["monitoring"]) # temporarily disabled (evidently dep conflict)
 
     return app
