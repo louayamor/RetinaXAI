@@ -1,5 +1,7 @@
 from loguru import logger
 from pathlib import Path
+from app.constants import PARAMS_FILE_PATH
+from app.utils.common import read_yaml
 from app.pipeline.imaging.stage_01_data_ingestion import run as imaging_ingest
 from app.pipeline.imaging.stage_02_data_cleaning import run as imaging_clean
 from app.pipeline.imaging.stage_03_data_transformation import run as imaging_transform
@@ -38,8 +40,6 @@ class TrainingPipeline:
         imaging_ingest()
         imaging_clean()
         imaging_transform()
-
-        from app.utils.common import read_yaml
 
         params = read_yaml(PARAMS_FILE_PATH)
         phase_cfg = params.get("phase_based_training", {})
