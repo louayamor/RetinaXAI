@@ -105,3 +105,8 @@ thoughts/
 research/
 shared/
 
+# MLflow
+mlflow.db
+mlruns/
+*.db
+

@@ -43,7 +43,7 @@ def create_fine_tune_split(
         n=min(clinical_size, len(clinical_oversampled)), random_state=42
     )
 
-    return pd.concat([clinical_subset, eyepacs_subset], ignore_index=True)
+    return pd.concat([clinical_subset, eyepacs_subset], ignore_index=True)  # type: ignore[return-value]
 
 
 class ImagingDataTransformation:

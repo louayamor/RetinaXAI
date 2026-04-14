@@ -1,3 +1,5 @@
+from typing import Optional
+
 from datasets import load_from_disk, Dataset
 from loguru import logger
 
@@ -8,7 +10,7 @@ class ImagingDataCleaning:
     def __init__(self, config: ImagingCleaningConfig):
         self.config = config
 
-    def run(self) -> Dataset:  # type: ignore[type-var]
+    def run(self) -> Optional[Dataset]:  # type: ignore[type-var]
         clean_path = self.config.root_dir / "huggingface" / "train_clean"
         source_path = self.config.source_dir / "huggingface" / "train"
         logger.info(

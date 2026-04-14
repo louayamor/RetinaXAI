@@ -236,7 +236,6 @@ class ImagingModelTrainer:
         model.load_state_dict(state_dict)
         model.eval()
 
-        input_example = np.zeros((1, 3, 224, 224), dtype=np.float32)
         timeout_seconds = int(mlflow_cfg.get("model_log_timeout_seconds", 600))
         timeout_seconds = max(1, timeout_seconds)
 
@@ -244,14 +243,19 @@ class ImagingModelTrainer:
         start_time = time.perf_counter()
 
         def _upload_model() -> None:
-            # Always use export_model=False directly (skip export_model=True which fails)
+            # Disable recording env vars in model logging to avoid deployment warnings
+            import os
+
+            os.environ["MLFLOW_RECORD_ENV_VARS_IN_MODEL_LOGGING"] = "false"
+            # Use pt2 (Torch Export) format for safer non-pickle serialization
+            input_np = torch.randn(1, 3, 224, 224).numpy()
             mlflow.pytorch.log_model(
                 model,
                 name="imaging_model",
-                export_model=False,
-                input_example=input_example,
+                serialization_format="pt2",
+                input_example=input_np,
             )
-            logger.info("mlflow model logged (export_model=False)")
+            logger.info("mlflow model logged (serialization_format=pt2)")
 
         try:
             with ThreadPoolExecutor(max_workers=1) as executor:

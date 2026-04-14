@@ -98,29 +98,29 @@ class ImagingModelEvaluation:
         return all_preds, all_labels, np.array(all_probs)
 
     def _compute_auc(self, labels: list, probs: np.ndarray) -> float | None:
-        num_classes = self.params.dl_training.num_classes
-        present_classes = sorted(set(labels))
+        present_classes = np.unique(labels)
 
         if len(present_classes) < 2:
-            logger.warning("less than 2 classes present, skipping AUC")
+            logger.warning("Less than 2 classes present, skipping AUC")
             return None
 
         try:
-            probs = probs / probs.sum(axis=1, keepdims=True)
-            if len(present_classes) == num_classes:
-                return roc_auc_score(  # type: ignore[arg-type]
-                    labels, probs, multi_class="ovr", average="macro"
-                )
-            else:
-                probs_subset = probs[:, present_classes]
-                probs_subset = probs_subset / probs_subset.sum(axis=1, keepdims=True)
-                return roc_auc_score(  # type: ignore[arg-type]
-                    labels,
-                    probs_subset,
-                    multi_class="ovr",
-                    average="macro",
-                    labels=present_classes,
-                )
+            probs = probs.astype(np.float64)
+            row_sums = probs.sum(axis=1, keepdims=True)
+            probs = np.divide(
+                probs, row_sums, out=np.zeros_like(probs), where=row_sums != 0
+            )
+
+            auc = roc_auc_score(
+                y_true=labels,
+                y_score=probs,
+                multi_class="ovr",
+                average="macro",
+                labels=present_classes,
+            )
+
+            return float(auc)
+
         except Exception as e:
             logger.warning(f"AUC computation failed: {e}")
             return None
@@ -136,7 +136,7 @@ class ImagingModelEvaluation:
         qwk = cohen_kappa_score(labels, preds, weights="quadratic")
         report = classification_report(labels, preds, output_dict=True, zero_division=0)  # type: ignore[call-overload]
         auc = self._compute_auc(labels, probs)
-        macro_f1 = f1_score(labels, preds, average="macro", zero_division=0.0)
+        macro_f1 = float(f1_score(labels, preds, average="macro", zero_division="warn"))
         cm = confusion_matrix(labels, preds)
 
         auc_str = f"{auc:.4f}" if auc is not None else "N/A"
@@ -151,7 +151,6 @@ class ImagingModelEvaluation:
             "roc_auc_macro": round(auc, 4) if auc is not None else None,
             "macro_f1": round(macro_f1, 4),
             "confusion_matrix": cm.tolist(),
-            "confusion_matrix_array": cm,
             "classification_report": report,
             "num_samples": len(labels),
             "label_distribution": {
@@ -222,7 +221,7 @@ class ImagingModelEvaluation:
             try:
                 fig, ax = plt.subplots(figsize=(10, 8))
                 disp = ConfusionMatrixDisplay(
-                    confusion_matrix=test_metrics["confusion_matrix_array"],
+                    confusion_matrix=np.array(test_metrics["confusion_matrix"]),
                     display_labels=[
                         "No DR",
                         "Mild",
@@ -257,7 +256,7 @@ class ImagingModelEvaluation:
                 try:
                     fig, ax = plt.subplots(figsize=(10, 8))
                     disp = ConfusionMatrixDisplay(
-                        confusion_matrix=samaya_metrics["confusion_matrix_array"],
+                        confusion_matrix=np.array(samaya_metrics["confusion_matrix"]),
                         display_labels=[
                             "No DR",
                             "Mild",

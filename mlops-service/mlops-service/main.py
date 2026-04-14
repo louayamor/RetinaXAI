@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Callable, Dict
+from collections.abc import Callable
 
 import argparse
 import dagshub
@@ -23,7 +23,7 @@ from app.pipeline.clinical.stage_03_data_transformation import run as clin_trans
 from app.pipeline.clinical.stage_04_model_trainer import run as clin_train  # noqa: E402
 from app.pipeline.clinical.stage_05_model_evaluation import run as clin_evaluate  # noqa: E402
 
-IMAGING_PIPELINE: Dict[str, Callable] = {
+IMAGING_PIPELINE: dict[str, Callable] = {
     "ingest": img_ingest,
     "clean": img_clean,
     "transform": img_transform,
@@ -31,7 +31,7 @@ IMAGING_PIPELINE: Dict[str, Callable] = {
     "evaluate": img_evaluate,
 }
 
-CLINICAL_PIPELINE: Dict[str, Callable] = {
+CLINICAL_PIPELINE: dict[str, Callable] = {
     "ingest": clin_ingest,
     "clean": clin_clean,
     "transform": clin_transform,
@@ -52,14 +52,14 @@ def configure_mlflow() -> None:
     logger.info("MLflow configured via DagsHub")
 
 
-def run_stage(stage: str, pipeline: Dict[str, Callable]) -> None:
+def run_stage(stage: str, pipeline: dict[str, Callable]) -> None:
     if stage not in pipeline:
         raise ValueError(f"Invalid stage: {stage}")
     logger.info(f"Running stage: {stage}")
     pipeline[stage]()
 
 
-def run_full_pipeline(pipeline: Dict[str, Callable]) -> None:
+def run_full_pipeline(pipeline: dict[str, Callable]) -> None:
     for stage in PIPELINE_ORDER:
         run_stage(stage, pipeline)
 

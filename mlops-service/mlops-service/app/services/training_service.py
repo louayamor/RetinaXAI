@@ -43,7 +43,7 @@ def _emit_stage_event(
     status: str,
     progress: int,
     message: str | None = None,
-    metrics: dict[str, float] | None = None,
+    metrics: dict[str, float | str] | None = None,
     error: str | None = None,
 ) -> None:
     """Emit training stage event to connected clients."""
