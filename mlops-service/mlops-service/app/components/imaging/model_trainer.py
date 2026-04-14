@@ -13,6 +13,7 @@ from torchvision import transforms
 import pandas as pd
 from PIL import Image
 import numpy as np
+from sklearn.metrics import f1_score
 
 from app.entity.config_entity import (
     ImagingModelTrainerConfig,
@@ -139,36 +140,52 @@ class ImagingModelTrainer:
             drop_rate=p.dropout,
         )
 
-        if self.use_phase_based and self.freeze_backbone:
-            blocks = list(model.blocks.children()) if hasattr(model, "blocks") else []
-            freeze_until = min(3, len(blocks))
-            for i, block in enumerate(blocks):
-                if i < freeze_until:
-                    for param in block.parameters():
-                        param.requires_grad = False
+        # Handle phase-based training backbone settings
+        if self.use_phase_based:
+            if self.freeze_backbone:
+                # Freeze early layers for domain adaptation
+                blocks: list[torch.nn.Module] = (
+                    list(model.blocks.children()) if hasattr(model, "blocks") else []  # type: ignore[attr-defined]
+                )
+                freeze_until = min(3, len(blocks))
+                for i, block in enumerate(blocks):
+                    if i < freeze_until:
+                        for param in block.parameters():
+                            param.requires_grad = False
 
-            if self.unfreeze_last_blocks:
-                for name, param in model.named_parameters():
-                    if "layer3" in name or "layer4" in name:
-                        param.requires_grad = True
+                if self.unfreeze_last_blocks:
+                    # Gradual unfreezing: unfreeze last 2-3 blocks for domain adaptation
+                    for name, param in model.named_parameters():
+                        if "layer3" in name or "layer4" in name:
+                            param.requires_grad = True
 
-            for module in model.modules():
-                if isinstance(module, nn.BatchNorm2d):
-                    module.eval()
-                    module.track_running_stats = False
+                # Set BatchNorm to eval mode for domain adaptation (prevents stats pollution)
+                for module in model.modules():
+                    if isinstance(module, nn.BatchNorm2d):
+                        module.eval()
+                        module.track_running_stats = False
 
-            logger.info(
-                f"Phase {self.phase}: backbone frozen, BatchNorm set to eval mode"
-            )
+                logger.info(
+                    f"Phase {self.phase}: backbone frozen (with gradual unfreeze={self.unfreeze_last_blocks}), BatchNorm eval mode"
+                )
+            else:
+                # Unfrozen backbone - full feature learning (Phase 1 default)
+                logger.info(
+                    f"Phase {self.phase}: backbone UNFROZEN for full feature learning"
+                )
         else:
-            blocks = list(model.blocks.children()) if hasattr(model, "blocks") else []
+            # Default training: freeze first 3 blocks
+            blocks: list[torch.nn.Module] = (
+                list(model.blocks.children()) if hasattr(model, "blocks") else []  # type: ignore[attr-defined]
+            )
             freeze_until = min(3, len(blocks))
             for i, block in enumerate(blocks):
                 if i < freeze_until:
                     for param in block.parameters():
                         param.requires_grad = False
 
-        model.set_grad_checkpointing(enable=True)  # type: ignore[operator]
+        # Re-enabled for memory safety with larger batches
+        model.set_grad_checkpointing(enable=True)  # type: ignore[attr-defined]
         logger.info("gradient checkpointing enabled")
 
         trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -220,33 +237,21 @@ class ImagingModelTrainer:
         model.eval()
 
         input_example = np.zeros((1, 3, 224, 224), dtype=np.float32)
-        timeout_seconds = int(mlflow_cfg.get("model_log_timeout_seconds", 300))
+        timeout_seconds = int(mlflow_cfg.get("model_log_timeout_seconds", 600))
         timeout_seconds = max(1, timeout_seconds)
 
         logger.info(f"starting mlflow model upload (timeout={timeout_seconds}s)")
         start_time = time.perf_counter()
 
         def _upload_model() -> None:
-            try:
-                mlflow.pytorch.log_model(
-                    model,
-                    name="imaging_model",
-                    export_model=True,
-                    input_example=input_example,
-                )
-                logger.info("mlflow model logged with export_model=True")
-            except Exception as exc:
-                logger.warning(
-                    f"mlflow export_model=True failed ({type(exc).__name__}); "
-                    "falling back to export_model=False"
-                )
-                mlflow.pytorch.log_model(
-                    model,
-                    name="imaging_model",
-                    export_model=False,
-                    input_example=input_example,
-                )
-                logger.info("mlflow model logged with export_model=False fallback")
+            # Always use export_model=False directly (skip export_model=True which fails)
+            mlflow.pytorch.log_model(
+                model,
+                name="imaging_model",
+                export_model=False,
+                input_example=input_example,
+            )
+            logger.info("mlflow model logged (export_model=False)")
 
         try:
             with ThreadPoolExecutor(max_workers=1) as executor:
@@ -285,33 +290,40 @@ class ImagingModelTrainer:
         )
 
         model = self._build_model()
-        optimizer = torch.optim.AdamW(
-            filter(lambda p: p.requires_grad, model.parameters()),
-            lr=self.phase_lr,
-            weight_decay=p.weight_decay,
-        )
+        # Differential learning rate for Phase 2 (backbone 0.1x head LR)
+        # Note: EfficientNet doesn't have backbone attribute, so this falls back to regular optimizer
+        if (
+            self.phase == "phase2"
+            and hasattr(model, "backbone")
+            and hasattr(model, "classifier")
+        ):
+            backbone_params = list(model.backbone.parameters())  # type: ignore[attr-defined]
+            classifier_params = list(model.classifier.parameters())  # type: ignore[attr-defined]
+            optimizer = torch.optim.AdamW(
+                [
+                    {"params": backbone_params, "lr": self.phase_lr * 0.1},
+                    {"params": classifier_params, "lr": self.phase_lr},
+                ],
+                weight_decay=p.weight_decay,
+            )
+            logger.info(
+                f"Phase 2 differential LR: backbone={self.phase_lr * 0.1}, head={self.phase_lr}"
+            )
+        else:
+            optimizer = torch.optim.AdamW(
+                filter(lambda p: p.requires_grad, model.parameters()),
+                lr=self.phase_lr,
+                weight_decay=p.weight_decay,
+            )
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
             optimizer, T_max=self.phase_epochs
         )
 
-        if self.use_class_weights:
-            labels = [
-                int(train_dataset.df.iloc[i]["label"])
-                for i in range(len(train_dataset))
-            ]
-            class_counts = np.bincount(labels, minlength=p.num_classes)
-            class_weights = torch.tensor(
-                [
-                    len(labels) / (p.num_classes * c) if c > 0 else 1.0
-                    for c in class_counts
-                ],
-                dtype=torch.float32,
-            ).to(self.device)
-            logger.info(f"Using class weights: {class_weights.tolist()}")
-            criterion = nn.CrossEntropyLoss(weight=class_weights)
-        else:
-            criterion = FocalLoss(gamma=2.0, num_classes=p.num_classes)
+        # Always use FocalLoss for class imbalance (industry standard for retinal imaging)
+        criterion = FocalLoss(gamma=2.0, num_classes=p.num_classes)
+        logger.info("Using FocalLoss (gamma=2.0) for class imbalance handling")
 
+        best_macro_f1 = 0.0
         best_val_acc = 0.0
         patience_counter = 0
         checkpoint_path = self.config.checkpoint_path
@@ -368,17 +380,26 @@ class ImagingModelTrainer:
                 scheduler.step()
 
                 model.eval()
-                model.set_grad_checkpointing(enable=False)
                 val_correct, val_total = 0, 0
+                all_preds, all_labels = [], []
                 with torch.no_grad():
                     for images, labels in val_loader:
                         images, labels = images.to(self.device), labels.to(self.device)
                         outputs = model(images)
-                        val_correct += (outputs.argmax(1) == labels).sum().item()
+                        preds = outputs.argmax(1)
+                        val_correct += (preds == labels).sum().item()
                         val_total += images.size(0)
+                        all_preds.extend(preds.cpu().numpy())
+                        all_labels.extend(labels.cpu().numpy())
 
-                model.set_grad_checkpointing(enable=True)
                 model.train()
+
+                # Calculate macro-F1 for proper early stopping
+                macro_f1 = float(
+                    f1_score(
+                        all_labels, all_preds, average="macro", zero_division="warn"
+                    )
+                )
 
                 train_acc = train_correct / train_total
                 val_acc = val_correct / val_total
@@ -388,27 +409,31 @@ class ImagingModelTrainer:
 
                 mlflow.log_metrics(
                     {
-                        "train_loss": avg_loss,
-                        "train_acc": train_acc,
-                        "val_acc": val_acc,
-                        "lr": lr,
+                        "train_loss": float(avg_loss),
+                        "train_acc": float(train_acc),
+                        "val_acc": float(val_acc),
+                        "val_macro_f1": float(macro_f1),
+                        "lr": float(lr),
                     },
                     step=epoch,
-                )  # type: ignore[call-overload]
+                )
 
                 logger.info(
                     f"epoch={epoch + 1}/{self.phase_epochs} "
                     f"loss={avg_loss:.4f} "
                     f"train_acc={train_acc:.4f} "
                     f"val_acc={val_acc:.4f} "
+                    f"val_f1={macro_f1:.4f} "
                     f"lr={lr:.6f}"
                 )
 
                 logger.info(
-                    f"DEBUG: val_acc={val_acc:.4f}, best_val_acc={best_val_acc:.4f}, saving={val_acc > best_val_acc}"
+                    f"DEBUG: val_f1={macro_f1:.4f}, best_f1={best_macro_f1:.4f}, saving={macro_f1 > best_macro_f1}"
                 )
 
-                if val_acc > best_val_acc:
+                # Use macro-F1 for checkpointing (not accuracy)
+                if macro_f1 > best_macro_f1:
+                    best_macro_f1 = macro_f1
                     best_val_acc = val_acc
                     patience_counter = 0
                     try:
@@ -418,14 +443,15 @@ class ImagingModelTrainer:
                             f"Failed to save model checkpoint: {e}"
                         ) from e
                     BEST_VAL_ACCURACY.labels(pipeline="imaging").set(best_val_acc)
-                    logger.info(f"checkpoint saved: val_acc={val_acc:.4f}")
+                    logger.info(f"checkpoint saved: macro_f1={macro_f1:.4f}")
                 else:
                     patience_counter += 1
                     if patience_counter >= p.early_stopping_patience:
                         logger.info(f"early stopping at epoch {epoch + 1}")
                         break
 
-            mlflow.log_metric("best_val_acc", best_val_acc)
+            mlflow.log_metric("best_val_acc", float(best_val_acc))
+            mlflow.log_metric("best_macro_f1", float(best_macro_f1))
             self._log_best_model_to_mlflow(checkpoint_path, p.num_classes)
 
         logger.info(f"training complete. best_val_acc={best_val_acc:.4f}")

@@ -136,7 +136,7 @@ class ImagingModelEvaluation:
         qwk = cohen_kappa_score(labels, preds, weights="quadratic")
         report = classification_report(labels, preds, output_dict=True, zero_division=0)  # type: ignore[call-overload]
         auc = self._compute_auc(labels, probs)
-        macro_f1 = f1_score(labels, preds, average="macro", zero_division=0)
+        macro_f1 = f1_score(labels, preds, average="macro", zero_division="0")
         cm = confusion_matrix(labels, preds)
 
         auc_str = f"{auc:.4f}" if auc is not None else "N/A"
@@ -151,6 +151,7 @@ class ImagingModelEvaluation:
             "roc_auc_macro": round(auc, 4) if auc is not None else None,
             "macro_f1": round(macro_f1, 4),
             "confusion_matrix": cm.tolist(),
+            "confusion_matrix_array": cm,
             "classification_report": report,
             "num_samples": len(labels),
             "label_distribution": {
@@ -221,7 +222,7 @@ class ImagingModelEvaluation:
             try:
                 fig, ax = plt.subplots(figsize=(10, 8))
                 disp = ConfusionMatrixDisplay(
-                    confusion_matrix=test_metrics["confusion_matrix"],
+                    confusion_matrix=test_metrics["confusion_matrix_array"],
                     display_labels=[
                         "No DR",
                         "Mild",
@@ -256,7 +257,7 @@ class ImagingModelEvaluation:
                 try:
                     fig, ax = plt.subplots(figsize=(10, 8))
                     disp = ConfusionMatrixDisplay(
-                        confusion_matrix=samaya_metrics["confusion_matrix"],
+                        confusion_matrix=samaya_metrics["confusion_matrix_array"],
                         display_labels=[
                             "No DR",
                             "Mild",
