@@ -269,12 +269,10 @@ class ImagingModelTrainer:
         train_dataset = RetinalDataset(train_csv_path, train_tf)
         val_dataset = RetinalDataset(self.transformation_config.test_csv, val_tf)
 
-        sampler = self._build_sampler(train_dataset)
-
         train_loader = DataLoader(
             train_dataset,
             batch_size=p.batch_size,
-            sampler=sampler,
+            shuffle=True,
             num_workers=p.num_workers,
             pin_memory=True,
         )
@@ -370,6 +368,7 @@ class ImagingModelTrainer:
                 scheduler.step()
 
                 model.eval()
+                model.set_grad_checkpointing(enable=False)
                 val_correct, val_total = 0, 0
                 with torch.no_grad():
                     for images, labels in val_loader:
@@ -377,6 +376,9 @@ class ImagingModelTrainer:
                         outputs = model(images)
                         val_correct += (outputs.argmax(1) == labels).sum().item()
                         val_total += images.size(0)
+
+                model.set_grad_checkpointing(enable=True)
+                model.train()
 
                 train_acc = train_correct / train_total
                 val_acc = val_correct / val_total
@@ -400,6 +402,10 @@ class ImagingModelTrainer:
                     f"train_acc={train_acc:.4f} "
                     f"val_acc={val_acc:.4f} "
                     f"lr={lr:.6f}"
+                )
+
+                logger.info(
+                    f"DEBUG: val_acc={val_acc:.4f}, best_val_acc={best_val_acc:.4f}, saving={val_acc > best_val_acc}"
                 )
 
                 if val_acc > best_val_acc:
