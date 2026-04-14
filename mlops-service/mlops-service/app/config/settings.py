@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     backend_service_url: str = "http://backend-service:8000"
     timeout_seconds: int = 30
 
-    prometheus_metrics_port: int = 9091
+    prometheus_metrics_port: int = 9101
 
     class Config:
         env_file = ".env"

@@ -39,7 +39,22 @@ INFERENCE_LATENCY = Histogram(
     buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0],
 )
 
+DRIFT_DETECTED = Gauge(
+    "retinaxai_drift_detected",
+    "Whether drift was detected (1) or not (0)",
+    ["pipeline"],
+)
 
-def start_metrics_server(port: int = 9090) -> None:
-    start_http_server(port)
-    logger.info(f"prometheus metrics server started on port {port}")
+DRIFT_PSI_SCORE = Gauge(
+    "retinaxai_drift_psi_score",
+    "Population Stability Index (PSI) for drift detection",
+    ["pipeline", "feature"],
+)
+
+
+def start_metrics_server(port: int = 9101) -> None:
+    try:
+        start_http_server(port)
+        logger.info(f"prometheus metrics server started on port {port}")
+    except OSError as e:
+        logger.warning(f"Could not start metrics server on port {port}: {e}")
