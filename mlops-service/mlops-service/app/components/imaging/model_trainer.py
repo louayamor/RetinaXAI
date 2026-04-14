@@ -247,15 +247,14 @@ class ImagingModelTrainer:
             import os
 
             os.environ["MLFLOW_RECORD_ENV_VARS_IN_MODEL_LOGGING"] = "false"
-            # Use pt2 (Torch Export) format for safer non-pickle serialization
+            # Log model with input example (MLflow will use default pickle serialization)
             input_np = torch.randn(1, 3, 224, 224).numpy()
             mlflow.pytorch.log_model(
                 model,
                 name="imaging_model",
-                serialization_format="pt2",
                 input_example=input_np,
             )
-            logger.info("mlflow model logged (serialization_format=pt2)")
+            logger.info("mlflow model logged successfully")
 
         try:
             with ThreadPoolExecutor(max_workers=1) as executor:
