@@ -136,7 +136,7 @@ class ImagingModelEvaluation:
         qwk = cohen_kappa_score(labels, preds, weights="quadratic")
         report = classification_report(labels, preds, output_dict=True, zero_division=0)  # type: ignore[call-overload]
         auc = self._compute_auc(labels, probs)
-        macro_f1 = f1_score(labels, preds, average="macro", zero_division="0")
+        macro_f1 = f1_score(labels, preds, average="macro", zero_division=0.0)
         cm = confusion_matrix(labels, preds)
 
         auc_str = f"{auc:.4f}" if auc is not None else "N/A"
