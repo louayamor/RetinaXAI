@@ -39,10 +39,17 @@ class TrainingPipeline:
         imaging_clean()
         imaging_transform()
 
-        logger.info(">>> Phase 1: Full eyepacs training (15 epochs)")
+        from app.utils.common import read_yaml
+
+        params = read_yaml(PARAMS_FILE_PATH)
+        phase_cfg = params.get("phase_based_training", {})
+        phase1_epochs = phase_cfg.get("phase1_epochs", 20)
+        phase2_epochs = phase_cfg.get("phase2_epochs", 5)
+
+        logger.info(f">>> Phase 1: Full eyepacs training ({phase1_epochs} epochs)")
         phase1_checkpoint = imaging_train(phase="phase1", checkpoint_path=None)
 
-        logger.info(">>> Phase 2: Clinical fine-tuning (5 epochs)")
+        logger.info(f">>> Phase 2: Clinical fine-tuning ({phase2_epochs} epochs)")
         phase2_checkpoint = imaging_train(
             phase="phase2", checkpoint_path=phase1_checkpoint
         )
