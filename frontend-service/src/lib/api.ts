@@ -1,4 +1,4 @@
-import { authHeaders, refreshIfNeeded, getAccessToken, clearTokens } from './auth';
+import { clearTokens } from './auth';
 import type { TokenPair, AuthUser } from './auth';
 import type { Patient, MRIScan, Prediction, Report, PaginatedResponse, OCTReport } from '@/types';
 
@@ -13,21 +13,15 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  // Ensure token is fresh before making request
-  await refreshIfNeeded();
-
-  const token = getAccessToken();
+  // Cookie-based auth: cookies sent automatically with credentials: 'include'
   const isFormData = init.body instanceof FormData;
   const headers: Record<string, string> = isFormData
     ? {}
     : { 'Content-Type': 'application/json', ...(init.headers as Record<string, string> || {}) };
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
   const res = await fetch(`${BASE}${path}`, {
     ...init,
+    credentials: 'include',
     headers
   });
 

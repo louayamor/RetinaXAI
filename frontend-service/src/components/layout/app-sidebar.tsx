@@ -32,7 +32,7 @@ import {
 import { navItems } from '@/config/nav-config';
 import { useFilteredNavItems } from '@/hooks/use-nav';
 import { useMediaQuery } from '@/hooks/use-media-query';
-import { clearTokens, getAccessToken } from '@/lib/auth';
+import { clearTokens, apiFetch } from '@/lib/auth';
 import {
   IconBell,
   IconChevronRight,
@@ -65,13 +65,23 @@ export default function AppSidebar() {
   const [user, setUser] = React.useState<{ username: string; email: string } | null>(null);
 
   React.useEffect(() => {
-    const token = getAccessToken();
-    setUser(parseUserFromToken(token));
+    apiFetch<{ username: string; email: string }>('/api/v1/auth/me')
+      .then(setUser)
+      .catch(() => setUser(null));
   }, []);
 
-  function handleLogout() {
+  async function handleLogout() {
+    // Clear tokens first
     clearTokens();
-    router.push('/auth/login');
+    
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch {}
+    
+    window.location.href = '/auth/login';
   }
 
   return (

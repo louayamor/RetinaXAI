@@ -29,7 +29,10 @@ function getCookie(name: string): string | null {
 
 function deleteCookie(name: string): void {
   if (typeof document === 'undefined') return;
-  document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+  // Must match backend cookie settings: path=/, samesite=lax, secure (if production)
+  const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+  const secure = isProduction ? '; secure' : '';
+  document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; samesite=lax' + secure;
 }
 
 export function saveTokens(pair: TokenPair): void {
@@ -122,44 +125,22 @@ export async function refreshIfNeeded(): Promise<string | null> {
 }
 
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = await refreshIfNeeded();
-  if (!token) {
-    window.location.href = '/auth/login';
-    throw new Error('Not authenticated');
-  }
+  // For cookie-based auth, we don't need to read tokens from JS
+  // Cookies are sent automatically with credentials: 'include'
+  // Just make the request - if 401, redirect to login
 
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
       ...(init.headers as Record<string, string>),
     },
   });
 
   if (res.status === 401) {
-    // Token was rejected, force refresh and retry once
-    const newToken = await doRefresh();
-    if (!newToken) {
-      window.location.href = '/auth/login';
-      throw new Error('Not authenticated');
-    }
-
-    const retryRes = await fetch(`${API_BASE_URL}${path}`, {
-      ...init,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${newToken}`,
-        ...(init.headers as Record<string, string>),
-      },
-    });
-
-    if (!retryRes.ok) {
-      const body = await retryRes.json().catch(() => ({ detail: retryRes.statusText }));
-      throw new ApiError(body.detail ?? 'Request failed', retryRes.status);
-    }
-
-    return retryRes.json();
+    window.location.href = '/auth/login';
+    throw new Error('Not authenticated');
   }
 
   if (!res.ok) {

@@ -13,8 +13,7 @@ export default function LoginPage() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        await new Promise(resolve => setTimeout(resolve, 800));
-
+        // Check immediately without delay
         const res = await fetch(`${API_URL}/api/v1/auth/me`, {
           credentials: 'include',
         });

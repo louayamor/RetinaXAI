@@ -1,10 +1,13 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { fadeInUp, slideInUp, staggerContainer, staggerItem, buttonTap } from '@/lib/animations';
 import Image from 'next/image';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 const features = [
   {
@@ -26,6 +29,31 @@ const features = [
 
 export default function LandingPage() {
   const shouldReduceMotion = useReducedMotion();
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/v1/auth/me`, {
+          credentials: 'include',
+        });
+        if (res.ok) {
+          window.location.href = '/dashboard/overview';
+          return;
+        }
+      } catch {}
+      setChecking(false);
+    };
+    checkAuth();
+  }, []);
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#20bdbe]" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full">

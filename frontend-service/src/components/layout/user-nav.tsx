@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { clearTokens, getAccessToken, apiFetch } from '@/lib/auth';
+import { clearTokens, apiFetch } from '@/lib/auth';
 import { IconLogout, IconUserCircle } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 
@@ -31,9 +31,18 @@ export function UserNav() {
       .catch(() => setUser(null));
   }, []);
 
-  function handleLogout() {
+  async function handleLogout() {
+    // Clear tokens first
     clearTokens();
-    router.push('/auth/login');
+    
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch {}
+    
+    window.location.href = '/auth/login';
   }
 
   if (!user) return null;
