@@ -76,10 +76,12 @@ async def login(
 ):
     service = UserService(db)
     user = await service.authenticate(form_data.username, form_data.password)
-    access_token = create_access_token(user.id)
+    access_token, jti = create_access_token(user.id)
     refresh_token = create_refresh_token(user.id)
     session_service = AuthSessionService(db)
-    await session_service.create_session(user.id, refresh_token, expires_in_days=7)
+    await session_service.create_session(
+        user.id, refresh_token, expires_in_days=7, access_token_jti=jti
+    )
     return _token_response(access_token, refresh_token)
 
 
@@ -98,21 +100,39 @@ async def refresh_token(
 
     user_service = UserService(db)
     user = await user_service.get_by_id(uuid.UUID(payload.sub))
-    access_token = create_access_token(user.id)
+    access_token, new_jti = create_access_token(user.id)
     new_refresh_token = create_refresh_token(user.id)
     await session_service.rotate_refresh_token(
-        data.refresh_token, new_refresh_token, expires_in_days=7
+        data.refresh_token, new_refresh_token, expires_in_days=7, new_access_jti=new_jti
     )
     return _token_response(access_token, new_refresh_token)
 
 
 @router.post("/logout")
 async def logout(
-    data: RefreshRequest,
+    user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     session_service = AuthSessionService(db)
-    await session_service.revoke_refresh_token(data.refresh_token)
+
+    # Get active session for this user and revoke it
+    from sqlalchemy import select
+
+    stmt = (
+        select(AuthSession)
+        .where(
+            AuthSession.user_id == user.id,
+            AuthSession.revoked == False,
+        )
+        .order_by(AuthSession.created_at.desc())
+        .limit(1)
+    )
+    result = await db.execute(stmt)
+    session = result.scalar_one_or_none()
+
+    if session:
+        await session_service.revoke_refresh_token(session.refresh_token)
+
     response = JSONResponse(content={"status": "ok"})
     response.delete_cookie(key="rxa_access_token", path="/")
     response.delete_cookie(key="rxa_refresh_token", path="/")

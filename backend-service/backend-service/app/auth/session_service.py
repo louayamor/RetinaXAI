@@ -62,10 +62,15 @@ class AuthSessionService:
         self.db = db
 
     async def create_session(
-        self, user_id: uuid.UUID, refresh_token: str, expires_in_days: int
+        self,
+        user_id: uuid.UUID,
+        refresh_token: str,
+        expires_in_days: int,
+        access_token_jti: str | None = None,
     ) -> AuthSession:
         session = AuthSession(
             user_id=user_id,
+            access_token_jti=access_token_jti,
             refresh_token=refresh_token,
             expires_at=datetime.now(UTC) + timedelta(days=expires_in_days),
         )
@@ -81,6 +86,7 @@ class AuthSessionService:
                 session_data = {
                     "user_id": str(session.user_id),
                     "session_id": str(session.id),
+                    "access_token_jti": access_token_jti,
                     "created_at": session.created_at.isoformat(),
                     "expires_at": session.expires_at.isoformat(),
                 }
@@ -153,13 +159,19 @@ class AuthSessionService:
                 logger.warning(f"Failed to revoke session in Redis: {e}")
 
     async def rotate_refresh_token(
-        self, old_refresh_token: str, new_refresh_token: str, expires_in_days: int
+        self,
+        old_refresh_token: str,
+        new_refresh_token: str,
+        expires_in_days: int,
+        new_access_jti: str | None = None,
     ) -> str:
         session = await self.get_by_refresh_token(old_refresh_token)
         if not session or session.revoked:
             raise UnauthorizedException("Refresh token revoked or expired.")
         session.revoked = True
-        await self.create_session(session.user_id, new_refresh_token, expires_in_days)
+        await self.create_session(
+            session.user_id, new_refresh_token, expires_in_days, new_access_jti
+        )
 
         redis = await get_session_redis()
         if redis:
@@ -171,3 +183,34 @@ class AuthSessionService:
                 logger.warning(f"Failed to clean old session in Redis: {e}")
 
         return new_refresh_token
+
+    async def get_by_access_jti(self, jti: str) -> AuthSession | None:
+        """Find session by access token jti (for validation on protected routes)."""
+        redis = await get_session_redis()
+        if redis:
+            try:
+                keys = []
+                async for key in redis.scan_iter(match="session:*"):
+                    keys.append(key)
+                if keys:
+                    cached = await redis.mget(keys)
+                    for key, data in zip(keys, cached):
+                        if data:
+                            session_data = json.loads(data)
+                            if session_data.get("access_token_jti") == jti:
+                                return await self._load_session_from_db(key)
+            except Exception as e:
+                logger.warning(f"Redis session lookup failed: {e}")
+
+        stmt = select(AuthSession).where(
+            AuthSession.access_token_jti == jti,
+            AuthSession.revoked == False,
+            AuthSession.expires_at > datetime.now(UTC),
+        )
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def _load_session_from_db(self, redis_key: str) -> AuthSession | None:
+        """Load session from DB using refresh token extracted from Redis key."""
+        refresh_token = redis_key.replace("session:", "")
+        return await self.get_by_refresh_token(refresh_token)

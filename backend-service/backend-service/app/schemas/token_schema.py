@@ -11,3 +11,4 @@ class TokenPayload(BaseModel):
     sub: str
     exp: int
     token_type: str = "access"
+    jti: str | None = None

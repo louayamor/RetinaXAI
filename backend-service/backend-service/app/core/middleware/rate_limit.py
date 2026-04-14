@@ -14,6 +14,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self._requests: dict[str, list[float]] = defaultdict(list)
 
     async def dispatch(self, request: Request, call_next) -> Response:
+        # Don't rate limit /auth/me - it's a safe read endpoint called frequently
+        if request.url.path.startswith("/api/v1/auth/me"):
+            return await call_next(request)
+
         if not request.url.path.startswith("/api/v1/auth/"):
             return await call_next(request)
 
