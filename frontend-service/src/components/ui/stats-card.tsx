@@ -12,7 +12,7 @@ interface StatsCardProps {
   color?: string;
 }
 
-export function StatsCard({ title, value, subtitle, icon: Icon, color = '#20bdbe' }: StatsCardProps) {
+export function StatsCard({ title, value, subtitle, icon: Icon, color = 'var(--brand-teal)' }: StatsCardProps) {
   return (
     <Card className="hover:shadow-md transition-shadow duration-300">
       <CardContent className="flex items-center gap-4 p-4">

@@ -32,7 +32,7 @@ export default function SignUpView() {
             className="mr-3 h-8 w-auto"
             unoptimized
           />
-          <span className="text-[#20bdbe]">RetinaXAI</span>
+          <span className="text-[var(--brand-teal)]">RetinaXAI</span>
         </div>
         <div className="relative z-20 mt-auto">
           <blockquote className="space-y-2">
@@ -40,7 +40,7 @@ export default function SignUpView() {
               &ldquo;Join the clinical frontier. Start running explainable DR
               predictions in minutes.&rdquo;
             </p>
-            <footer className="text-sm text-[#20bdbe]/80">
+            <footer className="text-sm text-[var(--brand-teal)]/80">
               Doctor Registration
             </footer>
           </blockquote>
@@ -74,7 +74,7 @@ export default function SignUpView() {
             Already have an account?{' '}
             <Link
               href="/auth/login"
-              className="underline underline-offset-4 hover:text-[#20bdbe]"
+              className="underline underline-offset-4 hover:text-[var(--brand-teal)]"
             >
               Sign in
             </Link>

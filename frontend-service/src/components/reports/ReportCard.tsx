@@ -99,13 +99,13 @@ export function ReportCard({ report, patientName, onExpand, expanded }: ReportCa
 
   return (
     <motion.div variants={slideInUp}>
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 border-l-4 border-l-[#20bdbe]">
+      <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 border-l-4 border-l-[var(--brand-teal)]">
         {/* Card Header */}
         <CardHeader className="pb-3 bg-gradient-to-r from-muted/30 to-transparent">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               {/* Patient Avatar */}
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#20bdbe] to-[#0d3a4c] text-white font-semibold">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[var(--brand-teal)] to-[#0d3a4c] text-white font-semibold">
                 {getInitials(patientName)}
               </div>
               <div>
@@ -131,8 +131,8 @@ export function ReportCard({ report, patientName, onExpand, expanded }: ReportCa
           <div className="space-y-3">
             {/* Show structured summary if available */}
             {parsedReport?.summary && (
-              <div className="bg-gradient-to-r from-[#20bdbe]/10 to-transparent rounded-lg p-3 border-l-2 border-[#20bdbe]">
-                <p className="text-sm font-medium text-[#20bdbe] mb-1">Summary</p>
+              <div className="bg-gradient-to-r from-[var(--brand-teal)]/10 to-transparent rounded-lg p-3 border-l-2 border-[var(--brand-teal)]">
+                <p className="text-sm font-medium text-[var(--brand-teal)] mb-1">Summary</p>
                 <p className="text-sm text-muted-foreground line-clamp-2">
                   {parsedReport.summary}
                 </p>
@@ -169,7 +169,7 @@ export function ReportCard({ report, patientName, onExpand, expanded }: ReportCa
                 size="sm" 
                 onClick={onExpand}
                 disabled={report.status !== 'completed'}
-                className="text-[#20bdbe] hover:text-[#1a9a9a] hover:bg-[#20bdbe]/10"
+                className="text-[var(--brand-teal)] hover:text-[#1a9a9a] hover:bg-[var(--brand-teal)]/10"
               >
                 {expanded ? (
                   <>
@@ -237,9 +237,9 @@ export function ReportCard({ report, patientName, onExpand, expanded }: ReportCa
 
                   {/* Clinical Findings Section */}
                   {parsedReport?.clinical_findings && (
-                    <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border-l-4 border-[#20bdbe]">
+                    <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border-l-4 border-[var(--brand-teal)]">
                       <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                        <Activity className="h-4 w-4 text-[#20bdbe]" />
+                        <Activity className="h-4 w-4 text-[var(--brand-teal)]" />
                         Clinical Findings
                       </h4>
                       <div className="grid md:grid-cols-2 gap-4">
@@ -333,7 +333,7 @@ export function ReportCard({ report, patientName, onExpand, expanded }: ReportCa
                       <ul className="space-y-2">
                         {parsedReport.recommendations.map((rec, idx) => (
                           <li key={idx} className="flex items-start gap-2 text-sm">
-                            <span className="text-[#20bdbe] mt-1">•</span>
+                            <span className="text-[var(--brand-teal)] mt-1">•</span>
                             <span>{rec}</span>
                           </li>
                         ))}
@@ -345,7 +345,7 @@ export function ReportCard({ report, patientName, onExpand, expanded }: ReportCa
                   {parsedReport?.content && !parsedReport.patient_info && (
                     <div className="bg-white dark:bg-slate-900 rounded-lg p-4">
                       <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-[#20bdbe]" />
+                        <FileText className="h-4 w-4 text-[var(--brand-teal)]" />
                         Report Content
                       </h4>
                       <div className="text-sm whitespace-pre-wrap max-h-[400px] overflow-y-auto">

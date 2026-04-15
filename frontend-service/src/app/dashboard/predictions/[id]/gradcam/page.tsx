@@ -113,7 +113,7 @@ export default function GradCAMPage() {
     return (
       <PageContainer>
         <div className="flex h-96 items-center justify-center">
-          <Loader className="h-8 w-8 animate-spin text-[#20bdbe]" />
+          <Loader className="h-8 w-8 animate-spin text-[var(--brand-teal)]" />
         </div>
       </PageContainer>
     );
@@ -236,7 +236,7 @@ export default function GradCAMPage() {
                           initial={{ width: 0 }}
                           animate={{ width: `${percentage}%` }}
                           transition={{ duration: 0.5 }}
-                          className={`h-full ${isSelected ? 'bg-[#20bdbe]' : 'bg-[#20bdbe]/50'}`}
+                          className={`h-full ${isSelected ? 'bg-[var(--brand-teal)]' : 'bg-[var(--brand-teal)]/50'}`}
                         />
                       </div>
                     </div>

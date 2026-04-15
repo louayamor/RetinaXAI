@@ -128,7 +128,7 @@ export default function PatientProfilePage() {
     return (
       <PageContainer>
         <div className="flex h-96 items-center justify-center">
-          <Loader className="h-8 w-8 animate-spin text-[#20bdbe]" />
+          <Loader className="h-8 w-8 animate-spin text-[var(--brand-teal)]" />
         </div>
       </PageContainer>
     );
@@ -215,7 +215,7 @@ export default function PatientProfilePage() {
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <motion.div variants={shouldReduceMotion ? {} : staggerItem}>
-            <Card className="border-l-4 border-l-[#20bdbe]">
+            <Card className="border-l-4 border-l-[var(--brand-teal)]">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">MRI Scans</CardTitle>
               </CardHeader>
@@ -262,7 +262,7 @@ export default function PatientProfilePage() {
           <AccordionItem value="scans" className="border rounded-lg mb-2">
             <AccordionTrigger className="px-4 hover:no-underline bg-muted/30 rounded-t-lg">
               <div className="flex items-center gap-2">
-                <Scan className="h-5 w-5 text-[#20bdbe]" />
+                <Scan className="h-5 w-5 text-[var(--brand-teal)]" />
                 <span className="text-lg font-semibold">MRI Scans ({scans.length})</span>
               </div>
             </AccordionTrigger>
@@ -275,7 +275,7 @@ export default function PatientProfilePage() {
                     <Card key={scan.id}>
                       <CardHeader>
                         <CardTitle className="text-sm flex items-center gap-2">
-                          <Scan className="h-4 w-4 text-[#20bdbe]" />
+                          <Scan className="h-4 w-4 text-[var(--brand-teal)]" />
                           Scan {scan.id.slice(0, 8)}
                         </CardTitle>
                         <CardDescription>

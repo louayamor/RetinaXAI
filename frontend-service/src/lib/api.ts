@@ -338,3 +338,45 @@ export async function getOperationStatus(): Promise<OperationStatus> {
   const res = await fetch(`${LLMOPS_BASE}/api/operation/status`);
   return _handleLlmoopsResponse(res);
 }
+
+// Notification API
+export interface NotificationItem {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+  user_id: string | null;
+}
+
+export async function fetchNotifications(unreadOnly = false, limit = 50, offset = 0): Promise<NotificationItem[]> {
+  return request<NotificationItem[]>(
+    `/api/v1/notifications/?unread_only=${unreadOnly}&limit=${limit}&offset=${offset}`,
+    { method: 'GET' }
+  );
+}
+
+export async function getUnreadCount(): Promise<{ unread_count: number }> {
+  return request<{ unread_count: number }>('/api/v1/notifications/unread-count', { method: 'GET' });
+}
+
+export async function markNotificationsRead(notificationIds: string[]): Promise<{ status: string; marked_count: number }> {
+  return request<{ status: string; marked_count: number }>('/api/v1/notifications/read', {
+    method: 'PUT',
+    body: JSON.stringify({ notification_ids: notificationIds })
+  });
+}
+
+export async function markAllNotificationsRead(): Promise<{ status: string; marked_count: number }> {
+  return request<{ status: string; marked_count: number }>('/api/v1/notifications/read-all', {
+    method: 'PUT'
+  });
+}
+
+export async function clearNotifications(readOnly = true): Promise<{ status: string; deleted_count: number }> {
+  return request<{ status: string; deleted_count: number }>(
+    `/api/v1/notifications/clear?read_only=${readOnly}`,
+    { method: 'DELETE' }
+  );
+}

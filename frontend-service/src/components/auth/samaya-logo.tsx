@@ -100,7 +100,7 @@ export function SamayaWordmark({ className = '', showBadge = true }: SamayaWordm
     <div className={`flex items-center gap-3 ${className}`}>
       <SamayaLogo size="sm" animate={!shouldReduceMotion} variant="accent" />
       {showBadge && (
-        <span className="px-2 py-0.5 text-xs font-medium bg-[#20bdbe]/10 text-[#20bdbe] rounded-full">
+        <span className="px-2 py-0.5 text-xs font-medium bg-[var(--brand-teal)]/10 text-[var(--brand-teal)] rounded-full">
           AI
         </span>
       )}

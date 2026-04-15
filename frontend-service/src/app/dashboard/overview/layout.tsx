@@ -69,7 +69,7 @@ export default function OverViewLayout({
                 priority
                 unoptimized
               />
-              <span className='text-lg font-medium text-[#20bdbe]'>|</span>
+              <span className='text-lg font-medium text-[var(--brand-teal)]'>|</span>
               <span className='text-lg font-medium'>RetinaXAI</span>
             </div>
             <h1 className='text-3xl font-bold tracking-tight md:text-4xl'>
@@ -87,7 +87,7 @@ export default function OverViewLayout({
           <Card className='animate-in-up border-0 bg-gradient-to-br from-card to-cyan-50/40 shadow-md transition-transform duration-300 hover:-translate-y-1 dark:to-cyan-950/15'>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-4'>
               <CardTitle className='text-base font-medium'>Total OCT Reports</CardTitle>
-              <IconEye className='h-5 w-5 text-[#20bdbe]' />
+              <IconEye className='h-5 w-5 text-[var(--brand-teal)]' />
             </CardHeader>
             <CardContent>
               <div className='text-3xl font-bold'>119</div>
@@ -99,7 +99,7 @@ export default function OverViewLayout({
           <Card className='animate-in-up border-0 bg-gradient-to-br from-card to-amber-50/40 shadow-md transition-transform duration-300 hover:-translate-y-1 dark:to-amber-950/15'>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-4'>
               <CardTitle className='text-base font-medium'>DR Detected</CardTitle>
-              <IconActivity className='h-5 w-5 text-[#c8a951]' />
+              <IconActivity className='h-5 w-5 text-[var(--brand-gold)]' />
             </CardHeader>
             <CardContent>
               <div className='text-3xl font-bold'>82</div>
@@ -111,7 +111,7 @@ export default function OverViewLayout({
           <Card className='animate-in-up border-0 bg-gradient-to-br from-card to-cyan-50/40 shadow-md transition-transform duration-300 hover:-translate-y-1 dark:to-cyan-950/15'>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-4'>
               <CardTitle className='text-base font-medium'>Active Patients</CardTitle>
-              <IconUsers className='h-5 w-5 text-[#20bdbe]' />
+              <IconUsers className='h-5 w-5 text-[var(--brand-teal)]' />
             </CardHeader>
             <CardContent>
               <div className='text-3xl font-bold'>104</div>
@@ -123,7 +123,7 @@ export default function OverViewLayout({
           <Card className='animate-in-up border-0 bg-gradient-to-br from-card to-emerald-50/40 shadow-md transition-transform duration-300 hover:-translate-y-1 dark:to-emerald-950/15'>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-4'>
               <CardTitle className='text-base font-medium'>Model Accuracy</CardTitle>
-              <IconBrain className='h-5 w-5 text-[#20bdbe]' />
+              <IconBrain className='h-5 w-5 text-[var(--brand-teal)]' />
             </CardHeader>
             <CardContent>
               <div className='text-3xl font-bold'>94.7%</div>
@@ -201,7 +201,7 @@ export default function OverViewLayout({
               <div className='grid gap-3 sm:grid-cols-2'>
                 {services.map((s) => (
                   <div key={s} className='flex items-center gap-2 rounded-lg border p-3'>
-                    <div className='h-2 w-2 rounded-full bg-[#20bdbe]' />
+                    <div className='h-2 w-2 rounded-full bg-[var(--brand-teal)]' />
                     <span className='text-sm'>{s}</span>
                   </div>
                 ))}

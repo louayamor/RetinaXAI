@@ -1,43 +1,133 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useWebSocket } from '@/hooks/use-websocket';
+import { fetchNotifications, markNotificationsRead, markAllNotificationsRead, clearNotifications, type NotificationItem } from '@/lib/api';
+import { Bell, X, Check, Trash2, Loader2, Brain, FlaskConical, Sparkles, BookOpen, FileText, AlertCircle, AlertTriangle, Mail } from 'lucide-react';
 
-interface Notification {
-  id: string;
-  type: string;
-  message: string;
+const STORAGE_KEY = 'rxa_notifications';
+
+interface Notification extends NotificationItem {
   timestamp: string;
-  read: boolean;
+}
+
+function getNotificationTypeIcon(type: string) {
+  switch (type) {
+    case 'training':
+      return <Brain className="h-5 w-5 text-[var(--brand-teal)]" />;
+    case 'prediction':
+      return <FlaskConical className="h-5 w-5 text-[var(--brand-teal)]" />;
+    case 'xai':
+      return <Sparkles className="h-5 w-5 text-purple-500" />;
+    case 'rag':
+      return <BookOpen className="h-5 w-5 text-blue-500" />;
+    case 'report':
+      return <FileText className="h-5 w-5 text-[var(--brand-gold)]" />;
+    case 'error':
+    case 'training_error':
+      return <AlertCircle className="h-5 w-5 text-red-500" />;
+    case 'warning':
+      return <AlertTriangle className="h-5 w-5 text-amber-500" />;
+    default:
+      return <Mail className="h-5 w-5 text-gray-500" />;
+  }
 }
 
 export function NotificationCenter() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { connected, subscribe } = useWebSocket();
 
+  // Load notifications from API on mount
+  const loadNotifications = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await fetchNotifications(false, 50, 0);
+      // Convert API format to local format
+      const converted: Notification[] = data.map(n => ({
+        ...n,
+        timestamp: n.created_at,
+      }));
+      setNotifications(converted);
+      // Also persist to localStorage as backup
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(converted));
+    } catch (err) {
+      console.error('Failed to load notifications:', err);
+      // Fallback to localStorage
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        setNotifications(JSON.parse(stored));
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
+
+  // Subscribe to real-time WebSocket notifications
   useEffect(() => {
     const unsubscribe = subscribe('notification', (data: unknown) => {
-      const notif = data as Notification;
-      setNotifications(prev => [{
-        ...notif,
-        id: notif.id || crypto.randomUUID(),
+      const wsNotif = data as Notification;
+      const newNotif: Notification = {
+        id: wsNotif.id || crypto.randomUUID(),
+        type: wsNotif.type || 'general',
+        title: wsNotif.title || '',
+        message: wsNotif.message || '',
         read: false,
-        timestamp: notif.timestamp || new Date().toISOString(),
-      }, ...prev].slice(0, 50));
+        created_at: wsNotif.timestamp || new Date().toISOString(),
+        timestamp: wsNotif.timestamp || new Date().toISOString(),
+        user_id: wsNotif.user_id || null,
+      };
+      setNotifications(prev => [newNotif, ...prev].slice(0, 50));
+      // Update localStorage
+      const updated = [newNotif, ...notifications].slice(0, 50);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     });
 
     return unsubscribe;
-  }, [subscribe]);
+  }, [subscribe, notifications]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const markAsRead = (id: string) => {
+  const handleMarkAsRead = async (id: string) => {
+    // Optimistic update
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    try {
+      await markNotificationsRead([id]);
+    } catch (err) {
+      console.error('Failed to mark as read:', err);
+    }
   };
 
-  const clearAll = () => {
+  const handleMarkAllRead = async () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    try {
+      await markAllNotificationsRead();
+    } catch (err) {
+      console.error('Failed to mark all as read:', err);
+    }
+  };
+
+  const handleClearAll = async () => {
     setNotifications([]);
+    try {
+      await clearNotifications(true); // Clear only read notifications
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (err) {
+      console.error('Failed to clear notifications:', err);
+    }
+  };
+
+  const handleClickNotif = async (notif: Notification) => {
+    if (!notif.read) {
+      await handleMarkAsRead(notif.id);
+    }
   };
 
   return (
@@ -47,63 +137,102 @@ export function NotificationCenter() {
         className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
         aria-label="Notifications"
       >
-        <svg
-          className="w-6 h-6 text-gray-600"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11a6.006 6.006 0 006 6v1.159c0 .537-.213 1.054-.595 1.436L15 17"
-          />
-          <path d="M9 17v1a3 3 0 003 3v0a3 3 0 003-3v-1" />
-        </svg>
+        <Bell className="w-5 h-5 text-gray-600" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-medium">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-          <div className="p-3 border-b border-gray-200 flex justify-between items-center">
-            <h3 className="font-semibold text-gray-800">Notifications</h3>
-            {notifications.length > 0 && (
+        <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden">
+          <div className="p-3 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+            <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+              <Bell className="w-4 h-4" />
+              Notifications
+            </h3>
+            <div className="flex items-center gap-1">
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllRead}
+                  className="p-1.5 rounded hover:bg-gray-200 text-gray-600"
+                  title="Mark all as read"
+                >
+                  <Check className="w-4 h-4" />
+                </button>
+              )}
+              {notifications.length > 0 && (
+                <button
+                  onClick={handleClearAll}
+                  className="p-1.5 rounded hover:bg-gray-200 text-gray-600"
+                  title="Clear all"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
               <button
-                onClick={clearAll}
-                className="text-sm text-gray-500 hover:text-gray-700"
+                onClick={() => setIsOpen(false)}
+                className="p-1.5 rounded hover:bg-gray-200 text-gray-600 ml-1"
               >
-                Clear all
+                <X className="w-4 h-4" />
               </button>
-            )}
+            </div>
           </div>
 
           <div className="max-h-96 overflow-y-auto">
-            {notifications.length === 0 ? (
-              <div className="p-4 text-center text-gray-500">
-                No notifications
+            {loading ? (
+              <div className="p-8 text-center text-gray-500 flex items-center justify-center gap-2">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Loading...
+              </div>
+            ) : notifications.length === 0 ? (
+              <div className="p-8 text-center text-gray-500">
+                No notifications yet
               </div>
             ) : (
               notifications.map(notif => (
                 <div
                   key={notif.id}
-                  onClick={() => markAsRead(notif.id)}
-                  className={`p-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
-                    !notif.read ? 'bg-blue-50' : ''
+                  onClick={() => handleClickNotif(notif)}
+                  className={`p-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
+                    !notif.read ? 'bg-blue-50/50' : ''
                   }`}
                 >
-                  <p className="text-sm text-gray-800">{notif.message}</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {new Date(notif.timestamp).toLocaleString()}
-                  </p>
+                  <div className="flex items-start gap-3">
+                    <span className="text-lg" title={notif.type}>
+                      {getNotificationTypeIcon(notif.type)}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">
+                        {notif.title || notif.message.split('.')[0]}
+                      </p>
+                      <p className="text-sm text-gray-600 line-clamp-2">
+                        {notif.message}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {new Date(notif.timestamp).toLocaleString()}
+                      </p>
+                    </div>
+                    {!notif.read && (
+                      <div className="w-2 h-2 rounded-full bg-[var(--brand-teal)] flex-shrink-0 mt-2" />
+                    )}
+                  </div>
                 </div>
               ))
             )}
           </div>
+          
+          {notifications.length > 0 && (
+            <div className="p-2 border-t border-gray-200 bg-gray-50 text-center">
+              <button 
+                onClick={loadNotifications}
+                className="text-xs text-gray-500 hover:text-gray-700"
+              >
+                Refresh
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

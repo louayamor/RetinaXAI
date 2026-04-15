@@ -70,7 +70,7 @@ export function PatientCard({ patient, onEdit, onDelete }: PatientCardProps) {
               variant="ghost" 
               size="sm" 
               onClick={() => setExpanded(!expanded)}
-              className="text-[#20bdbe] hover:text-[#1a9a9a] hover:bg-[#20bdbe]/10"
+              className="text-[var(--brand-teal)] hover:text-[#1a9a9a] hover:bg-[var(--brand-teal)]/10"
             >
               {expanded ? (
                 <ChevronUp className="h-4 w-4" />
@@ -147,7 +147,7 @@ export function PatientCard({ patient, onEdit, onDelete }: PatientCardProps) {
                   {/* Contact Information */}
                   <div className="bg-white dark:bg-slate-900 rounded-lg p-4">
                     <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                      <User className="h-4 w-4 text-[#20bdbe]" />
+                      <User className="h-4 w-4 text-[var(--brand-teal)]" />
                       Contact Information
                     </h4>
                     <div className="grid gap-2 text-sm">
@@ -172,7 +172,7 @@ export function PatientCard({ patient, onEdit, onDelete }: PatientCardProps) {
                   {/* Medical Record Details */}
                   <div className="bg-white dark:bg-slate-900 rounded-lg p-4">
                     <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-[#20bdbe]" />
+                      <FileText className="h-4 w-4 text-[var(--brand-teal)]" />
                       Medical Record Details
                     </h4>
                     <div className="grid grid-cols-2 gap-3 text-sm">

@@ -26,7 +26,11 @@ const loginSchema = z.object({
 const registerSchema = z.object({
   username: z.string().min(3, 'At least 3 characters'),
   email: z.string().email('Enter a valid email'),
-  password: z.string().min(8, 'At least 8 characters')
+  password: z.string().min(8, 'At least 8 characters'),
+  confirmPassword: z.string().min(1, 'Please confirm your password'),
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 type LoginValues = z.infer<typeof loginSchema>;
@@ -48,7 +52,7 @@ export default function UserAuthForm({ mode }: UserAuthFormProps) {
 
   const registerForm = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { username: '', email: '', password: '' }
+    defaultValues: { username: '', email: '', password: '', confirmPassword: '' }
   });
 
   async function onLogin(values: LoginValues) {
@@ -172,6 +176,19 @@ export default function UserAuthForm({ mode }: UserAuthFormProps) {
         render={({ field }) => (
           <FormItem>
             <FormLabel>Password</FormLabel>
+            <FormControl>
+              <Input type='password' placeholder='••••••••' {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={registerForm.control}
+        name='confirmPassword'
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Confirm Password</FormLabel>
             <FormControl>
               <Input type='password' placeholder='••••••••' {...field} />
             </FormControl>

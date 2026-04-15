@@ -64,7 +64,7 @@ export default function GradCAMListPage() {
     return (
       <PageContainer>
         <div className="flex h-96 items-center justify-center">
-          <Loader className="h-8 w-8 animate-spin text-[#20bdbe]" />
+          <Loader className="h-8 w-8 animate-spin text-[var(--brand-teal)]" />
         </div>
       </PageContainer>
     );

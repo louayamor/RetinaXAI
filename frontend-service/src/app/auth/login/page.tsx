@@ -34,7 +34,7 @@ export default function LoginPage() {
   if (checking) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#20bdbe]" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--brand-teal)]" />
       </div>
     );
   }

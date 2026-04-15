@@ -34,7 +34,7 @@ export function ReportFilters({ search, onSearchChange, status, onStatusChange }
             onClick={() => onStatusChange(option.value)}
             className={`${
               status === option.value 
-                ? 'bg-[#20bdbe] hover:bg-[#1a9a9a]' 
+                ? 'bg-[var(--brand-teal)] hover:bg-[#1a9a9a]' 
                 : 'hover:bg-muted'
             }`}
           >

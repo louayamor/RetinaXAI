@@ -178,7 +178,7 @@ export default function OverViewPage() {
             
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <IconActivity className="h-5 w-5 text-[#20bdbe]" />
+                <IconActivity className="h-5 w-5 text-[var(--brand-teal)]" />
                 <h3 className="text-lg font-semibold">Analytics</h3>
               </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

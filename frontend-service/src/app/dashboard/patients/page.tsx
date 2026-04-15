@@ -14,7 +14,7 @@ import type { Patient } from '@/types';
 import { fadeInUp, slideInUp, staggerContainer, staggerItemFast, buttonTap, rowHover } from '@/lib/animations';
 import { PatientCard } from '@/components/patients/PatientCard';
 import { StatsCard } from '@/components/ui/stats-card';
-import { Users, UserPlus, Calendar, UserCheck, Search, X } from 'lucide-react';
+import { Users, UserPlus, Calendar, UserCheck, Search, X, User } from 'lucide-react';
 
 type PatientFormState = {
   first_name: string;
@@ -193,8 +193,8 @@ export default function PatientsPage() {
             />
           </div>
           {/* Decorative accent shapes */}
-          <div className="absolute -bottom-20 -left-20 h-40 w-40 rounded-full bg-[#20bdbe]/10 blur-3xl" />
-          <div className="absolute top-10 right-20 h-24 w-24 rounded-full bg-[#c8a951]/10 blur-2xl" />
+          <div className="absolute -bottom-20 -left-20 h-40 w-40 rounded-full bg-[var(--brand-teal)]/10 blur-3xl" />
+          <div className="absolute top-10 right-20 h-24 w-24 rounded-full bg-[var(--brand-gold)]/10 blur-2xl" />
           
           <div className="relative z-10">
             <h1 className="mb-2 text-3xl font-bold tracking-tight">Patient Registry</h1>
@@ -229,7 +229,7 @@ export default function PatientsPage() {
             title="Gender Split"
             value={`${stats?.male_count ?? 0} M / ${stats?.female_count ?? 0} F`}
             icon={UserCheck}
-            color="#c8a951"
+            color="var(--brand-gold)"
           />
         </div>
 
@@ -238,7 +238,7 @@ export default function PatientsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <UserPlus className="h-5 w-5 text-[#20bdbe]" />
+                <UserPlus className="h-5 w-5 text-[var(--brand-teal)]" />
                 {editingId ? 'Update Patient' : 'Add New Patient'}
               </CardTitle>
             </CardHeader>
@@ -281,7 +281,7 @@ export default function PatientsPage() {
                       onClick={() => setForm({ ...form, gender: 'M' })}
                       className={`flex-1 ${form.gender === 'M' ? 'bg-blue-500 hover:bg-blue-600' : ''}`}
                     >
-                      <span className="mr-1">👤</span> Male
+                      <User className="mr-1 h-4 w-4" /> Male
                     </Button>
                     <Button
                       type="button"
@@ -290,7 +290,7 @@ export default function PatientsPage() {
                       onClick={() => setForm({ ...form, gender: 'F' })}
                       className={`flex-1 ${form.gender === 'F' ? 'bg-pink-500 hover:bg-pink-600' : ''}`}
                     >
-                      <span className="mr-1">👤</span> Female
+                      <User className="mr-1 h-4 w-4" /> Female
                     </Button>
                   </div>
                 </div>
@@ -401,8 +401,8 @@ export default function PatientsPage() {
             <div className="flex flex-col items-center justify-center py-12">
               <div className="relative mb-4">
                 <Users className="h-16 w-16 text-muted-foreground/30" />
-                <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-[#20bdbe]/20 flex items-center justify-center">
-                  <Search className="h-4 w-4 text-[#20bdbe]" />
+                <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-[var(--brand-teal)]/20 flex items-center justify-center">
+                  <Search className="h-4 w-4 text-[var(--brand-teal)]" />
                 </div>
               </div>
               <p className="text-muted-foreground text-center">

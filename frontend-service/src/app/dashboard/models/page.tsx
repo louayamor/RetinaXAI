@@ -223,7 +223,7 @@ export default function ModelsPage() {
             <Button
               onClick={() => triggerTraining('imaging')}
               disabled={isTraining || training === 'imaging'}
-              className='bg-[#20bdbe] hover:bg-[#1a9a9a]'
+              className='bg-[var(--brand-teal)] hover:bg-[#1a9a9a]'
             >
               {training === 'imaging' ? (
                 <Loader2 className='mr-2 h-4 w-4 animate-spin' />
@@ -380,15 +380,15 @@ export default function ModelsPage() {
               <Radar
                 name='Imaging'
                 dataKey='imaging'
-                stroke='#20bdbe'
-                fill='#20bdbe'
+                stroke='var(--brand-teal)'
+                fill='var(--brand-teal)'
                 fillOpacity={0.4}
               />
               <Radar
                 name='Clinical'
                 dataKey='clinical'
-                stroke='#c8a951'
-                fill='#c8a951'
+                stroke='var(--brand-gold)'
+                fill='var(--brand-gold)'
                 fillOpacity={0.4}
               />
               <Legend />

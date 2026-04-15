@@ -32,6 +32,13 @@
   --sidebar-accent-foreground: oklch(0.97 0.005 185);
   --sidebar-border: oklch(0.22 0.035 195);
   --sidebar-ring: oklch(0.72 0.14 185);
+  /* Brand Colors - Teal (#20bdbe) and Gold (#c8a951) */
+  --brand-teal: #20bdbe;
+  --brand-teal-light: #20bdbe;
+  --brand-teal-dark: #1a9a9a;
+  --brand-gold: #c8a951;
+  --brand-gold-light: #c8a951;
+  --brand-gold-dark: #b09445;
   --font-sans: 'Jost', sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: 'Jost', monospace;
@@ -92,6 +99,13 @@
   --sidebar-accent-foreground: oklch(0.97 0.005 185);
   --sidebar-border: oklch(0.2 0.03 195);
   --sidebar-ring: oklch(0.72 0.14 185);
+  /* Brand Colors - Teal (#20bdbe) and Gold (#c8a951) */
+  --brand-teal: #20bdbe;
+  --brand-teal-light: #20bdbe;
+  --brand-teal-dark: #1a9a9a;
+  --brand-gold: #c8a951;
+  --brand-gold-light: #c8a951;
+  --brand-gold-dark: #b09445;
   --font-sans: 'Jost', sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: 'Jost', monospace;
@@ -166,5 +180,12 @@
     --shadow-lg: var(--shadow-lg);
     --shadow-xl: var(--shadow-xl);
     --shadow-2xl: var(--shadow-2xl);
+    /* Brand Colors as Tailwind utilities */
+    --color-brand-teal: var(--brand-teal);
+    --color-brand-teal-light: var(--brand-teal-light);
+    --color-brand-teal-dark: var(--brand-teal-dark);
+    --color-brand-gold: var(--brand-gold);
+    --color-brand-gold-light: var(--brand-gold-light);
+    --color-brand-gold-dark: var(--brand-gold-dark);
   }
 }

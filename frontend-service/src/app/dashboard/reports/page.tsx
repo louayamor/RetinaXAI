@@ -248,8 +248,8 @@ export default function ReportsPage() {
             />
           </div>
           {/* Decorative accent shapes */}
-          <div className="absolute -bottom-20 -left-20 h-40 w-40 rounded-full bg-[#20bdbe]/10 blur-3xl" />
-          <div className="absolute top-10 right-20 h-24 w-24 rounded-full bg-[#c8a951]/10 blur-2xl" />
+          <div className="absolute -bottom-20 -left-20 h-40 w-40 rounded-full bg-[var(--brand-teal)]/10 blur-3xl" />
+          <div className="absolute top-10 right-20 h-24 w-24 rounded-full bg-[var(--brand-gold)]/10 blur-2xl" />
           
           <div className="relative z-10">
             <h1 className="mb-2 text-3xl font-bold tracking-tight">Clinical Reports</h1>
@@ -456,8 +456,8 @@ export default function ReportsPage() {
               <div className="flex flex-col items-center justify-center py-12">
                 <div className="relative mb-4">
                   <FileText className="h-16 w-16 text-muted-foreground/30" />
-                  <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-[#20bdbe]/20 flex items-center justify-center">
-                    <Search className="h-4 w-4 text-[#20bdbe]" />
+                  <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-[var(--brand-teal)]/20 flex items-center justify-center">
+                    <Search className="h-4 w-4 text-[var(--brand-teal)]" />
                   </div>
                 </div>
                 <p className="text-muted-foreground text-center">

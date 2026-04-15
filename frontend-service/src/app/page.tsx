@@ -50,7 +50,7 @@ export default function LandingPage() {
   if (checking) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#20bdbe]" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--brand-teal)]" />
       </div>
     );
   }
@@ -69,8 +69,8 @@ export default function LandingPage() {
           <div className="absolute inset-0 bg-gradient-to-b from-[#0a2e3e] via-[#0d3a4c] to-[#0a2e3e]" />
           
           {/* Decorative elements */}
-          <div className="absolute -top-32 -right-32 h-96 w-96 rounded-full bg-[#20bdbe]/10 blur-3xl" />
-          <div className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-[#c8a951]/10 blur-3xl" />
+          <div className="absolute -top-32 -right-32 h-96 w-96 rounded-full bg-[var(--brand-teal)]/10 blur-3xl" />
+          <div className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-[var(--brand-gold)]/10 blur-3xl" />
           
           {/* Background image with overlay */}
           <div className="absolute inset-0 opacity-20">
@@ -94,7 +94,7 @@ export default function LandingPage() {
               <motion.div variants={shouldReduceMotion ? {} : staggerItem} className="mb-6">
                 <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
                   <span className="text-white">Retina</span>
-                  <span className="text-[#20bdbe]">X</span>
+                  <span className="text-[var(--brand-teal)]">X</span>
                   <span className="text-white">AI</span>
                 </h1>
                 <p className="mt-4 text-xl md:text-2xl text-white/80 max-w-2xl mx-auto">
@@ -104,7 +104,7 @@ export default function LandingPage() {
 
               {/* tagline */}
               <motion.div variants={shouldReduceMotion ? {} : staggerItem} className="mb-10">
-                <p className="text-lg text-[#20bdbe] font-medium">
+                <p className="text-lg text-[var(--brand-teal)] font-medium">
                   Samaya Specialized Center • Clinical Decision Support
                 </p>
               </motion.div>
@@ -155,7 +155,7 @@ export default function LandingPage() {
               className="text-center mb-16"
             >
               <motion.h2 variants={shouldReduceMotion ? {} : staggerItem} className="text-3xl md:text-4xl font-bold">
-                Comprehensive <span className="text-[#20bdbe]">Retinal</span> Healthcare
+                Comprehensive <span className="text-[var(--brand-teal)]">Retinal</span> Healthcare
               </motion.h2>
               <motion.p variants={shouldReduceMotion ? {} : staggerItem} className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
                 Three powerful features working together to assist clinicians in diabetic retinopathy detection and reporting
@@ -170,7 +170,7 @@ export default function LandingPage() {
                   variants={shouldReduceMotion ? {} : staggerItem}
                   className="relative group"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-b from-[#20bdbe]/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-[var(--brand-teal)]/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   <div className="relative p-8 rounded-2xl border border-border bg-card hover:shadow-xl transition-shadow duration-300">
                     <div className="text-4xl mb-4">{feature.icon}</div>
                     <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
@@ -220,7 +220,7 @@ export default function LandingPage() {
             <p className="text-sm text-muted-foreground">
               © 2024 RetinaXAI • Samaya Specialized Center
             </p>
-            <p className="text-sm text-[#20bdbe]">
+            <p className="text-sm text-[var(--brand-teal)]">
               Clinical Decision Support System
             </p>
           </div>

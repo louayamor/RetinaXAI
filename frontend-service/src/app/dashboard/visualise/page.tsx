@@ -43,16 +43,16 @@ import {
   Activity as ActivityIcon
 } from 'lucide-react';
 
-const COLORS = ['#20bdbe', '#c8a951', '#e74c3c', '#3498db', '#9b59b6', '#2ecc71'];
+const COLORS = ['var(--brand-teal)', 'var(--brand-gold)', '#e74c3c', '#3498db', '#9b59b6', '#2ecc71'];
 const GRADE_COLORS: Record<string, string> = {
   no_dr: '#2ecc71',
-  mild: '#20bdbe',
-  moderate: '#c8a951',
+  mild: 'var(--brand-teal)',
+  moderate: 'var(--brand-gold)',
   severe: '#e67e22',
   proliferative: '#e74c3c',
   0: '#2ecc71',
-  1: '#20bdbe',
-  2: '#c8a951',
+  1: 'var(--brand-teal)',
+  2: 'var(--brand-gold)',
   3: '#e67e22',
   4: '#e74c3c',
 };
@@ -170,13 +170,13 @@ export default function VisualisePage() {
   const severityData = Object.entries(predictions.severity_distribution).map(([key, val]) => ({
     name: ['No DR', 'Mild', 'Moderate', 'Severe', 'Proliferative'][parseInt(key)] || key,
     value: val,
-    fill: GRADE_COLORS[key] || '#20bdbe',
+    fill: GRADE_COLORS[key] || 'var(--brand-teal)',
   }));
 
   const octGradeData = Object.entries(oct_reports.grade_distribution).map(([grade, count]) => ({
     name: grade.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
     value: count,
-    fill: GRADE_COLORS[grade] || '#20bdbe',
+    fill: GRADE_COLORS[grade] || 'var(--brand-teal)',
   }));
 
   const eyeData = Object.entries(oct_reports.eye_distribution).map(([eye, count]) => ({
@@ -206,8 +206,8 @@ export default function VisualisePage() {
   ];
 
   const getSeverityColor = (level: number) => {
-    const colors = ['#2ecc71', '#20bdbe', '#c8a951', '#e67e22', '#e74c3c'];
-    return colors[level] || '#20bdbe';
+    const colors = ['#2ecc71', 'var(--brand-teal)', 'var(--brand-gold)', '#e67e22', '#e74c3c'];
+    return colors[level] || 'var(--brand-teal)';
   };
 
   return (
@@ -232,8 +232,8 @@ export default function VisualisePage() {
               unoptimized
             />
           </div>
-          <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-[#20bdbe]/10 blur-3xl" />
-          <div className="absolute top-10 right-20 h-24 w-24 rounded-full bg-[#c8a951]/10 blur-2xl" />
+          <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-[var(--brand-teal)]/10 blur-3xl" />
+          <div className="absolute top-10 right-20 h-24 w-24 rounded-full bg-[var(--brand-gold)]/10 blur-2xl" />
           
           <div className="relative z-10 flex items-start justify-between">
             <div>
@@ -271,10 +271,10 @@ export default function VisualisePage() {
           className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
         >
           <motion.div variants={shouldReduceMotion ? {} : staggerItem}>
-            <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-[#20bdbe]">
+            <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-[var(--brand-teal)]">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Patients</CardTitle>
-                <Users className="h-4 w-4 text-[#20bdbe]" />
+                <Users className="h-4 w-4 text-[var(--brand-teal)]" />
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">{summary.total_patients}</div>
@@ -287,10 +287,10 @@ export default function VisualisePage() {
           </motion.div>
 
           <motion.div variants={shouldReduceMotion ? {} : staggerItem}>
-            <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-[#c8a951]">
+            <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-[var(--brand-gold)]">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">DR Predictions</CardTitle>
-                <Scan className="h-4 w-4 text-[#c8a951]" />
+                <Scan className="h-4 w-4 text-[var(--brand-gold)]" />
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">{summary.total_predictions}</div>
@@ -340,7 +340,7 @@ export default function VisualisePage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-[#20bdbe]" />
+                <Users className="h-5 w-5 text-[var(--brand-teal)]" />
                 Patient Gender Distribution
               </CardTitle>
               <CardDescription>Demographics of registered patients</CardDescription>
@@ -371,7 +371,7 @@ export default function VisualisePage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-[#20bdbe]" />
+                <BarChart3 className="h-5 w-5 text-[var(--brand-teal)]" />
                 DR Severity Distribution
               </CardTitle>
               <CardDescription>Predictions by diabetic retinopathy grade</CardDescription>
@@ -400,7 +400,7 @@ export default function VisualisePage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-[#c8a951]" />
+                <Calendar className="h-5 w-5 text-[var(--brand-gold)]" />
                 Patient Age Distribution
               </CardTitle>
               <CardDescription>Age groups of registered patients</CardDescription>
@@ -412,7 +412,7 @@ export default function VisualisePage() {
                   <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="value" fill="#c8a951" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="value" fill="var(--brand-gold)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -459,7 +459,7 @@ export default function VisualisePage() {
         {/* Row 3: OCT Reports - keep existing charts */}
         <div className="space-y-4">
           <h3 className="text-xl font-semibold flex items-center gap-2">
-            <Scan className="h-5 w-5 text-[#20bdbe]" />
+            <Scan className="h-5 w-5 text-[var(--brand-teal)]" />
             OCT Scan Analytics
           </h3>
           
@@ -586,8 +586,8 @@ export default function VisualisePage() {
                     <Radar
                       name="Thickness"
                       dataKey="value"
-                      stroke="#20bdbe"
-                      fill="#20bdbe"
+                      stroke="var(--brand-teal)"
+                      fill="var(--brand-teal)"
                       fillOpacity={0.4}
                     />
                   </RadarChart>
