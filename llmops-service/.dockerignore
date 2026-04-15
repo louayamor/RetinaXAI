@@ -28,6 +28,15 @@ docs/
 *.md
 README.md
 
+# Data files (download/generate at runtime)
+data/
+vectorstore/
+
+# MLflow (regenerate at runtime)
+mlflow.db
+mlruns/
+mlartifacts/
+
 # Logs
 logs/
 *.log
@@ -47,17 +56,11 @@ Thumbs.db
 dist/
 build/
 
-# Local configs (keep .env.example only)
+# Local configs
 .env.local
 .env.*.local
-.env
 *.local
 
 # Caches
 .ruff_cache/
 .mypy_cache/
-
-# Docker
-Dockerfile*
-docker-compose*
-.dockerignore

@@ -24,9 +24,22 @@ htmlcov/
 .gitattributes
 
 # Development files
-docs/
 *.md
-README.md
+docs/
+research/
+*.ipynb
+*.ipynb_checkpoints
+
+# ML/DVC artifacts (download at runtime)
+artifacts/
+.dvc
+dvc.lock
+dvc.yaml
+
+# MLflow (regenerate at runtime)
+mlflow.db
+mlruns/
+mlartifacts/
 
 # Logs
 logs/
@@ -47,17 +60,11 @@ Thumbs.db
 dist/
 build/
 
-# Local configs (keep .env.example only)
+# Local configs
 .env.local
 .env.*.local
-.env
 *.local
 
 # Caches
 .ruff_cache/
 .mypy_cache/
-
-# Docker
-Dockerfile*
-docker-compose*
-.dockerignore
