@@ -2,12 +2,15 @@
 API Routes for LLMOps Service.
 
 Includes synchronous and asynchronous report generation,
-job status tracking, and RAG management.
+job status tracking, RAG management, and training workflows.
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
+from pathlib import Path
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -270,4 +273,219 @@ async def generate_severity(payload: XAISeverityRequest) -> dict:
         patient_data=payload.patient_data,
         dr_grade=payload.dr_grade,
         risk_factors=payload.risk_factors,
+    )
+
+
+class TrainingCompleteRequest(BaseModel):
+    job_id: str
+    pipeline: str
+    imaging_version: str | None = None
+    clinical_version: str | None = None
+
+
+@router.post("/workflows/training-complete")
+async def workflow_training_complete(payload: TrainingCompleteRequest) -> dict:
+    """
+    Handle training completion event from MLOps.
+    Triggers RAG reindexing and batch GradCAM analysis.
+    """
+    from app.services.websocket_client import get_websocket_client
+
+    ws_client = get_websocket_client()
+
+    logger.info(
+        f"Training workflow triggered: job_id={payload.job_id}, "
+        f"pipeline={payload.pipeline}, imaging={payload.imaging_version}, "
+        f"clinical={payload.clinical_version}"
+    )
+
+    asyncio.create_task(
+        ws_client.send_llmops_event(
+            event_type="rag_indexing",
+            status="started",
+            progress=0,
+            message="Starting RAG reindexing after training...",
+            details={
+                "job_id": payload.job_id,
+                "pipeline": payload.pipeline,
+                "imaging_version": payload.imaging_version,
+                "clinical_version": payload.clinical_version,
+            },
+        )
+    )
+
+    try:
+        from app.pipeline.indexing_pipeline import IndexingPipeline
+
+        pipeline = IndexingPipeline()
+        result = pipeline.run()
+
+        asyncio.create_task(
+            ws_client.send_llmops_event(
+                event_type="rag_indexing",
+                status="completed",
+                progress=100,
+                message=f"RAG reindexing complete: {result.get('indexed', 0)} artifacts",
+                details={"result": result},
+            )
+        )
+        logger.info(f"RAG reindexing complete: {result}")
+
+    except Exception as e:
+        asyncio.create_task(
+            ws_client.send_llmops_event(
+                event_type="rag_indexing",
+                status="failed",
+                progress=0,
+                message=f"RAG reindexing failed: {e}",
+                details={"error": str(e)},
+            )
+        )
+        logger.warning(f"RAG reindexing failed: {e}")
+
+    return {
+        "status": "ok",
+        "workflow_id": f"workflow_{payload.job_id}",
+        "message": "Training workflow triggered successfully",
+    }
+
+
+class ShapExplainRequest(BaseModel):
+    features: dict[str, Any]
+    pipeline: str = "clinical"
+
+
+class ShapExplainResponse(BaseModel):
+    model_type: str
+    expected_value: float
+    pipeline: str
+    explanation: dict
+
+
+class GlobalImportanceResponse(BaseModel):
+    pipeline: str
+    importance: dict[str, float]
+
+
+class BiasCheckResponse(BaseModel):
+    pipeline: str
+    demographic_column: str
+    results: dict[str, Any]
+
+
+@router.post("/xai/shap/explain", response_model=ShapExplainResponse)
+async def shap_explain_prediction(payload: ShapExplainRequest) -> ShapExplainResponse:
+    """
+    Generate SHAP explanation for clinical model prediction.
+    DEPRECATED: Use /xai/explain for unified XAI explanation.
+    """
+    from app.services.shap_service import get_shap_service
+
+    logger.info(f"SHAP explanation requested for pipeline: {payload.pipeline}")
+
+    try:
+        service = get_shap_service()
+        explanation = service.explain_prediction(
+            features=payload.features,
+            pipeline=payload.pipeline,
+        )
+
+        return ShapExplainResponse(
+            model_type=explanation.model_type,
+            expected_value=explanation.expected_value,
+            pipeline=explanation.pipeline,
+            explanation=explanation.to_dict(),
+        )
+
+    except Exception as e:
+        logger.error(f"SHAP explanation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/xai/shap/importance/{pipeline}", response_model=GlobalImportanceResponse)
+async def shap_get_global_importance(pipeline: str) -> GlobalImportanceResponse:
+    """
+    Get cached global SHAP feature importance.
+    """
+    service = get_shap_service()
+    importance = service.get_global_importance(pipeline)
+
+    return GlobalImportanceResponse(
+        pipeline=pipeline,
+        importance=importance,
+    )
+
+
+@router.post(
+    "/xai/shap/importance/{pipeline}/compute", response_model=GlobalImportanceResponse
+)
+async def shap_compute_global_importance(
+    pipeline: str,
+    test_path: str | None = None,
+    sample_size: int = 100,
+) -> GlobalImportanceResponse:
+    """
+    Compute global SHAP feature importance on test dataset.
+    """
+    from app.core.config import settings
+
+    if test_path:
+        test_csv = Path(test_path)
+        if not test_csv.is_absolute():
+            test_csv = settings.artifacts_root / test_path
+    else:
+        test_csv = (
+            settings.artifacts_root / "data" / "processed" / pipeline / "test.csv"
+        )
+
+    if not test_csv.exists():
+        raise HTTPException(status_code=404, detail=f"Test data not found: {test_csv}")
+
+    service = get_shap_service()
+    importance = service.compute_global_importance(
+        test_csv=test_csv,
+        pipeline=pipeline,
+        sample_size=sample_size,
+    )
+
+    return GlobalImportanceResponse(
+        pipeline=pipeline,
+        importance=importance,
+    )
+
+
+@router.post("/xai/shap/bias/{pipeline}", response_model=BiasCheckResponse)
+async def shap_check_bias(
+    pipeline: str,
+    demographic_column: str = "patient_gender",
+    test_path: str | None = None,
+) -> BiasCheckResponse:
+    """
+    Check for potential bias in model predictions across demographic groups.
+    """
+    from app.core.config import settings
+
+    if test_path:
+        test_csv = Path(test_path)
+        if not test_csv.is_absolute():
+            test_csv = settings.artifacts_root / test_path
+    else:
+        test_csv = (
+            settings.artifacts_root / "data" / "processed" / pipeline / "test.csv"
+        )
+
+    if not test_csv.exists():
+        raise HTTPException(status_code=404, detail=f"Test data not found: {test_csv}")
+
+    service = get_shap_service()
+    results = service.check_bias(
+        test_csv=test_csv,
+        demographic_col=demographic_column,
+        pipeline=pipeline,
+    )
+
+    return BiasCheckResponse(
+        pipeline=pipeline,
+        demographic_column=demographic_column,
+        results=results,
     )

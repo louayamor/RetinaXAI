@@ -120,5 +120,23 @@ class Settings(BaseSettings):
     def rag_chunk_overlap(self) -> int:
         return 80
 
+    @property
+    def artifacts_root(self) -> Path:
+        """Path to MLOps artifacts (models, data)."""
+        import os
+
+        base_dir = os.environ.get("RETINAXAI_BASE_DIR")
+        if base_dir:
+            return Path(base_dir) / "mlops-service" / "mlops-service" / "artifacts"
+        return _get_service_root() / "artifacts"
+
+    @property
+    def clinical_model_path(self) -> Path:
+        return self.artifacts_root / "model" / "clinical" / "model.pkl"
+
+    @property
+    def imaging_model_path(self) -> Path:
+        return self.artifacts_root / "model" / "imaging" / "model.pth"
+
 
 settings = Settings()

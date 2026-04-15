@@ -59,19 +59,59 @@ class XAIPipeline:
         confidence: float,
         clinical_features: dict | None = None,
     ) -> dict:
-        """Generate natural language explanation of DR prediction."""
+        """Generate natural language explanation of DR prediction using SHAP values."""
         await send_xai_event(
             event="xai.prediction",
             stage="prediction",
             status="started",
             progress=0,
-            message="Generating prediction explanation...",
+            message="Generating prediction explanation with SHAP...",
+            prediction_id=prediction_id,
+        )
+
+        shap_values = None
+        shap_explanation = None
+
+        if clinical_features:
+            try:
+                from app.services.shap_service import get_shap_service
+
+                await send_xai_event(
+                    event="xai.prediction",
+                    stage="prediction",
+                    status="progress",
+                    progress=25,
+                    message="Calculating SHAP feature contributions...",
+                    prediction_id=prediction_id,
+                )
+
+                shap_service = get_shap_service()
+                shap_explanation = shap_service.explain_prediction(
+                    features=clinical_features,
+                    pipeline="clinical",
+                )
+                shap_values = shap_explanation.to_dict()
+                logger.info(f"SHAP explanation computed for prediction {prediction_id}")
+
+            except Exception as shap_error:
+                logger.warning(
+                    f"SHAP calculation failed, continuing without it: {shap_error}"
+                )
+                shap_values = None
+                shap_explanation = None
+
+        await send_xai_event(
+            event="xai.prediction",
+            stage="prediction",
+            status="progress",
+            progress=50,
+            message="Generating narrative explanation...",
             prediction_id=prediction_id,
         )
 
         try:
-            prompt = self._build_prediction_prompt(
-                dr_grade, confidence, clinical_features
+            prompt = self._build_prediction_prompt_with_shap(
+                dr_grade, confidence, clinical_features, shap_values
             )
             response = self.client.invoke(prompt)
 
@@ -85,11 +125,32 @@ class XAIPipeline:
                 details={"dr_grade": dr_grade, "confidence": confidence},
             )
 
+            result_details = {
+                "dr_grade": dr_grade,
+                "confidence": confidence,
+                "content": response,
+                "summary": response[:500],
+            }
+            if shap_values:
+                result_details["shap_values"] = shap_values
+                result_details["top_features"] = shap_values.get("top_positive", [])
+
+            await send_xai_event(
+                event="xai.explanation_ready",
+                stage="prediction",
+                status="completed",
+                progress=100,
+                message="Explanation ready",
+                prediction_id=prediction_id,
+                details=result_details,
+            )
+
             return {
                 "content": response,
                 "summary": response[:500],
                 "model_used": settings.llm_model,
                 "status": "completed",
+                "shap_values": shap_values,
             }
         except Exception as e:
             await send_xai_event(
@@ -138,6 +199,20 @@ class XAIPipeline:
                 details={
                     "left_regions": len(left_eye_regions),
                     "right_regions": len(right_eye_regions),
+                },
+            )
+
+            await send_xai_event(
+                event="xai.gradcam_ready",
+                stage="gradcam",
+                status="completed",
+                progress=100,
+                message="GradCAM analysis ready",
+                prediction_id=prediction_id,
+                details={
+                    "left_eye": response,
+                    "right_eye": response,
+                    "highlighted_regions": highlighted_regions,
                 },
             )
 
@@ -193,6 +268,21 @@ class XAIPipeline:
                 details={"risk_level": risk_level},
             )
 
+            await send_xai_event(
+                event="xai.severity_ready",
+                stage="severity",
+                status="completed",
+                progress=100,
+                message=f"Severity report ready: {risk_level}",
+                prediction_id=prediction_id,
+                details={
+                    "content": response,
+                    "summary": response[:500],
+                    "risk_level": risk_level,
+                    "recommendations": recommendations,
+                },
+            )
+
             return {
                 "content": response,
                 "summary": response[:500],
@@ -225,6 +315,65 @@ class XAIPipeline:
 {f"Clinical context: {clinical_features}" if clinical_features else ""}"""
 
         return f"{REPORT_SYSTEM_PROMPT}\n\n{base}"
+
+    def _build_prediction_prompt_with_shap(
+        self,
+        dr_grade: str,
+        confidence: float,
+        clinical_features: dict | None,
+        shap_values: dict | None,
+    ) -> str:
+        shap_context = ""
+        if shap_values:
+            top_positive = shap_values.get("top_positive", [])
+            top_negative = shap_values.get("top_negative", [])
+            expected_value = shap_values.get("expected_value", 0)
+
+            positive_features = (
+                ", ".join(
+                    [f"{f['name']} ({f['contribution']:.3f})" for f in top_positive[:3]]
+                )
+                if top_positive
+                else "None"
+            )
+            negative_features = (
+                ", ".join(
+                    [f"{f['name']} ({f['contribution']:.3f})" for f in top_negative[:3]]
+                )
+                if top_negative
+                else "None"
+            )
+
+            shap_context = f"""
+SHAP Feature Analysis:
+- Base value (expected): {expected_value:.3f}
+- Top positive contributing features: {positive_features}
+- Top negative contributing features: {negative_features}
+"""
+
+        clinical_context = ""
+        if clinical_features:
+            clinical_context = f"\nClinical Features: {clinical_features}"
+
+        prompt = f"""You are a medical AI assistant explaining diabetic retinopathy (DR) prediction results.
+
+Explain this prediction in patient-friendly terms addressing these key areas:
+
+1. DIAGNOSIS: The DR grade is {dr_grade} with {confidence:.1%} confidence.
+
+2. FEATURE CONTRIBUTIONS:{shap_context}
+
+3. CLINICAL CONTEXT:{clinical_context}
+
+Please provide:
+- A clear explanation of what this diagnosis means for the patient
+- How the key clinical features influenced the prediction
+- Recommended next steps and follow-up actions
+- Any warning signs the patient should watch for
+
+Keep the explanation professional but accessible to a non-medical patient."""
+
+        return f"{REPORT_SYSTEM_PROMPT}\n\n{prompt}"
 
     def _build_gradcam_prompt(
         self,

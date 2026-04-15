@@ -1,3 +1,4 @@
+import asyncio
 import os
 from typing import Any
 
@@ -6,6 +7,8 @@ from loguru import logger
 
 BACKEND_WS_URL = os.environ.get("BACKEND_WS_URL", "http://localhost:8000")
 LLMOPS_API_KEY = os.environ.get("LLM_SERVICE_API_KEY", "")
+MAX_RETRIES = 3
+INITIAL_BACKOFF = 1.0
 
 
 class WebSocketClient:
@@ -40,11 +43,48 @@ class WebSocketClient:
         if self._client:
             await self._client.aclose()
             self._client = None
-        self._connected = False
+            self._connected = False
 
     @property
     def is_connected(self) -> bool:
         return self._connected
+
+    async def _send_with_retry(
+        self,
+        url: str,
+        payload: dict[str, Any],
+        headers: dict[str, str] | None = None,
+        max_retries: int = MAX_RETRIES,
+    ) -> bool:
+        """Send HTTP request with exponential backoff retry."""
+        last_error = None
+
+        for attempt in range(max_retries):
+            try:
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    response = await client.post(
+                        url, json=payload, headers=headers or {}
+                    )
+                    if response.status_code < 400:
+                        return True
+                    last_error = f"HTTP {response.status_code}"
+                    logger.warning(
+                        f"Attempt {attempt + 1}/{max_retries} failed: {last_error}"
+                    )
+            except httpx.ConnectError as e:
+                last_error = str(e)
+                logger.warning(f"Attempt {attempt + 1}/{max_retries} failed: {e}")
+            except Exception as e:
+                last_error = str(e)
+                logger.warning(f"Attempt {attempt + 1}/{max_retries} failed: {e}")
+
+            if attempt < max_retries - 1:
+                backoff = INITIAL_BACKOFF * (2**attempt)
+                logger.info(f"Retrying in {backoff}s...")
+                await asyncio.sleep(backoff)
+
+        logger.error(f"All {max_retries} attempts failed. Last error: {last_error}")
+        return False
 
     async def send_llmops_event(
         self,
@@ -69,21 +109,23 @@ class WebSocketClient:
 
         room = "llmops" if event_type in ("rag_indexing", "report_generation") else None
 
-        try:
-            if self._client:
-                emit_payload = {"event": event_type, "data": payload.get("data", {})}
-                if room:
-                    emit_payload["room"] = room
-                await self._client.post(
-                    self._url.replace("ws", "http") + "/emit",
-                    json=emit_payload,
-                    headers={"X-API-Key": LLMOPS_API_KEY} if LLMOPS_API_KEY else {},
-                )
-                logger.debug(
-                    f"Sent LLM ops event: {event_type} - {status} to room {room or 'broadcast'}"
-                )
-        except Exception as e:
-            logger.warning(f"Failed to send LLM ops event: {e}")
+        emit_payload = {"event": event_type, "data": payload.get("data", {})}
+        if room:
+            emit_payload["room"] = room
+
+        headers = {"X-API-Key": LLMOPS_API_KEY} if LLMOPS_API_KEY else {}
+        url = self._url.replace("ws", "http") + "/emit"
+
+        success = await self._send_with_retry(url, emit_payload, headers)
+
+        if success:
+            logger.debug(
+                f"Sent LLM ops event: {event_type} - {status} to room {room or 'broadcast'}"
+            )
+        else:
+            logger.error(
+                f"Failed to send LLM ops event after {MAX_RETRIES} retries: {event_type}"
+            )
 
 
 _websocket_client: WebSocketClient | None = None
@@ -106,7 +148,7 @@ async def send_xai_event(
     details: dict[str, Any] | None = None,
     error: str | None = None,
 ) -> None:
-    """Send XAI event to backend WebSocket server."""
+    """Send XAI event to backend WebSocket server with retry."""
     payload = {
         "event": event,
         "data": {
@@ -123,20 +165,52 @@ async def send_xai_event(
     room = f"xai:{stage}"
     emit_url = f"{BACKEND_WS_URL}/emit"
 
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.post(
-                emit_url,
-                json={
-                    "event": f"{event}.{status}",
-                    "data": payload.get("data", {}),
-                    "room": room,
-                },
-                headers={"X-API-Key": LLMOPS_API_KEY} if LLMOPS_API_KEY else {},
-            )
-            if response.status_code < 400:
-                logger.debug(f"Sent XAI event: {stage} - {status}")
-            else:
-                logger.warning(f"Failed to emit XAI event: {response.status_code}")
-    except Exception as e:
-        logger.warning(f"Failed to send XAI event: {e}")
+    emit_payload = {
+        "event": f"{event}.{status}",
+        "data": payload.get("data", {}),
+        "room": room,
+    }
+
+    headers = {"X-API-Key": LLMOPS_API_KEY} if LLMOPS_API_KEY else {}
+
+    success = await _send_with_retry(emit_url, emit_payload, headers)
+
+    if success:
+        logger.debug(f"Sent XAI event: {stage} - {status}")
+    else:
+        logger.error(f"Failed to send XAI event after {MAX_RETRIES} retries: {event}")
+
+
+async def _send_with_retry(
+    url: str,
+    payload: dict[str, Any],
+    headers: dict[str, str] | None = None,
+    max_retries: int = MAX_RETRIES,
+) -> bool:
+    """Send HTTP request with exponential backoff retry."""
+    last_error = None
+
+    for attempt in range(max_retries):
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.post(url, json=payload, headers=headers or {})
+                if response.status_code < 400:
+                    return True
+                last_error = f"HTTP {response.status_code}"
+                logger.warning(
+                    f"Attempt {attempt + 1}/{max_retries} failed: {last_error}"
+                )
+        except httpx.ConnectError as e:
+            last_error = str(e)
+            logger.warning(f"Attempt {attempt + 1}/{max_retries} failed: {e}")
+        except Exception as e:
+            last_error = str(e)
+            logger.warning(f"Attempt {attempt + 1}/{max_retries} failed: {e}")
+
+        if attempt < max_retries - 1:
+            backoff = INITIAL_BACKOFF * (2**attempt)
+            logger.info(f"Retrying in {backoff}s...")
+            await asyncio.sleep(backoff)
+
+    logger.error(f"All {max_retries} attempts failed. Last error: {last_error}")
+    return False
