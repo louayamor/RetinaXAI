@@ -51,14 +51,16 @@ node_modules/
 .next/
 out/
 docs/
-mlops-service/docs
+**/docs/
 yarn-error.log
 AGENTS.md
 /.cursor/
 pnpm-lock.yaml
 package-lock.json
 .env
-.env.local
+.env.*
+**/.env
+**/.env.*
 .envrc
 *.dockerignore
 docker-compose.override.yml
@@ -110,4 +112,3 @@ shared/
 mlflow.db
 mlruns/
 *.db
-
