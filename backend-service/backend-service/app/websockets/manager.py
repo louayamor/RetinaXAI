@@ -7,9 +7,8 @@ from typing import Any
 import redis.asyncio as aioredis
 from app.core.config import get_settings
 from loguru import logger
-from python_socketio import AsyncManager, AsyncServer
-from python_socketio.asyncio_async_manager import AsyncioAsyncManager
-from python_socketio.namespace import AsyncNamespace
+import socketio
+from socketio import AsyncManager, AsyncServer, AsyncNamespace
 
 
 class WebSocketNamespace(AsyncNamespace):
@@ -69,7 +68,7 @@ class SocketManager:
         self._server = AsyncServer(
             async_mode="asyncio",
             cors_allowed_origins="*",
-            manager=AsyncioAsyncManager() if not self._redis else None,
+            manager=AsyncManager() if not self._redis else None,
         )
         if self._server is not None:
             self._server.on("connect", self._namespace.on_connect)
