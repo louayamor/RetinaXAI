@@ -7,12 +7,12 @@ from pydantic import BaseModel
 
 from app.api.dependencies import get_settings
 from app.config.settings import Settings
-from app.services.drift_detection import (
+from app.services.monitoring.drift_detection import (
     DRIFT_THRESHOLD_PSI,
     DriftDetectionService,
     DriftStatus,
 )
-from monitoring.prometheus_metrics import DRIFT_DETECTED, DRIFT_PSI_SCORE
+from app.services.monitoring.prometheus_metrics import DRIFT_DETECTED, DRIFT_PSI_SCORE
 
 
 class DriftCheckRequest(BaseModel):

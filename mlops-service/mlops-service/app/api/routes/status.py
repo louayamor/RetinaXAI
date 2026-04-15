@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from app.api.schemas import StatusResponse
-from app.services.training_service import get_job_status
+from app.services.orchestration.training_service import get_job_status
 
 router = APIRouter()
 
@@ -15,7 +15,8 @@ def get_status(job_id: str):
 
 @router.get("/status", response_model=StatusResponse)
 def get_latest_status():
-    from app.services.training_service import get_latest_job
+    from app.services.orchestration.training_service import get_latest_job
+
     latest = get_latest_job()
     if not latest:
         return StatusResponse(

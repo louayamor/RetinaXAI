@@ -2,8 +2,12 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from app.api.schemas import TrainRequest, TrainResponse
 from app.api.dependencies import get_settings
 from app.config.settings import Settings
-from app.services.training_service import create_job, run_pipeline_task, cancel_job
-from app.services.resource_manager import ResourceManager
+from app.services.orchestration.training_service import (
+    create_job,
+    run_pipeline_task,
+    cancel_job,
+)
+from app.services.platform.resource_manager import ResourceManager
 
 router = APIRouter()
 

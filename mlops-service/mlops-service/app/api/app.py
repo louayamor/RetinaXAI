@@ -18,7 +18,7 @@ from app.api.routes import (
     automation,
 )  # reports temporarily disabled
 from app.api.dependencies import get_settings
-from monitoring.prometheus_metrics import start_metrics_server
+from app.services.monitoring.prometheus_metrics import start_metrics_server
 
 
 @asynccontextmanager
@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI):
     logger.info(f"environment: {settings.app_env}")
     start_metrics_server(port=settings.prometheus_metrics_port)
     if settings.automation_enabled:
-        from app.services.automation_service import get_automation_service
+        from app.services.orchestration.automation_service import get_automation_service
 
         automation_service = get_automation_service(
             settings.artifacts_root,

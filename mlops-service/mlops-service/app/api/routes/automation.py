@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from app.api.dependencies import get_settings
 from app.config.settings import Settings
-from app.services.automation_service import get_automation_service
+from app.services.orchestration.automation_service import get_automation_service
 
 
 class AutomationStatusResponse(BaseModel):

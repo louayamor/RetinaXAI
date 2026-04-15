@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from loguru import logger
 from pydantic import BaseModel
 
-from app.services.feature_store import FeatureNotFoundError, get_feature_store
+from app.services.platform.feature_store import FeatureNotFoundError, get_feature_store
 
 
 class FeatureSetRequest(BaseModel):

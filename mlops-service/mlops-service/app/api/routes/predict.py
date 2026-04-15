@@ -8,8 +8,8 @@ from PIL import Image
 from app.api.dependencies import get_settings
 from app.api.schemas import ClinicalFeatures, MLPredictHttpRequest, PredictResponse
 from app.config.settings import Settings
-from app.services.inference_service import InferenceService
-from app.services.shap_service import ShapService
+from app.services.inference.inference_service import InferenceService
+from app.services.inference.shap_service import ShapService
 
 router = APIRouter()
 _inference_service = None

@@ -11,17 +11,21 @@ from loguru import logger
 load_dotenv()
 os.chdir(Path(__file__).parent)
 
-from app.pipeline.imaging.stage_01_data_ingestion import run as img_ingest  # noqa: E402
-from app.pipeline.imaging.stage_02_data_cleaning import run as img_clean  # noqa: E402
-from app.pipeline.imaging.stage_03_data_transformation import run as img_transform  # noqa: E402
-from app.pipeline.imaging.stage_04_model_trainer import run as img_train  # noqa: E402
-from app.pipeline.imaging.stage_05_model_evaluation import run as img_evaluate  # noqa: E402
+from app.domains.imaging.pipeline.stage_01_data_ingestion import run as img_ingest  # noqa: E402
+from app.domains.imaging.pipeline.stage_02_data_cleaning import run as img_clean  # noqa: E402
+from app.domains.imaging.pipeline.stage_03_data_transformation import (
+    run as img_transform,
+)  # noqa: E402
+from app.domains.imaging.pipeline.stage_04_model_trainer import run as img_train  # noqa: E402
+from app.domains.imaging.pipeline.stage_05_model_evaluation import run as img_evaluate  # noqa: E402
 
-from app.pipeline.clinical.stage_01_data_ingestion import run as clin_ingest  # noqa: E402
-from app.pipeline.clinical.stage_02_data_cleaning import run as clin_clean  # noqa: E402
-from app.pipeline.clinical.stage_03_data_transformation import run as clin_transform  # noqa: E402
-from app.pipeline.clinical.stage_04_model_trainer import run as clin_train  # noqa: E402
-from app.pipeline.clinical.stage_05_model_evaluation import run as clin_evaluate  # noqa: E402
+from app.domains.clinical.pipeline.stage_01_data_ingestion import run as clin_ingest  # noqa: E402
+from app.domains.clinical.pipeline.stage_02_data_cleaning import run as clin_clean  # noqa: E402
+from app.domains.clinical.pipeline.stage_03_data_transformation import (
+    run as clin_transform,
+)  # noqa: E402
+from app.domains.clinical.pipeline.stage_04_model_trainer import run as clin_train  # noqa: E402
+from app.domains.clinical.pipeline.stage_05_model_evaluation import run as clin_evaluate  # noqa: E402
 
 IMAGING_PIPELINE: dict[str, Callable] = {
     "ingest": img_ingest,
@@ -65,7 +69,7 @@ def run_full_pipeline(pipeline: dict[str, Callable]) -> None:
 
 
 def run_pipeline(stage: str, target: str) -> None:
-    from app.pipeline.training_pipeline import TrainingPipeline
+    from app.services.orchestration.training_pipeline import TrainingPipeline
 
     if stage in ("train", "evaluate", "all"):
         configure_mlflow()

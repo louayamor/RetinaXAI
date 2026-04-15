@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from app.api.dependencies import get_settings
 from app.config.settings import Settings
-from app.services.shap_service import ShapService
+from app.services.inference.shap_service import ShapService
 
 
 class ShapExplainRequest(BaseModel):

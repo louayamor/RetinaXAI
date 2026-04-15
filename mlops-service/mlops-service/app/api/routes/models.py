@@ -18,7 +18,7 @@ from app.api.schemas import (
     CurrentProductionResponse,
 )
 from app.config.settings import Settings
-from app.services.model_registry import (
+from app.services.registry.model_registry import (
     ModelRegistryError,
     ModelNotFoundError,
     ModelRegistryService,
@@ -373,7 +373,7 @@ async def stage_model(
         Success confirmation
     """
     try:
-        model = service.promote_version(
+        service.promote_version(
             version, ModelStage.STAGING, reason="Re-staging for testing"
         )
 
