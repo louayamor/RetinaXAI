@@ -179,21 +179,25 @@ export default function PatientProfilePage() {
       const confidence = prediction.confidence_score ?? 0;
       const clinicalFeatures = prediction.input_payload as Record<string, unknown>;
 
-      // Generate SHAP explanation
-      toast.info('Generating SHAP explanations...');
-      const shapResult = await generateSHAPExplanation(prediction.id, clinicalFeatures || {});
+      // Generate SHAP explanation (may fail if model features don't match)
+      try {
+        toast.info('Generating SHAP explanations...');
+        await generateSHAPExplanation(prediction.id, clinicalFeatures || {});
+      } catch (shapError) {
+        console.warn('SHAP generation failed (expected with limited features):', shapError);
+      }
 
       // Generate XAI explanation with LLM
       toast.info('Generating AI explanation...');
       const xaiResult = await generateXAIExplanation(prediction.id, drGrade, confidence, clinicalFeatures);
 
-      // Generate GradCAM interpretation
-      toast.info('Generating GradCAM interpretation...');
-      await generateXAIGradCAM(
-        prediction.id,
-        (prediction.output_payload?.gradcam_left as string[]) || [],
-        (prediction.output_payload?.gradcam_right as string[]) || []
-      );
+      // Generate GradCAM interpretation (only if we have regions)
+      const leftRegions = (prediction.output_payload?.gradcam_left_regions as string[]) || [];
+      const rightRegions = (prediction.output_payload?.gradcam_right_regions as string[]) || [];
+      if (leftRegions.length > 0 || rightRegions.length > 0) {
+        toast.info('Generating GradCAM interpretation...');
+        await generateXAIGradCAM(prediction.id, leftRegions, rightRegions);
+      }
 
       // Generate severity report
       toast.info('Generating severity assessment...');
