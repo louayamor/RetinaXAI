@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import uuid
 
@@ -53,18 +54,28 @@ class ExplanationService:
                     )
                     if resp.status_code == 200:
                         data = resp.json()
+                        shap_values = data.get("shap_values")
+                        content = data.get("content", "")
+                        if shap_values:
+                            top_features = [
+                                f["name"]
+                                for f in shap_values.get("top_positive", [])[:3]
+                            ]
+                            content = f"{content}\n\n[SHAP Analysis: Top features include {', '.join(top_features)}]"
+
                         exp = PredictionExplanation(
                             id=uuid.uuid4(),
                             prediction_id=prediction.id,
-                            content=data.get("content", ""),
+                            content=content,
                             summary=data.get("summary"),
                             model_used=data.get("model_used", "unknown"),
                             status=ExplanationStatus.COMPLETED,
+                            shap_values=shap_values,
                         )
                         self.db.add(exp)
                         results["prediction_explanation"] = exp
                         logger.info(
-                            f"[EXPLAIN SERVICE] Prediction explanation created for {prediction.id}"
+                            f"[EXPLAIN SERVICE] Prediction explanation created for {prediction.id} (with SHAP)"
                         )
                 except Exception as e:
                     xai_failed = True
@@ -137,6 +148,76 @@ class ExplanationService:
                 logger.warning(f"[EXPLAIN SERVICE] XAI severity failed: {e}")
 
         await self.db.commit()
+
+        try:
+            from app.websockets.manager import get_socket_manager
+
+            socket_manager = get_socket_manager()
+
+            if results["prediction_explanation"]:
+                asyncio.create_task(
+                    socket_manager.emit_xai_event(
+                        event_type="xai.explanation_ready",
+                        prediction_id=str(prediction.id),
+                        patient_id=str(prediction.patient_id),
+                        status="completed",
+                        progress=100,
+                        message="Explanation generated successfully",
+                        explanation_id=str(results["prediction_explanation"].id),
+                        content=results["prediction_explanation"].content,
+                        summary=results["prediction_explanation"].summary,
+                    )
+                )
+
+            if results["gradcam_explanation"]:
+                asyncio.create_task(
+                    socket_manager.emit_xai_event(
+                        event_type="xai.gradcam_ready",
+                        prediction_id=str(prediction.id),
+                        patient_id=str(prediction.patient_id),
+                        status="completed",
+                        progress=100,
+                        message="GradCAM analysis complete",
+                        explanation_id=str(results["gradcam_explanation"].id),
+                        details={
+                            "left_eye": results[
+                                "gradcam_explanation"
+                            ].left_eye_explanation,
+                            "right_eye": results[
+                                "gradcam_explanation"
+                            ].right_eye_explanation,
+                        },
+                    )
+                )
+
+            if results["severity_report"]:
+                asyncio.create_task(
+                    socket_manager.emit_xai_event(
+                        event_type="xai.severity_ready",
+                        prediction_id=str(prediction.id),
+                        patient_id=str(prediction.patient_id),
+                        status="completed",
+                        progress=100,
+                        message=f"Risk assessment complete: {results['severity_report'].risk_level.value}",
+                        explanation_id=str(results["severity_report"].id),
+                        content=results["severity_report"].content,
+                        summary=results["severity_report"].summary,
+                        details={
+                            "risk_level": results["severity_report"].risk_level.value,
+                            "recommendations": results[
+                                "severity_report"
+                            ].recommendations,
+                        },
+                    )
+                )
+
+            logger.info(
+                f"[EXPLAIN SERVICE] Emitted XAI WebSocket events for prediction {prediction.id}"
+            )
+        except Exception as ws_error:
+            logger.warning(
+                f"[EXPLAIN SERVICE] Failed to emit XAI WebSocket events: {ws_error}"
+            )
 
         if xai_failed:
             prediction.status = PredictionStatus.PARTIAL

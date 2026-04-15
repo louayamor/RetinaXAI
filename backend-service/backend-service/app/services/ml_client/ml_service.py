@@ -44,6 +44,7 @@ class MLServiceClient:
         payload = {
             "model_name": request.model_name,
             "model_version": request.model_version,
+            "patient_id": request.patient_id,
             "patient_age": request.patient_age,
             "patient_gender": request.patient_gender,
             "left_scan_path": request.left_scan_path,

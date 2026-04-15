@@ -7,6 +7,7 @@ from app.api.v1.routes.mri_scan_routes import router as mri_scan_router
 from app.api.v1.routes.notification_routes import router as notification_router
 from app.api.v1.routes.oct_report_routes import router as oct_report_router
 from app.api.v1.routes.oct_stats_routes import router as oct_stats_router
+from app.api.v1.routes.orchestration_routes import router as orchestration_router
 from app.api.v1.routes.patient_routes import router as patient_router
 from app.api.v1.routes.predict_routes import router as predict_router
 from app.api.v1.routes.report_routes import router as report_router
@@ -25,3 +26,4 @@ api_router.include_router(oct_report_router)
 api_router.include_router(metrics_router)
 api_router.include_router(dashboard_router)
 api_router.include_router(notification_router)
+api_router.include_router(orchestration_router)

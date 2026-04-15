@@ -166,6 +166,74 @@ class SocketManager:
         await self.emit_to_all("notification", payload)
         logger.info(f"Emitted notification: {notification_type} - {title}")
 
+    async def emit_prediction_event(
+        self,
+        prediction_id: str,
+        patient_id: str,
+        status: str,
+        dr_grade: int,
+        confidence: float,
+        overall_severity: str,
+        triggers_xai: bool = True,
+        error: str | None = None,
+    ) -> None:
+        """Emit prediction.completed or prediction.failed event."""
+        event_type = "prediction.failed" if error else "prediction.completed"
+        payload = {
+            "event": event_type,
+            "data": {
+                "prediction_id": prediction_id,
+                "patient_id": patient_id,
+                "status": status,
+                "dr_grade": dr_grade,
+                "confidence": confidence,
+                "overall_severity": overall_severity,
+                "triggers_xai": triggers_xai,
+                "timestamp": datetime.utcnow().isoformat(),
+                "error": error,
+            },
+        }
+        room = f"prediction:{patient_id}"
+        await self.emit_to_room(room, event_type, payload)
+        await self.emit_to_all(event_type, payload)
+        logger.info(f"Emitted prediction event: {event_type} for {prediction_id}")
+
+    async def emit_xai_event(
+        self,
+        event_type: str,
+        prediction_id: str,
+        patient_id: str | None,
+        status: str,
+        progress: int,
+        message: str,
+        explanation_id: str | None = None,
+        content: str | None = None,
+        summary: str | None = None,
+        details: dict[str, Any] | None = None,
+        error: str | None = None,
+    ) -> None:
+        """Emit XAI events (xai.explanation_ready, xai.gradcam_ready, xai.severity_ready)."""
+        payload = {
+            "event": event_type,
+            "data": {
+                "prediction_id": prediction_id,
+                "patient_id": patient_id,
+                "status": status,
+                "progress": progress,
+                "message": message,
+                "explanation_id": explanation_id,
+                "content": content,
+                "summary": summary,
+                "details": details or {},
+                "error": error,
+                "timestamp": datetime.utcnow().isoformat(),
+            },
+        }
+        if patient_id:
+            await self.emit_to_room(f"prediction:{patient_id}", event_type, payload)
+        await self.emit_to_all(event_type, payload)
+        logger.info(f"Emitted XAI event: {event_type} for prediction {prediction_id}")
+
     async def close(self) -> None:
         if self._redis:
             await self._redis.close()

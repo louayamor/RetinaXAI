@@ -13,6 +13,7 @@ from app.predictions.repository import PredictionRepository
 from app.schemas.prediction_schema import PredictionRequest
 from app.services.ml_client.ml_service import ml_client
 from app.services.ml_client.schemas import MLPredictRequest
+from app.websockets.manager import get_socket_manager
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +60,7 @@ class PredictionService:
             ml_request = MLPredictRequest(
                 model_name=data.model_name,
                 model_version=data.model_version,
+                patient_id=str(data.patient_id),
                 patient_age=patient.age,
                 patient_gender=patient.gender.value,
                 left_scan_path=scan.left_scan_path,
@@ -81,6 +83,37 @@ class PredictionService:
             prediction.confidence_score = ml_response.confidence_score
             prediction.status = PredictionStatus.SUCCESS
             logger.info(f"[PREDICT SERVICE] Prediction SUCCESS: {prediction.id}")
+
+            dr_grade = output_payload.get("combined_grade", 0)
+            severity_map = {
+                0: "none",
+                1: "low",
+                2: "moderate",
+                3: "high",
+                4: "critical",
+            }
+            overall_severity = severity_map.get(dr_grade, "unknown")
+
+            try:
+                socket_manager = get_socket_manager()
+                asyncio.create_task(
+                    socket_manager.emit_prediction_event(
+                        prediction_id=str(prediction.id),
+                        patient_id=str(data.patient_id),
+                        status="completed",
+                        dr_grade=dr_grade,
+                        confidence=ml_response.confidence_score,
+                        overall_severity=overall_severity,
+                        triggers_xai=True,
+                    )
+                )
+                logger.info(
+                    f"[PREDICT SERVICE] Emitted prediction.completed WebSocket event for {prediction.id}"
+                )
+            except Exception as ws_error:
+                logger.warning(
+                    f"[PREDICT SERVICE] Failed to emit WebSocket event: {ws_error}"
+                )
 
             patient_data = {
                 "name": f"{patient.first_name} {patient.last_name}",
@@ -106,6 +139,28 @@ class PredictionService:
             logger.error(f"[PREDICT SERVICE] Traceback: {traceback.format_exc()}")
             prediction.status = PredictionStatus.FAILED
             prediction.error_message = f"{type(e).__name__}: {e}"
+
+            try:
+                socket_manager = get_socket_manager()
+                asyncio.create_task(
+                    socket_manager.emit_prediction_event(
+                        prediction_id=str(prediction.id),
+                        patient_id=str(data.patient_id),
+                        status="failed",
+                        dr_grade=0,
+                        confidence=0.0,
+                        overall_severity="unknown",
+                        triggers_xai=False,
+                        error=str(e)[:200],
+                    )
+                )
+                logger.info(
+                    f"[PREDICT SERVICE] Emitted prediction.failed WebSocket event for {prediction.id}"
+                )
+            except Exception as ws_error:
+                logger.warning(
+                    f"[PREDICT SERVICE] Failed to emit WebSocket failure event: {ws_error}"
+                )
 
         return await self.repo.update(prediction)
 

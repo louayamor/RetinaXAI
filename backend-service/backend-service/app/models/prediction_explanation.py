@@ -33,5 +33,6 @@ class PredictionExplanation(Base, UUIDMixin, TimestampMixin):
         nullable=False,
     )
     error_message: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    shap_values: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     prediction = relationship("Prediction", back_populates="explanation")

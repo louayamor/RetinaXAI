@@ -4,6 +4,7 @@ from pydantic import BaseModel
 class MLPredictRequest(BaseModel):
     model_name: str
     model_version: str
+    patient_id: str
     patient_age: int
     patient_gender: str
     left_scan_path: str

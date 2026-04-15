@@ -1,8 +1,10 @@
+import asyncio
 import json
 from datetime import datetime
 from typing import Any
 import uuid
 
+import httpx
 import redis.asyncio as aioredis
 from fastapi import APIRouter, Body, WebSocket, WebSocketDisconnect, Depends
 from pydantic import BaseModel
@@ -14,6 +16,9 @@ from app.db.session import get_db
 from app.models.notification import Notification
 
 router = APIRouter()
+
+
+LLM_SERVICE_URL = "http://localhost:8002"
 
 
 # Lazy load settings to avoid import errors
@@ -58,6 +63,62 @@ async def get_redis() -> aioredis.Redis | None:
 def _get_clients_in_room(room: str) -> list[WebSocket]:
     """Get all WebSocket clients subscribed to a specific room."""
     return [client for client, rooms in _client_rooms.items() if room in rooms]
+
+
+async def _trigger_llmops_training_workflow(
+    job_id: str,
+    pipeline: str,
+    imaging_version: str | None,
+    clinical_version: str | None,
+) -> None:
+    """Trigger LLMOps workflow after training completes."""
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                f"{LLM_SERVICE_URL}/api/workflows/training-complete",
+                json={
+                    "job_id": job_id,
+                    "pipeline": pipeline,
+                    "imaging_version": imaging_version,
+                    "clinical_version": clinical_version,
+                },
+            )
+            if response.status_code < 400:
+                logger.info(f"LLMOps workflow triggered for training {job_id}")
+            else:
+                logger.warning(
+                    f"LLMOps workflow trigger failed: {response.status_code} {response.text}"
+                )
+    except httpx.ConnectError as e:
+        logger.warning(f"LLMOps unavailable for training workflow: {e}")
+        await _queue_event_for_retry(
+            "llmops.training.workflow",
+            {
+                "job_id": job_id,
+                "pipeline": pipeline,
+                "imaging_version": imaging_version,
+                "clinical_version": clinical_version,
+            },
+            None,
+        )
+    except Exception as e:
+        logger.warning(f"Failed to trigger LLMOps workflow: {e}")
+
+
+async def _queue_event_for_retry(
+    event: str,
+    data: dict[str, Any],
+    room: str | None,
+) -> None:
+    """Queue an event for later delivery when no clients are connected."""
+    try:
+        from app.services.event_queue import get_event_queue
+
+        event_queue = get_event_queue()
+        await event_queue.enqueue(event, data, room, max_retries=5)
+        logger.info(f"Queued event for retry: {event}")
+    except Exception as e:
+        logger.warning(f"Failed to queue event: {e}")
 
 
 @router.websocket("/ws")
@@ -125,18 +186,16 @@ async def emit_event(request: EmitRequest, db: AsyncSession = Depends(get_db)):
 
     redis = await get_redis()
 
-    # Determine target clients based on room
+    target_clients: list[WebSocket] = []
+
     if request.room:
-        # Send to clients in specific room
         target_clients = _get_clients_in_room(request.room)
         logger.info(f"Room {request.room}: targeting {len(target_clients)} clients")
 
-        # Also publish to Redis for multi-instance support
         if redis:
             channel = f"ws:{request.room}"
             await redis.publish(channel, json.dumps(message))
     else:
-        # Broadcast to all connected clients
         target_clients = _connected_clients
         logger.info(f"Broadcast: targeting {len(target_clients)} clients")
 
@@ -153,6 +212,9 @@ async def emit_event(request: EmitRequest, db: AsyncSession = Depends(get_db)):
             logger.warning(f"Failed to send to client: {e}")
 
     logger.debug(f"Emitted {request.event} to {sent_count} clients")
+
+    if sent_count == 0 and len(target_clients) == 0:
+        await _queue_event_for_retry(request.event, request.data, request.room)
 
     # Persist notification to database
     # Also auto-create notifications for training and XAI events
@@ -233,6 +295,22 @@ async def emit_event(request: EmitRequest, db: AsyncSession = Depends(get_db)):
                 db.add(notification)
                 await db.commit()
                 logger.info(f"Created LLM ops notification: {title}")
+
+        # Handle training.completed - trigger LLMOps workflow
+        elif request.event == "training.completed":
+            job_id = notif_data.get("job_id", "")
+            pipeline = notif_data.get("pipeline", "")
+            imaging_version = notif_data.get("imaging_version")
+            clinical_version = notif_data.get("clinical_version")
+
+            logger.info(
+                f"Training completed: job_id={job_id}, pipeline={pipeline}, "
+                f"imaging={imaging_version}, clinical={clinical_version}"
+            )
+
+            _trigger_llmops_training_workflow(
+                job_id, pipeline, imaging_version, clinical_version
+            )
 
     except Exception as e:
         logger.warning(f"Failed to process notification: {e}")
