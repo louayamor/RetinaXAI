@@ -40,6 +40,7 @@ class ExplanationService:
             "severity_report": None,
         }
         xai_failed = False
+        shap_values = None
 
         async with httpx.AsyncClient(timeout=60.0) as client:
             if dr_grade != "Unknown":
@@ -150,6 +151,14 @@ class ExplanationService:
 
         await self.db.commit()
 
+        if results["prediction_explanation"]:
+            prediction.output_payload["explanation"] = results[
+                "prediction_explanation"
+            ].content
+            if shap_values:
+                prediction.output_payload["shap_values"] = shap_values
+            await self.db.commit()
+
         try:
             from app.websockets.manager import get_socket_manager
 
@@ -219,6 +228,26 @@ class ExplanationService:
             logger.warning(
                 f"[EXPLAIN SERVICE] Failed to emit XAI WebSocket events: {ws_error}"
             )
+
+        if not xai_failed:
+            try:
+                from app.reports.service import ReportService
+
+                report_data = {
+                    "prediction_id": str(prediction.id),
+                    "report_type": "prediction",
+                }
+                report_service = ReportService(self.db)
+                asyncio.create_task(
+                    report_service.generate(report_data, prediction.patient_id)
+                )
+                logger.info(
+                    f"[EXPLAIN SERVICE] Report generation triggered for prediction {prediction.id}"
+                )
+            except Exception as report_error:
+                logger.warning(
+                    f"[EXPLAIN SERVICE] Failed to trigger report generation: {report_error}"
+                )
 
         if xai_failed:
             prediction.status = PredictionStatus.PARTIAL
