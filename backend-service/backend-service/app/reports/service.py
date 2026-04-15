@@ -3,6 +3,8 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+
+GRADE_LABELS = ["No DR", "Mild", "Moderate", "Severe", "Proliferative DR"]
 from app.core.exceptions import (
     ConflictException,
     NotFoundException,
@@ -43,9 +45,7 @@ class ReportService:
                 await self.db.delete(existing)
                 await self.db.flush()
             else:
-                raise ConflictException(
-                    "A report for this prediction already exists."
-                )
+                raise ConflictException("A report for this prediction already exists.")
 
         patient = await self.patient_repo.get_by_id(prediction.patient_id)
         if not patient:
@@ -62,12 +62,31 @@ class ReportService:
 
         try:
             cleaned_summary = ""
-            if prediction.output_payload:
-                cleaned_summary = str(
-                    prediction.output_payload.get("summary")
-                    or prediction.output_payload.get("description")
-                    or prediction.output_payload
-                )
+            output_payload = prediction.output_payload or {}
+
+            cleaned_summary = str(
+                output_payload.get("summary")
+                or output_payload.get("description")
+                or output_payload.get("dr_grade", "")
+            )
+
+            combined_grade = output_payload.get("combined_grade")
+            predicted_class = output_payload.get("predicted_class")
+            grade_text = (
+                GRADE_LABELS[combined_grade]
+                if combined_grade is not None
+                else predicted_class or "Unknown"
+            )
+
+            prediction_summary = {
+                "id": str(prediction.id),
+                "model_name": prediction.model_name,
+                "model_version": prediction.model_version,
+                "confidence_score": prediction.confidence_score,
+                "status": prediction.status.value,
+                "dr_grade": grade_text,
+                "severity": output_payload.get("overall_severity", "unknown"),
+            }
 
             llm_request = LLMReportRequest(
                 patient={
@@ -77,23 +96,17 @@ class ReportService:
                     "age": patient.age,
                     "gender": patient.gender.value,
                     "medical_record_number": patient.medical_record_number,
-                    "ocr_patient_id": patient.ocr_patient_id,
                 },
-                prediction={
-                    "id": str(prediction.id),
-                    "model_name": prediction.model_name,
-                    "model_version": prediction.model_version,
-                    "confidence_score": prediction.confidence_score,
-                    "status": prediction.status.value,
-                    "output_payload": prediction.output_payload,
-                },
+                prediction=prediction_summary,
                 cleaned_summary=cleaned_summary,
-                raw_ocr_text=str(prediction.output_payload or ""),
+                raw_ocr_text="",
                 report_type="prediction",
                 model_name=prediction.model_name,
                 model_version=prediction.model_version,
-                prediction_output=prediction.output_payload or {},
-                confidence_score=prediction.confidence_score if prediction.confidence_score is not None else 0.0,
+                prediction_output=prediction_summary,
+                confidence_score=prediction.confidence_score
+                if prediction.confidence_score is not None
+                else 0.0,
             )
             llm_response = await llm_client.generate_report(llm_request)
             report.content = llm_response.content
@@ -119,9 +132,7 @@ class ReportService:
         total = await self.repo.count_by_patient(patient_id)
         return reports, total
 
-    async def get_all(
-        self, skip: int = 0, limit: int = 20
-    ) -> tuple[list[Report], int]:
+    async def get_all(self, skip: int = 0, limit: int = 20) -> tuple[list[Report], int]:
         reports = await self.repo.get_all(skip, limit)
         total = await self.repo.count_all()
         return reports, total
