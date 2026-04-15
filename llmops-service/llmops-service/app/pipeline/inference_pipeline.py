@@ -63,7 +63,16 @@ class InferencePipeline:
 
     def _build_retrieval_context(self, payload: dict) -> tuple[str, float]:
         start_time = time.time()
-        parts = [payload.get("cleaned_summary", ""), payload.get("raw_ocr_text", "")]
+
+        cleaned_summary = payload.get("cleaned_summary", "") or ""
+        raw_ocr_text = payload.get("raw_ocr_text", "") or ""
+
+        if len(cleaned_summary) > 2000:
+            cleaned_summary = cleaned_summary[:2000] + "..."
+        if len(raw_ocr_text) > 3000:
+            raw_ocr_text = raw_ocr_text[:3000] + "..."
+
+        parts = [cleaned_summary, raw_ocr_text]
         query = "\n".join(part for part in parts if part)
         if not query.strip():
             logger.debug("No query text provided for retrieval")
@@ -96,7 +105,14 @@ class InferencePipeline:
                 )
 
         logger.info(f"Retrieved {len(snippets)} context snippets")
-        return "\n".join(snippets), time.time() - start_time
+
+        context = "\n".join(snippets)
+        max_tokens = 6000
+        if len(context) > max_tokens * 4:
+            context = context[: max_tokens * 4]
+            logger.warning(f"Truncated context to {max_tokens} tokens")
+
+        return context, time.time() - start_time
 
     def generate_report(self, payload: dict) -> dict[str, str]:
         try:
