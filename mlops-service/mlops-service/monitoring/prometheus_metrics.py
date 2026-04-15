@@ -51,6 +51,11 @@ DRIFT_PSI_SCORE = Gauge(
     ["pipeline", "feature"],
 )
 
+AUTOMATION_SCHEDULER_RUNNING = Gauge(
+    "retinaxai_automation_scheduler_running",
+    "Whether automation scheduler is running (1) or not (0)",
+)
+
 
 def start_metrics_server(port: int = 9101) -> None:
     try:

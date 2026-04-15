@@ -15,6 +15,7 @@ from app.api.routes import (
     drift,
     features,
     shap,
+    automation,
 )  # reports temporarily disabled
 from app.api.dependencies import get_settings
 from monitoring.prometheus_metrics import start_metrics_server
@@ -26,6 +27,16 @@ async def lifespan(app: FastAPI):
     logger.info(f"starting {settings.app_name} v{settings.app_version}")
     logger.info(f"environment: {settings.app_env}")
     start_metrics_server(port=settings.prometheus_metrics_port)
+    if settings.automation_enabled:
+        from app.services.automation_service import get_automation_service
+
+        automation_service = get_automation_service(
+            settings.artifacts_root,
+            settings.artifacts_root / "monitoring" / "drift",
+        )
+        automation_service.start_scheduler(
+            interval_hours=settings.automation_interval_hours
+        )
     yield
     logger.info("shutting down mlops service")
 
@@ -56,6 +67,7 @@ def create_app() -> FastAPI:
     app.include_router(drift.router, tags=["drift"])  # type: ignore[arg-type]
     app.include_router(features.router, tags=["features"])  # type: ignore[arg-type]
     app.include_router(shap.router, tags=["shap"])  # type: ignore[arg-type]
+    app.include_router(automation.router, tags=["automation"])  # type: ignore[arg-type]
     # app.include_router(reports.router, tags=["monitoring"]) # temporarily disabled (evidently dep conflict)
 
     return app

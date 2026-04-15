@@ -17,7 +17,7 @@ groups:
 
       # Model drift detection
       - alert: ModelDriftDetected
-        expr: retinaxai_drift_score > 0.3
+        expr: max by (pipeline) (retinaxai_drift_psi_score) > 0.3
         for: 1h
         labels:
           severity: warning
@@ -63,6 +63,18 @@ groups:
           description: "Model out-of-memory kill occurred"
           remediation: "Reduce batch size or increase memory allocation"
 
+      # Automation scheduler stopped
+      - alert: AutomationSchedulerStopped
+        expr: retinaxai_automation_scheduler_running < 1
+        for: 10m
+        labels:
+          severity: warning
+          service: mlops
+        annotations:
+          summary: "Automation scheduler is not running"
+          description: "Scheduler has been inactive for more than 10 minutes"
+          remediation: "Check automation settings and service health"
+
       # High active training jobs
       - alert: HighTrainingLoad
         expr: retinaxai_active_training_jobs > 5
@@ -77,7 +89,7 @@ groups:
 
       # Feature drift
       - alert: FeatureDrift
-        expr: retinaxai_feature_drift_score{feature=~".+"} > 0.2
+        expr: retinaxai_drift_psi_score{feature=~".+"} > 0.2
         for: 30m
         labels:
           severity: warning

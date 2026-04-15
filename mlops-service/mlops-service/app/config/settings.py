@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     timeout_seconds: int = 30
 
     prometheus_metrics_port: int = 9101
+    automation_enabled: bool = False
+    automation_interval_hours: int = 24
 
     class Config:
         env_file = ".env"
