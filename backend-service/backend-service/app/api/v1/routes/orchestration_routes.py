@@ -7,6 +7,8 @@ from fastapi import APIRouter, HTTPException
 from loguru import logger
 from pydantic import BaseModel
 
+from app.services.event_queue import EventStatus
+
 router = APIRouter(prefix="/v1/orchestration", tags=["orchestration"])
 
 
@@ -234,7 +236,7 @@ async def retry_event(event_id: str) -> dict:
 
         for event in event_queue.get_pending_events():
             if event.id == event_id:
-                event.status = "pending"
+                event.status = EventStatus.PENDING  # type: ignore[assignment]
                 event.retry_count = 0
                 logger.info(f"Reset event for retry: {event_id}")
                 return {

@@ -39,8 +39,9 @@ async def get_session_redis() -> aioredis.Redis | None:
                 socket_connect_timeout=2,
                 socket_timeout=2,
             )
-            await _redis.ping()
-            logger.info("Session Redis connection established")
+            ping_result = await _redis.ping()
+            if ping_result:
+                logger.info("Session Redis connection established")
         except Exception as e:
             import os
 
@@ -204,7 +205,7 @@ class AuthSessionService:
 
         stmt = select(AuthSession).where(
             AuthSession.access_token_jti == jti,
-            AuthSession.revoked == False,
+            AuthSession.revoked.is_(False),
             AuthSession.expires_at > datetime.now(UTC),
         )
         result = await self.db.execute(stmt)

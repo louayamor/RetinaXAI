@@ -28,10 +28,11 @@ class ExplanationService:
 
         from app.models.prediction import PredictionStatus
 
-        dr_grade = prediction.output_payload.get("predicted_class", "Unknown")
+        output_payload = prediction.output_payload or {}
+        dr_grade = output_payload.get("predicted_class", "Unknown")
         confidence = prediction.confidence_score or 0.0
-        gradcam_left = prediction.output_payload.get("gradcam_left", [])
-        gradcam_right = prediction.output_payload.get("gradcam_right", [])
+        gradcam_left = output_payload.get("gradcam_left", [])
+        gradcam_right = output_payload.get("gradcam_right", [])
 
         results = {
             "prediction_explanation": None,

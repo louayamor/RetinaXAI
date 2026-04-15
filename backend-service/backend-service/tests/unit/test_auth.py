@@ -27,17 +27,19 @@ async def test_refresh_rejects_access_token(access_token: str, auth_db_session) 
 
 
 @pytest.mark.asyncio
-async def test_logout_marks_session_revoked(auth_db_session, auth_session, refresh_token: str) -> None:
+async def test_logout_marks_session_revoked(
+    auth_db_session, auth_session, refresh_token: str
+) -> None:
     session_service = AuthSessionService(auth_db_session)
 
-    auth_db_session.execute = AsyncMock(return_value=_result(auth_session))
+    auth_db_session.execute = AsyncMock(return_value=MockResult(auth_session))
     auth_db_session.flush = AsyncMock()
 
     await session_service.revoke_refresh_token(refresh_token)
     assert auth_session.revoked is True
 
 
-class _result:
+class MockResult:
     def __init__(self, obj):
         self.obj = obj
 

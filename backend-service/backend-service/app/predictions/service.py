@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 class PredictionService:
     def __init__(self, db: AsyncSession):
+        self.db = db
         self.repo = PredictionRepository(db)
         self.patient_repo = PatientRepository(db)
         self.mri_scan_repo = MRIScanRepository(db)

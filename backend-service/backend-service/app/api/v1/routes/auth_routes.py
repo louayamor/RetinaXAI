@@ -122,7 +122,7 @@ async def logout(
         select(AuthSession)
         .where(
             AuthSession.user_id == user.id,
-            AuthSession.revoked == False,
+            AuthSession.revoked.is_(False),
         )
         .order_by(AuthSession.created_at.desc())
         .limit(1)

@@ -158,10 +158,8 @@ class ShapService:
                     shap_values = shap_values[0]
 
                 expected_value = float(explainer.expected_value)
-                if isinstance(expected_value, np.ndarray):
+                if isinstance(expected_value, (np.ndarray, list, tuple)):
                     expected_value = float(expected_value[0])
-                elif hasattr(expected_value, "__iter__"):
-                    expected_value = float(list(expected_value)[0])
                 else:
                     expected_value = float(expected_value)
 
@@ -283,7 +281,7 @@ class ShapService:
         for group in groups:
             group_df = df[df[demographic_col] == group]
             if len(group_df) > 10:
-                importance = self.compute_global_importance(pipeline)
+                importance = self.compute_global_importance(test_csv, pipeline)
                 bias_results[str(group)] = importance
 
         if len(bias_results) < 2:

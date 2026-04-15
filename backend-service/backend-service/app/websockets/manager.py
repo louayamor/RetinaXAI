@@ -39,6 +39,7 @@ class SocketManager:
     _instance: "SocketManager | None" = None
     _server: AsyncServer | None = None
     _redis: aioredis.Redis | None = None
+    _namespace: WebSocketNamespace
 
     def __init__(self) -> None:
         self.settings = get_settings()
@@ -58,8 +59,9 @@ class SocketManager:
             self._redis = aioredis.from_url(
                 redis_url, encoding="utf-8", decode_responses=True
             )
-            await self._redis.ping()
-            logger.info("Redis connection verified")
+            ping_result = await self._redis.ping()
+            if ping_result:
+                logger.info("Redis connection verified")
         except Exception as e:
             logger.warning(f"Redis not available, falling back to in-memory: {e}")
             self._redis = None
@@ -69,10 +71,11 @@ class SocketManager:
             cors_allowed_origins="*",
             manager=AsyncioAsyncManager() if not self._redis else None,
         )
-        self._server.on("connect", self._namespace.on_connect)
-        self._server.on("disconnect", self._namespace.on_disconnect)
-        self._server.on("subscribe", self._namespace.on_subscribe)
-        self._server.on("unsubscribe", self._namespace.on_unsubscribe)
+        if self._server is not None:
+            self._server.on("connect", self._namespace.on_connect)
+            self._server.on("disconnect", self._namespace.on_disconnect)
+            self._server.on("subscribe", self._namespace.on_subscribe)
+            self._server.on("unsubscribe", self._namespace.on_unsubscribe)
 
         logger.info("SocketManager initialized")
 

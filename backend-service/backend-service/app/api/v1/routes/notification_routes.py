@@ -46,12 +46,12 @@ async def list_notifications(
 
     query = (
         select(Notification)
-        .where((Notification.user_id == user_id) | (Notification.user_id == None))
+        .where((Notification.user_id == user_id) | (Notification.user_id.is_(None)))
         .order_by(Notification.created_at.desc())
     )
 
     if unread_only:
-        query = query.where(Notification.read == False)
+        query = query.where(Notification.read.is_(False))
 
     query = query.offset(offset).limit(limit)
 
@@ -72,8 +72,8 @@ async def get_unread_count(
     from sqlalchemy import func
 
     query = select(func.count(Notification.id)).where(
-        ((Notification.user_id == user_id) | (Notification.user_id == None))
-        & (Notification.read == False)
+        ((Notification.user_id == user_id) | (Notification.user_id.is_(None)))
+        & (not Notification.read)
     )
 
     result = await db.execute(query)
@@ -95,7 +95,7 @@ async def mark_notifications_read(
         update(Notification)
         .where(
             Notification.id.in_(request.notification_ids),
-            (Notification.user_id == user_id) | (Notification.user_id == None),
+            (Notification.user_id == user_id) | (Notification.user_id.is_(None)),
         )
         .values(read=True)
     )
@@ -116,7 +116,7 @@ async def mark_all_read(
 
     stmt = (
         update(Notification)
-        .where((Notification.user_id == user_id) | (Notification.user_id == None))
+        .where((Notification.user_id == user_id) | (Notification.user_id.is_(None)))
         .values(read=True)
     )
 
@@ -137,12 +137,12 @@ async def clear_notifications(
 
     if read_only:
         stmt = delete(Notification).where(
-            ((Notification.user_id == user_id) | (Notification.user_id == None))
-            & (Notification.read == True)
+            ((Notification.user_id == user_id) | (Notification.user_id.is_(None)))
+            & (Notification.read)
         )
     else:
         stmt = delete(Notification).where(
-            (Notification.user_id == user_id) | (Notification.user_id == None)
+            (Notification.user_id == user_id) | (Notification.user_id.is_(None))
         )
 
     result = await db.execute(stmt)

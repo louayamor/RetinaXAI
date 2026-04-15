@@ -47,13 +47,15 @@ async def get_redis() -> aioredis.Redis | None:
     global _redis
     if _redis is None:
         try:
+            redis_url = settings.REDIS_URL if settings else "redis://localhost:6379"
             _redis = aioredis.from_url(
-                settings.REDIS_URL,
+                redis_url,
                 encoding="utf-8",
                 decode_responses=True,
             )
-            await _redis.ping()
-            logger.info("WebSocket Redis connection established")
+            ping_result = await _redis.ping()
+            if ping_result:
+                logger.info("WebSocket Redis connection established")
         except Exception as e:
             logger.warning(f"Redis not available for WebSocket: {e}")
             _redis = None
@@ -308,7 +310,7 @@ async def emit_event(request: EmitRequest, db: AsyncSession = Depends(get_db)):
                 f"imaging={imaging_version}, clinical={clinical_version}"
             )
 
-            _trigger_llmops_training_workflow(
+            await _trigger_llmops_training_workflow(
                 job_id, pipeline, imaging_version, clinical_version
             )
 

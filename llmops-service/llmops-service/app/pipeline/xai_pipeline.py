@@ -113,7 +113,7 @@ class XAIPipeline:
             prompt = self._build_prediction_prompt_with_shap(
                 dr_grade, confidence, clinical_features, shap_values
             )
-            response = self.client.invoke(prompt)
+            response = self.client.generate(prompt)
 
             await send_xai_event(
                 event="xai.prediction",
@@ -182,7 +182,7 @@ class XAIPipeline:
 
         try:
             prompt = self._build_gradcam_prompt(left_eye_regions, right_eye_regions)
-            response = self.client.invoke(prompt)
+            response = self.client.generate(prompt)
 
             highlighted_regions = {
                 "left_eye": left_eye_regions,
@@ -253,7 +253,7 @@ class XAIPipeline:
 
         try:
             prompt = self._build_severity_prompt(patient_data, dr_grade, risk_factors)
-            response = self.client.invoke(prompt)
+            response = self.client.generate(prompt)
 
             risk_level = self._determine_risk_level(dr_grade)
             recommendations = self._generate_recommendations(dr_grade, risk_factors)
