@@ -1,6 +1,8 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from enum import Enum
+from datetime import datetime
+from pydantic import ConfigDict
 
 
 class ModelStage(str, Enum):
@@ -10,11 +12,18 @@ class ModelStage(str, Enum):
 
 
 class ModelVersion(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     version: str
+    pipeline: Optional[str] = None
     stage: ModelStage
-    model_path: str
+    model_path: Optional[str] = None
+    artifact_path: Optional[str] = None
+    hash: Optional[str] = None
+    metrics: Optional[dict] = None
     metadata: dict = {}
-    created_at: Optional[str] = None
+    created_at: Optional[datetime] = None
+    promoted_at: Optional[datetime] = None
 
 
 class ModelRegisterResponse(BaseModel):

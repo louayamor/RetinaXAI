@@ -111,6 +111,9 @@ class ImagingModelEvaluation:
                 probs, row_sums, out=np.zeros_like(probs), where=row_sums != 0
             )
 
+            if probs.shape[1] != len(present_classes):
+                probs = probs[:, present_classes]
+
             auc = roc_auc_score(
                 y_true=labels,
                 y_score=probs,
