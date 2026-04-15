@@ -1,5 +1,7 @@
 import os
+import uuid
 from collections.abc import Callable
+from datetime import datetime
 from typing import Any
 
 import redis.asyncio as aioredis
@@ -140,6 +142,29 @@ class SocketManager:
         }
         await self.emit_to_all(event_type, payload)
         logger.info(f"Emitted LLM ops event: {event_type} - {status}")
+
+    async def emit_notification(
+        self,
+        notification_type: str,
+        title: str,
+        message: str,
+        user_id: str | None = None,
+    ) -> None:
+        """Emit a notification event and also broadcast to notification room."""
+        payload = {
+            "event": "notification",
+            "data": {
+                "id": str(uuid.uuid4()),
+                "type": notification_type,
+                "title": title,
+                "message": message,
+                "timestamp": datetime.utcnow().isoformat(),
+                "read": False,
+                "user_id": user_id,
+            },
+        }
+        await self.emit_to_all("notification", payload)
+        logger.info(f"Emitted notification: {notification_type} - {title}")
 
     async def close(self) -> None:
         if self._redis:

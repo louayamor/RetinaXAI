@@ -106,13 +106,19 @@ class ImagingModelEvaluation:
 
         try:
             probs = probs.astype(np.float64)
-            row_sums = probs.sum(axis=1, keepdims=True)
-            probs = np.divide(
-                probs, row_sums, out=np.zeros_like(probs), where=row_sums != 0
-            )
 
             if probs.shape[1] != len(present_classes):
                 probs = probs[:, present_classes]
+
+            row_sums = probs.sum(axis=1, keepdims=True)
+            row_sums = np.where(row_sums == 0, 1, row_sums)
+            probs = probs / row_sums
+
+            row_sums_check = probs.sum(axis=1)
+            if not np.allclose(row_sums_check, 1.0):
+                logger.warning(f"Probabilities don't sum to 1.0: {row_sums_check[:5]}")
+                probs = np.clip(probs, 0, 1)
+                probs = probs / probs.sum(axis=1, keepdims=True)
 
             auc = roc_auc_score(
                 y_true=labels,

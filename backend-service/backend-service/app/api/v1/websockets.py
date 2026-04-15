@@ -1,15 +1,30 @@
 import json
+from datetime import datetime
 from typing import Any
+import uuid
 
 import redis.asyncio as aioredis
-from fastapi import APIRouter, Body, WebSocket, WebSocketDisconnect
-from loguru import logger
+from fastapi import APIRouter, Body, WebSocket, WebSocketDisconnect, Depends
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+from loguru import logger
 
 from app.core.config import get_settings
+from app.db.session import get_db
+from app.models.notification import Notification
 
 router = APIRouter()
-settings = get_settings()
+
+
+# Lazy load settings to avoid import errors
+def _get_settings():
+    try:
+        return get_settings()
+    except Exception:
+        return None
+
+
+settings = _get_settings()
 
 
 class EmitRequest(BaseModel):
@@ -102,7 +117,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 @router.post("/emit")
-async def emit_event(request: EmitRequest):
+async def emit_event(request: EmitRequest, db: AsyncSession = Depends(get_db)):
     message = {
         "event": request.event,
         "data": request.data,
@@ -138,6 +153,90 @@ async def emit_event(request: EmitRequest):
             logger.warning(f"Failed to send to client: {e}")
 
     logger.debug(f"Emitted {request.event} to {sent_count} clients")
+
+    # Persist notification to database
+    # Also auto-create notifications for training and XAI events
+    try:
+        notif_data = request.data
+
+        # Direct notification event
+        if request.event == "notification":
+            notification = Notification(
+                id=uuid.UUID(notif_data.get("id", str(uuid.uuid4()))),
+                type=notif_data.get("type", "general"),
+                title=notif_data.get("title", ""),
+                message=notif_data.get("message", ""),
+                read=False,
+            )
+            db.add(notification)
+            await db.commit()
+            logger.info(f"Persisted notification: {notification.title}")
+
+        # Auto-create notifications for training events
+        elif request.event == "training_stage":
+            stage = notif_data.get("stage", "")
+            status = notif_data.get("status", "")
+            message = notif_data.get("message", "")
+            pipeline = notif_data.get("pipeline", "unknown")
+
+            # Only create notifications for significant events
+            if status in ("completed", "failed") or stage == "pipeline":
+                title = f"Training {status.title()}"
+                notif_type = "training_error" if status == "failed" else "training"
+
+                notification = Notification(
+                    id=uuid.UUID(str(uuid.uuid4())),
+                    type=notif_type,
+                    title=title,
+                    message=f"[{pipeline.upper()}] {message}",
+                    read=False,
+                )
+                db.add(notification)
+                await db.commit()
+                logger.info(f"Created training notification: {title}")
+
+        # Auto-create notifications for XAI events
+        elif request.event and request.event.startswith("xai."):
+            stage = notif_data.get("stage", "")
+            status = notif_data.get("status", "")
+            message = notif_data.get("message", "")
+
+            if status in ("completed", "failed"):
+                title = f"XAI {status.title()}"
+                notif_type = "error" if status == "failed" else "xai"
+
+                notification = Notification(
+                    id=uuid.UUID(str(uuid.uuid4())),
+                    type=notif_type,
+                    title=title,
+                    message=f"[{stage}] {message}",
+                    read=False,
+                )
+                db.add(notification)
+                await db.commit()
+                logger.info(f"Created XAI notification: {title}")
+
+        # Auto-create notifications for llmops events
+        elif request.event in ("llmops_operation", "rag_indexing", "report_generation"):
+            status = notif_data.get("status", "")
+            message = notif_data.get("message", "")
+
+            if status == "completed":
+                title = "LLM Operation Complete"
+                notification = Notification(
+                    id=uuid.UUID(str(uuid.uuid4())),
+                    type="report",
+                    title=title,
+                    message=message,
+                    read=False,
+                )
+                db.add(notification)
+                await db.commit()
+                logger.info(f"Created LLM ops notification: {title}")
+
+    except Exception as e:
+        logger.warning(f"Failed to process notification: {e}")
+
     return {
         "status": "ok",
         "delivered": sent_count,
