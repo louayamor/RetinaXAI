@@ -215,7 +215,7 @@ async def emit_event(request: EmitRequest, db: AsyncSession = Depends(get_db)):
 
     logger.debug(f"Emitted {request.event} to {sent_count} clients")
 
-    if sent_count == 0 and len(target_clients) == 0:
+    if sent_count == 0 and len(target_clients) > 0:
         await _queue_event_for_retry(request.event, request.data, request.room)
 
     # Persist notification to database
