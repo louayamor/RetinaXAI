@@ -1,5 +1,7 @@
+import asyncio
 import base64
 import io
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from loguru import logger
@@ -9,10 +11,13 @@ from app.api.dependencies import get_settings
 from app.api.schemas import ClinicalFeatures, MLPredictHttpRequest, PredictResponse
 from app.config.settings import Settings
 from app.services.inference.inference_service import InferenceService
-from app.services.inference.shap_service import ShapService
+from app.services.platform.websocket_client import send_prediction_event
 
 router = APIRouter()
 _inference_service = None
+
+MLOPS_BACKEND_WS_URL = "ws://localhost:8000/ws"
+MLOPS_BACKEND_API_KEY = ""
 
 
 def get_inference_service(
@@ -83,19 +88,6 @@ async def predict(
             logger.info("[STEP 11-12] Skipping clinical model (no valid features)")
             clinical_result = {}
 
-        shap_explanation = None
-        if features is not None and request.features:
-            try:
-                logger.info("[STEP 13] Computing SHAP explanations")
-                shap_svc = ShapService(get_settings().artifacts_root)
-                shap_explanation = shap_svc.explain_prediction(
-                    features=features.model_dump(),
-                    pipeline="clinical",
-                ).to_dict()
-                logger.info("[STEP 14] SHAP explanations computed")
-            except Exception as e:
-                logger.warning(f"[SHAP] Skipping explanation: {e}")
-
         severity_map = {0: "none", 1: "low", 2: "moderate", 3: "high", 4: "critical"}
 
         combined_prediction = {
@@ -130,15 +122,35 @@ async def predict(
             f"left_confidence={left_imaging_result['confidence']}"
         )
 
-        return PredictResponse(
+        response = PredictResponse(
             prediction=combined_prediction,
             confidence_score=left_imaging_result["confidence"],
             model_name=request.model_name,
             model_version=request.model_version,
             gradcam_left=left_imaging_result.get("gradcam_heatmap"),
             gradcam_right=right_imaging_result.get("gradcam_heatmap"),
-            shap_explanation=shap_explanation,
+            shap_explanation=None,
         )
+
+        prediction_id = (
+            f"pred_{request.patient_id}_{int(datetime.utcnow().timestamp())}"
+        )
+
+        asyncio.create_task(
+            send_prediction_event(
+                prediction_id=prediction_id,
+                patient_id=request.patient_id,
+                dr_grade=combined_prediction["combined_grade"],
+                confidence=left_imaging_result["confidence"],
+                imaging_confidence=left_imaging_result["confidence"],
+                clinical_confidence=clinical_result.get("risk_score"),
+                combined_grade=combined_prediction["combined_grade"],
+                overall_severity=combined_prediction["overall_severity"],
+                triggers_xai=True,
+            )
+        )
+
+        return response
 
     except HTTPException:
         raise

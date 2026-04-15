@@ -143,6 +143,7 @@ class ClinicalFeatures(BaseModel):
 class MLPredictHttpRequest(BaseModel):
     model_name: str
     model_version: str
+    patient_id: str
     patient_age: int
     patient_gender: str
     left_scan_path: Optional[str] = None

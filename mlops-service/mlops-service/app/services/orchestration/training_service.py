@@ -71,6 +71,61 @@ def _emit_stage_event(
         logger.warning(f"Failed to emit WebSocket event: {e}")
 
 
+def _emit_training_completed_event(
+    job_id: str,
+    pipeline: str,
+    imaging_version: str | None = None,
+    clinical_version: str | None = None,
+) -> None:
+    """Emit training.completed event to trigger LLMOps workflows."""
+    import httpx
+
+    try:
+        from app.config.settings import get_settings
+
+        settings = get_settings()
+        backend_url = settings.ML_SERVICE_URL.replace("8004", "8000").replace(
+            "8001", "8000"
+        )
+        llmops_trigger_url = f"{backend_url}/emit"
+    except Exception:
+        llmops_trigger_url = "http://localhost:8000/emit"
+
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        payload = {
+            "event": "training.completed",
+            "data": {
+                "job_id": job_id,
+                "pipeline": pipeline,
+                "imaging_version": imaging_version,
+                "clinical_version": clinical_version,
+                "timestamp": datetime.utcnow().isoformat(),
+            },
+        }
+
+        async def send_event():
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.post(
+                    llmops_trigger_url,
+                    json={
+                        "event": "training.completed",
+                        "data": payload.get("data", {}),
+                        "room": "llmops",
+                    },
+                )
+                logger.info(
+                    f"training.completed event sent, status: {response.status_code}"
+                )
+
+        loop.run_until_complete(send_event())
+        loop.close()
+    except Exception as e:
+        logger.warning(f"Failed to emit training.completed event: {e}")
+
+
 _JOB_FILE = Path(os.environ.get("TRAINING_JOBS_FILE", "artifacts/training_jobs.json"))
 _job_store: dict = {}
 
@@ -576,6 +631,10 @@ def run_pipeline_task(job_id: str, pipeline: str) -> None:
             "completed",
             100,
             "Training pipeline completed successfully",
+        )
+
+        _emit_training_completed_event(
+            job_id, pipeline, imaging_version, clinical_version
         )
         logger.info(f"pipeline job completed: job_id={job_id}")
 

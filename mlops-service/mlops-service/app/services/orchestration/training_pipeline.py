@@ -32,14 +32,11 @@ class TrainingPipeline:
 
     def _generate_version(self, pipeline: str) -> str:
         """Generate version string automatically (e.g., v1.2.3)."""
-        # Get list of existing versions
         existing = self.registry_service.list_versions(pipeline=pipeline)
         if not existing:
             return "v1.0.0"
 
-        # Find latest version and increment minor
         latest = sorted(existing, key=lambda v: v.created_at)[-1]
-        # Parse version: v1.2.3 -> increment minor (middle number)
         major, minor, patch = latest.version.lstrip("v").split(".")
         new_minor = str(int(minor) + 1)
         return f"v{major}.{new_minor}.0"
@@ -95,10 +92,10 @@ class TrainingPipeline:
                 metrics=model_metrics,
                 metadata=model_metadata,
             )
-            logger.info(f"✅ Model {pipeline} v{version} registered successfully")
+            logger.info(f"Model {pipeline} v{version} registered successfully")
 
         except Exception as e:
-            logger.error(f"❌ Failed to register {pipeline} model: {e}")
+            logger.error(f"Failed to register {pipeline} model: {e}")
             # Non-critical error - don't fail training if registration fails
 
     def run_imaging(self) -> dict:

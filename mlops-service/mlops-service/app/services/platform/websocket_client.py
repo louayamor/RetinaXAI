@@ -83,3 +83,57 @@ def get_websocket_client() -> "WebSocketClient":
     if _websocket_client is None:
         _websocket_client = WebSocketClient.get_instance()
     return _websocket_client
+
+
+async def send_prediction_event(
+    prediction_id: str,
+    patient_id: str,
+    dr_grade: int,
+    confidence: float,
+    imaging_confidence: float,
+    clinical_confidence: float | None,
+    combined_grade: int,
+    overall_severity: str,
+    triggers_xai: bool = True,
+    error: str | None = None,
+) -> None:
+    """Send prediction.completed event to backend WebSocket server."""
+    from datetime import datetime
+
+    event_type = "prediction.failed" if error else "prediction.completed"
+    payload = {
+        "prediction_id": prediction_id,
+        "patient_id": patient_id,
+        "dr_grade": dr_grade,
+        "confidence": confidence,
+        "imaging_confidence": imaging_confidence,
+        "clinical_confidence": clinical_confidence,
+        "combined_grade": combined_grade,
+        "overall_severity": overall_severity,
+        "triggers_xai": triggers_xai,
+        "timestamp": datetime.utcnow().isoformat(),
+        "error": error,
+    }
+
+    room = f"prediction:{patient_id}"
+    emit_url = f"{BACKEND_WS_URL.replace('ws://', 'http://').replace('/ws', '')}/emit"
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                emit_url,
+                json={
+                    "event": event_type,
+                    "data": payload,
+                    "room": room,
+                },
+                headers={"X-API-Key": BACKEND_API_KEY} if BACKEND_API_KEY else {},
+            )
+            if response.status_code < 400:
+                logger.debug(f"Sent prediction event: {event_type} for {prediction_id}")
+            else:
+                logger.warning(
+                    f"Failed to emit prediction event: {response.status_code}"
+                )
+    except Exception as e:
+        logger.warning(f"Failed to send prediction event: {e}")
