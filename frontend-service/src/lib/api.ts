@@ -380,3 +380,135 @@ export async function clearNotifications(readOnly = true): Promise<{ status: str
     { method: 'DELETE' }
   );
 }
+
+// XAI Generation APIs (calls LLMOps service directly)
+interface XAIExplanationResponse {
+  prediction_id: string;
+  content: string;
+  summary: string;
+  model_used: string;
+  shap_values?: {
+    top_positive: Array<{ name: string; contribution: number }>;
+    top_negative: Array<{ name: string; contribution: number }>;
+    features: Array<{ name: string; contribution: number }>;
+  };
+}
+
+interface XAIGradCAMResponse {
+  prediction_id: string;
+  left_eye_explanation: string;
+  right_eye_explanation: string;
+  highlighted_regions: {
+    left_eye: string[];
+    right_eye: string[];
+  };
+  model_used: string;
+}
+
+interface XAISeverityResponse {
+  prediction_id: string;
+  content: string;
+  summary: string;
+  risk_level: 'low' | 'moderate' | 'high' | 'very_high';
+  recommendations: string[];
+  model_used: string;
+}
+
+export async function generateXAIExplanation(
+  predictionId: string,
+  drGrade: string,
+  confidence: number,
+  clinicalFeatures?: Record<string, unknown>
+): Promise<XAIExplanationResponse> {
+  const res = await fetch(`${LLMOPS_BASE}/api/xai/explain`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': LLMOPS_API_KEY,
+    },
+    body: JSON.stringify({
+      prediction_id: predictionId,
+      dr_grade: drGrade,
+      confidence,
+      clinical_features: clinicalFeatures,
+    }),
+  });
+  return _handleLlmoopsResponse(res);
+}
+
+export async function generateXAIGradCAM(
+  predictionId: string,
+  leftEyeRegions: string[] = [],
+  rightEyeRegions: string[] = []
+): Promise<XAIGradCAMResponse> {
+  const res = await fetch(`${LLMOPS_BASE}/api/xai/gradcam`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': LLMOPS_API_KEY,
+    },
+    body: JSON.stringify({
+      prediction_id: predictionId,
+      left_eye_regions: leftEyeRegions,
+      right_eye_regions: rightEyeRegions,
+    }),
+  });
+  return _handleLlmoopsResponse(res);
+}
+
+export async function generateXAISeverity(
+  predictionId: string,
+  patientData: { name: string; age: number; gender: string },
+  drGrade: string,
+  riskFactors: string[] = []
+): Promise<XAISeverityResponse> {
+  const res = await fetch(`${LLMOPS_BASE}/api/xai/severity`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': LLMOPS_API_KEY,
+    },
+    body: JSON.stringify({
+      prediction_id: predictionId,
+      patient_data: patientData,
+      dr_grade: drGrade,
+      risk_factors: riskFactors,
+    }),
+  });
+  return _handleLlmoopsResponse(res);
+}
+
+// SHAP-specific API
+interface SHAPExplainResponse {
+  model_type: string;
+  expected_value: number;
+  pipeline: string;
+  features: Array<{
+    name: string;
+    contribution: number;
+    base_value: number;
+    value: number;
+  }>;
+  top_positive: Array<{ name: string; contribution: number }>;
+  top_negative: Array<{ name: string; contribution: number }>;
+}
+
+export async function generateSHAPExplanation(
+  predictionId: string,
+  clinicalFeatures: Record<string, unknown>,
+  pipeline = 'clinical'
+): Promise<SHAPExplainResponse> {
+  const res = await fetch(`${LLMOPS_BASE}/api/xai/shap/explain`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': LLMOPS_API_KEY,
+    },
+    body: JSON.stringify({
+      prediction_id: predictionId,
+      features: clinicalFeatures,
+      pipeline,
+    }),
+  });
+  return _handleLlmoopsResponse(res);
+}

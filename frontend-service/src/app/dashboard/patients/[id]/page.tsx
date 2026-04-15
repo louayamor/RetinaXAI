@@ -34,8 +34,23 @@ import {
   Download,
   Brain,
   Layers,
+  Sparkles,
+  RefreshCw,
 } from 'lucide-react';
-import { getPatient, getPatientScans, getPatientOctReports, listPatientPredictions, listPatientReports, getPrediction } from '@/lib/api';
+import {
+  getPatient,
+  getPatientScans,
+  getPatientOctReports,
+  listPatientPredictions,
+  listPatientReports,
+  getPrediction,
+  createReport,
+  generateXAIExplanation,
+  generateXAIGradCAM,
+  generateXAISeverity,
+  generateSHAPExplanation,
+} from '@/lib/api';
+import { toast } from 'sonner';
 import type { Patient, MRIScan, OCTReport, Prediction, Report, PaginatedResponse } from '@/types';
 import { fadeInUp, slideInUp, staggerItem } from '@/lib/animations';
 import Image from 'next/image';
@@ -75,6 +90,8 @@ export default function PatientProfilePage() {
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [selectedPrediction, setSelectedPrediction] = useState<Prediction | null>(null);
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [generatingXAI, setGeneratingXAI] = useState<string | null>(null);
+  const [generatingReport, setGeneratingReport] = useState(false);
 
   useEffect(() => {
     loadPatientData();
@@ -151,6 +168,78 @@ export default function PatientProfilePage() {
       <p className="text-sm text-muted-foreground/70">{description}</p>
     </div>
   );
+
+  const handleGenerateXAI = async (prediction: Prediction) => {
+    if (!patient) return;
+    
+    setGeneratingXAI(prediction.id);
+    try {
+      const drGrade = String(prediction.output_payload?.combined_grade ?? prediction.output_payload?.predicted_class ?? 'Unknown');
+      const confidence = prediction.confidence_score ?? 0;
+      const clinicalFeatures = prediction.input_payload as Record<string, unknown>;
+
+      // Generate SHAP explanation
+      toast.info('Generating SHAP explanations...');
+      const shapResult = await generateSHAPExplanation(prediction.id, clinicalFeatures || {});
+
+      // Generate XAI explanation with LLM
+      toast.info('Generating AI explanation...');
+      const xaiResult = await generateXAIExplanation(prediction.id, drGrade, confidence, clinicalFeatures);
+
+      // Generate GradCAM interpretation
+      toast.info('Generating GradCAM interpretation...');
+      await generateXAIGradCAM(
+        prediction.id,
+        (prediction.output_payload?.gradcam_left as string[]) || [],
+        (prediction.output_payload?.gradcam_right as string[]) || []
+      );
+
+      // Generate severity report
+      toast.info('Generating severity assessment...');
+      await generateXAISeverity(
+        prediction.id,
+        {
+          name: `${patient.first_name} ${patient.last_name}`,
+          age: patient.age,
+          gender: patient.gender,
+        },
+        drGrade,
+        (clinicalFeatures?.risk_factors as string[]) || []
+      );
+
+      toast.success('XAI generation complete!');
+
+      // Refresh prediction data to show new results
+      await loadPatientData();
+    } catch (err) {
+      console.error('XAI generation failed:', err);
+      toast.error('Failed to generate XAI', {
+        description: err instanceof Error ? err.message : 'Unknown error',
+      });
+    } finally {
+      setGeneratingXAI(null);
+    }
+  };
+
+  const handleGenerateReport = async (predictionId: string) => {
+    setGeneratingReport(true);
+    try {
+      toast.info('Generating clinical report...');
+      await createReport(predictionId);
+      toast.success('Report generation started!');
+      
+      // Refresh reports
+      const repsData = await listPatientReports(patientId, 1, 100);
+      setReports((repsData as PaginatedResponse<Report>).items);
+    } catch (err) {
+      console.error('Report generation failed:', err);
+      toast.error('Failed to generate report', {
+        description: err instanceof Error ? err.message : 'Unknown error',
+      });
+    } finally {
+      setGeneratingReport(false);
+    }
+  };
 
   const latestPrediction = predictions.length > 0 ? predictions[0] : null;
   const latestGrade = latestPrediction?.output_payload?.combined_grade as number | undefined;
@@ -569,10 +658,31 @@ export default function PatientProfilePage() {
           {/* XAI Explanations Tab */}
           <TabsContent value="xai" className="mt-6 space-y-6">
             <div>
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Brain className="h-5 w-5 text-purple-500" />
-                AI Explanations
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Brain className="h-5 w-5 text-purple-500" />
+                  AI Explanations
+                </h3>
+                {latestPrediction && !latestPrediction.output_payload?.shap_values && (
+                  <Button
+                    onClick={() => handleGenerateXAI(latestPrediction)}
+                    disabled={generatingXAI === latestPrediction.id}
+                    size="sm"
+                  >
+                    {generatingXAI === latestPrediction.id ? (
+                      <>
+                        <Loader className="h-4 w-4 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Generate XAI
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
               {predictions.filter((p) => p.status === 'success').length === 0 ? (
                 <EmptyState
                   icon={Brain}
@@ -584,10 +694,11 @@ export default function PatientProfilePage() {
                   {predictions
                     .filter((p) => p.status === 'success')
                     .map((pred) => {
-                      const grade = pred.output_payload?.combined_grade as number | undefined;
+                      const outputPayload = pred.output_payload as Record<string, unknown> | null;
+                      const grade = outputPayload?.combined_grade as number | undefined;
                       const gradeLabel = grade !== undefined ? GRADE_LABELS[grade] : null;
-                      const shapValues = pred.output_payload?.shap_values;
-                      const explanation = pred.output_payload?.explanation;
+                      const shapValues = outputPayload?.shap_values as { top_positive: Array<{ name: string; contribution: number }> } | undefined;
+                      const explanation = outputPayload?.explanation as string | undefined;
 
                       return (
                         <Card key={pred.id}>
@@ -596,8 +707,8 @@ export default function PatientProfilePage() {
                               <CardTitle className="text-base">
                                 Prediction - {new Date(pred.created_at).toLocaleDateString()}
                               </CardTitle>
-                              {gradeLabel && (
-                                <Badge className={GRADE_COLORS_NUM[grade!] || 'bg-muted'}>
+                              {grade !== undefined && gradeLabel && (
+                                <Badge className={GRADE_COLORS_NUM[grade] || 'bg-muted'}>
                                   {gradeLabel}
                                 </Badge>
                               )}
@@ -673,9 +784,29 @@ export default function PatientProfilePage() {
                             )}
 
                             {!shapValues && !explanation && (
-                              <p className="text-sm text-muted-foreground italic">
-                                No XAI explanations generated for this prediction
-                              </p>
+                              <div className="flex flex-col items-center gap-2 py-4">
+                                <p className="text-sm text-muted-foreground italic">
+                                  No XAI explanations generated for this prediction
+                                </p>
+                                <Button
+                                  onClick={() => handleGenerateXAI(pred)}
+                                  disabled={generatingXAI === pred.id}
+                                  size="sm"
+                                  variant="outline"
+                                >
+                                  {generatingXAI === pred.id ? (
+                                    <>
+                                      <Loader className="h-4 w-4 mr-2 animate-spin" />
+                                      Generating...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Sparkles className="h-4 w-4 mr-2" />
+                                      Generate XAI
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
                             )}
                           </CardContent>
                         </Card>
@@ -690,10 +821,32 @@ export default function PatientProfilePage() {
           <TabsContent value="reports" className="mt-6 space-y-6">
             {/* Clinical Reports */}
             <div>
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <FileText className="h-5 w-5 text-blue-500" />
-                Clinical Reports ({reports.length})
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-blue-500" />
+                  Clinical Reports ({reports.length})
+                </h3>
+                {latestPrediction && (
+                  <Button
+                    onClick={() => handleGenerateReport(latestPrediction.id)}
+                    disabled={generatingReport}
+                    size="sm"
+                    variant="outline"
+                  >
+                    {generatingReport ? (
+                      <>
+                        <Loader className="h-4 w-4 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Generate Report
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
               {reports.length === 0 ? (
                 <EmptyState
                   icon={FileText}
