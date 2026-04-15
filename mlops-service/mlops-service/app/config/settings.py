@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     prometheus_metrics_port: int = 9101
     automation_enabled: bool = False
     automation_interval_hours: int = 24
+    max_training_jobs: int = 2
+    max_training_jobs_per_pipeline: int = 1
+    retrain_imaging_metric: str = "quadratic_weighted_kappa"
+    retrain_clinical_metric: str = "f1_score"
+    retrain_min_improvement: float = 0.01
+    retrain_cooldown_hours: int = 24
 
     class Config:
         env_file = ".env"

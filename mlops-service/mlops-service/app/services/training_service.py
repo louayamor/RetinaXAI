@@ -105,6 +105,18 @@ def get_latest_job() -> Optional[dict]:
     return list(_job_store.values())[-1]
 
 
+def get_active_jobs_count(pipeline: str) -> tuple[int, int]:
+    total_active = 0
+    pipeline_active = 0
+    for job in _job_store.values():
+        status = job.get("status")
+        if status in ("running", "pending"):
+            total_active += 1
+            if job.get("pipeline") == pipeline:
+                pipeline_active += 1
+    return total_active, pipeline_active
+
+
 def _configure_mlflow() -> None:
     dagshub.init(
         repo_owner="louayamor",
@@ -579,6 +591,7 @@ def run_pipeline_task(job_id: str, pipeline: str) -> None:
 
     finally:
         ACTIVE_TRAINING_JOBS.dec()
+        _write_last_training_metrics()
 
 
 def create_job(pipeline: str) -> str:
@@ -593,6 +606,32 @@ def create_job(pipeline: str) -> str:
     }
     _save_jobs()
     return job_id
+
+
+def _write_last_training_metrics() -> None:
+    try:
+        from app.api.dependencies import get_settings
+
+        settings = get_settings()
+        metrics = {}
+
+        if settings.imaging_metrics_path.exists():
+            with open(settings.imaging_metrics_path) as f:
+                metrics["imaging"] = json.load(f)
+
+        if settings.clinical_metrics_path.exists():
+            with open(settings.clinical_metrics_path) as f:
+                metrics["clinical"] = json.load(f)
+
+        if metrics:
+            target = (
+                settings.artifacts_root / "monitoring" / "last_training_metrics.json"
+            )
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with open(target, "w") as f:
+                json.dump(metrics, f, indent=2)
+    except Exception as e:
+        logger.warning(f"Failed to write last training metrics: {e}")
 
 
 def cancel_job(job_id: str) -> bool:

@@ -3,6 +3,7 @@ from app.api.schemas import TrainRequest, TrainResponse
 from app.api.dependencies import get_settings
 from app.config.settings import Settings
 from app.services.training_service import create_job, run_pipeline_task, cancel_job
+from app.services.resource_manager import ResourceManager
 
 router = APIRouter()
 
@@ -13,6 +14,12 @@ def trigger_full_pipeline(
     background_tasks: BackgroundTasks,
     settings: Settings = Depends(get_settings),
 ):
+    gate = ResourceManager(
+        max_jobs=settings.max_training_jobs,
+        max_jobs_per_pipeline=settings.max_training_jobs_per_pipeline,
+    ).can_start(request.pipeline.value)
+    if not gate.allowed:
+        raise HTTPException(status_code=429, detail=f"Training rejected: {gate.reason}")
     job_id = create_job(request.pipeline.value)
     background_tasks.add_task(run_pipeline_task, job_id, request.pipeline.value)
     return TrainResponse(
@@ -28,6 +35,12 @@ def trigger_imaging_pipeline(
     background_tasks: BackgroundTasks,
     settings: Settings = Depends(get_settings),
 ):
+    gate = ResourceManager(
+        max_jobs=settings.max_training_jobs,
+        max_jobs_per_pipeline=settings.max_training_jobs_per_pipeline,
+    ).can_start("imaging")
+    if not gate.allowed:
+        raise HTTPException(status_code=429, detail=f"Training rejected: {gate.reason}")
     job_id = create_job("imaging")
     background_tasks.add_task(run_pipeline_task, job_id, "imaging")
     return TrainResponse(
@@ -43,6 +56,12 @@ def trigger_clinical_pipeline(
     background_tasks: BackgroundTasks,
     settings: Settings = Depends(get_settings),
 ):
+    gate = ResourceManager(
+        max_jobs=settings.max_training_jobs,
+        max_jobs_per_pipeline=settings.max_training_jobs_per_pipeline,
+    ).can_start("clinical")
+    if not gate.allowed:
+        raise HTTPException(status_code=429, detail=f"Training rejected: {gate.reason}")
     job_id = create_job("clinical")
     background_tasks.add_task(run_pipeline_task, job_id, "clinical")
     return TrainResponse(

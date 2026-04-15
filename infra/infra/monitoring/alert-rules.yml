@@ -87,6 +87,18 @@ groups:
           description: "{{ $value }} training jobs running simultaneously"
           remediation: "Review resource utilization, consider scaling"
 
+      # High training rejection rate
+      - alert: TrainingRejectionRateHigh
+        expr: rate(retinaxai_training_rejections_total[5m]) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          service: mlops
+        annotations:
+          summary: "High training rejection rate"
+          description: "Training rejections above 0.1/sec in last 5 minutes"
+          remediation: "Increase capacity or reduce training frequency"
+
       # Feature drift
       - alert: FeatureDrift
         expr: retinaxai_drift_psi_score{feature=~".+"} > 0.2

@@ -56,6 +56,18 @@ AUTOMATION_SCHEDULER_RUNNING = Gauge(
     "Whether automation scheduler is running (1) or not (0)",
 )
 
+TRAINING_REJECTIONS_TOTAL = Counter(
+    "retinaxai_training_rejections_total",
+    "Total number of training job rejections due to capacity limits",
+    ["pipeline", "reason"],
+)
+
+TRAINING_SLOTS_USED = Gauge(
+    "retinaxai_training_slots_used",
+    "Number of training slots currently used",
+    ["pipeline"],
+)
+
 
 def start_metrics_server(port: int = 9101) -> None:
     try:

@@ -409,6 +409,12 @@ class ModelRegistryService:
                 production_models, key=lambda v: v.promoted_at or v.created_at
             )[-1]
 
+    def get_production_metrics(self, pipeline: str) -> Dict[str, float]:
+        current = self.get_current_production(pipeline)
+        if current is None:
+            return {}
+        return current.metrics or {}
+
     def verify_model_integrity(self, version: str) -> bool:
         """Verify model artifact matches stored hash.
 
