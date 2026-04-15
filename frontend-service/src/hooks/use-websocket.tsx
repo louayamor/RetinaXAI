@@ -74,8 +74,13 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
         console.log('[WS] Message received:', message);
         const data = message.data || message;
         
-        // Show toast for training/XAI events
-        if (message.event === 'training.pipeline') {
+        if (message.event === 'prediction.completed') {
+          toast.success('Prediction Complete', {
+            description: `DR Grade: ${data.dr_grade}, Severity: ${data.overall_severity}`
+          });
+        } else if (message.event === 'prediction.failed') {
+          toast.error('Prediction Failed', { description: data.error });
+        } else if (message.event === 'training.pipeline') {
           if (data.status === 'completed') {
             toast.success('Training completed', { description: data.message });
           } else if (data.status === 'failed') {

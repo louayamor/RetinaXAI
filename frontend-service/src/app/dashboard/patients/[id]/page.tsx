@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { motion, useReducedMotion } from 'motion/react';
 import PageContainer from '@/components/layout/page-container';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -17,11 +17,9 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { 
-  ArrowLeft, 
-  User, 
-  Phone, 
-  MapPin, 
+import {
+  ArrowLeft,
+  User,
   Calendar,
   Scan,
   FileText,
@@ -30,9 +28,14 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
-  Loader
+  Loader,
+  BarChart3,
+  ImageIcon,
+  Download,
+  Brain,
+  Layers,
 } from 'lucide-react';
-import { getPatient, getPatientScans, getPatientOctReports, listPatientPredictions, listPatientReports } from '@/lib/api';
+import { getPatient, getPatientScans, getPatientOctReports, listPatientPredictions, listPatientReports, getPrediction } from '@/lib/api';
 import type { Patient, MRIScan, OCTReport, Prediction, Report, PaginatedResponse } from '@/types';
 import { fadeInUp, slideInUp, staggerItem } from '@/lib/animations';
 import Image from 'next/image';
@@ -41,17 +44,26 @@ const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000').re
 const GRADE_LABELS = ['No DR', 'Mild', 'Moderate', 'Severe', 'Proliferative'];
 const GRADE_COLORS: Record<string, string> = {
   no_dr: 'bg-emerald-500',
-  mild: 'bg-cyan-500', 
+  mild: 'bg-cyan-500',
   moderate: 'bg-amber-500',
   severe: 'bg-orange-500',
   proliferative: 'bg-rose-500',
+};
+const GRADE_COLORS_NUM: Record<number, string> = {
+  0: 'bg-emerald-500',
+  1: 'bg-cyan-500',
+  2: 'bg-amber-500',
+  3: 'bg-orange-500',
+  4: 'bg-rose-500',
 };
 
 export default function PatientProfilePage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const patientId = params.id as string;
   const shouldReduceMotion = useReducedMotion();
+  const initialTab = searchParams.get('tab') || 'overview';
 
   const [patient, setPatient] = useState<Patient | null>(null);
   const [scans, setScans] = useState<MRIScan[]>([]);
@@ -61,10 +73,19 @@ export default function PatientProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [selectedPrediction, setSelectedPrediction] = useState<Prediction | null>(null);
+  const [activeTab, setActiveTab] = useState(initialTab);
 
   useEffect(() => {
     loadPatientData();
   }, [patientId]);
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && ['overview', 'scans', 'xai', 'reports'].includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   const loadPatientData = async () => {
     try {
@@ -90,6 +111,13 @@ export default function PatientProfilePage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tab);
+    router.replace(url.toString(), { scroll: false });
   };
 
   const getInitials = (firstName: string, lastName: string) => {
@@ -123,6 +151,11 @@ export default function PatientProfilePage() {
       <p className="text-sm text-muted-foreground/70">{description}</p>
     </div>
   );
+
+  const latestPrediction = predictions.length > 0 ? predictions[0] : null;
+  const latestGrade = latestPrediction?.output_payload?.combined_grade as number | undefined;
+  const latestGradeLabel = latestGrade !== undefined ? GRADE_LABELS[latestGrade] : null;
+  const latestSeverity = latestPrediction?.output_payload?.overall_severity as string | undefined;
 
   if (loading) {
     return (
@@ -212,61 +245,206 @@ export default function PatientProfilePage() {
           </Card>
         </motion.div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <motion.div variants={shouldReduceMotion ? {} : staggerItem}>
-            <Card className="border-l-4 border-l-[var(--brand-teal)]">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">MRI Scans</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold">{scans.length}</p>
-              </CardContent>
-            </Card>
-          </motion.div>
-          <motion.div variants={shouldReduceMotion ? {} : staggerItem}>
-            <Card className="border-l-4 border-l-amber-500">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Predictions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold">{predictions.length}</p>
-              </CardContent>
-            </Card>
-          </motion.div>
-          <motion.div variants={shouldReduceMotion ? {} : staggerItem}>
-            <Card className="border-l-4 border-l-blue-500">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Reports</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold">{reports.length}</p>
-              </CardContent>
-            </Card>
-          </motion.div>
-          <motion.div variants={shouldReduceMotion ? {} : staggerItem}>
-            <Card className="border-l-4 border-l-purple-500">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">OCT Scans</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold">{octReports.length}</p>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
+        {/* Tabbed Interface */}
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="overview" className="gap-2">
+              <User className="h-4 w-4" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="scans" className="gap-2">
+              <Scan className="h-4 w-4" />
+              Scans & GradCAM
+            </TabsTrigger>
+            <TabsTrigger value="xai" className="gap-2">
+              <Brain className="h-4 w-4" />
+              XAI Explanations
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="gap-2">
+              <FileText className="h-4 w-4" />
+              Reports
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Expandable Sections */}
-        <Accordion type="multiple" defaultValue={["scans", "predictions"]} className="w-full">
-          {/* MRI Scans */}
-          <AccordionItem value="scans" className="border rounded-lg mb-2">
-            <AccordionTrigger className="px-4 hover:no-underline bg-muted/30 rounded-t-lg">
-              <div className="flex items-center gap-2">
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="mt-6 space-y-6">
+            {/* Quick Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <motion.div variants={shouldReduceMotion ? {} : staggerItem}>
+                <Card className="border-l-4 border-l-[var(--brand-teal)]">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">MRI Scans</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold">{scans.length}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+              <motion.div variants={shouldReduceMotion ? {} : staggerItem}>
+                <Card className="border-l-4 border-l-amber-500">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Predictions</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold">{predictions.length}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+              <motion.div variants={shouldReduceMotion ? {} : staggerItem}>
+                <Card className="border-l-4 border-l-blue-500">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Reports</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold">{reports.length}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+              <motion.div variants={shouldReduceMotion ? {} : staggerItem}>
+                <Card className="border-l-4 border-l-purple-500">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">OCT Scans</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold">{octReports.length}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </div>
+
+            {/* Latest Prediction Summary */}
+            {latestPrediction && (
+              <motion.div variants={shouldReduceMotion ? {} : staggerItem}>
+                <Card className="border-l-4 border-l-emerald-500">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Activity className="h-5 w-5 text-emerald-500" />
+                      Latest Prediction
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">DR Grade</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          {latestGradeLabel && (
+                            <Badge className={GRADE_COLORS_NUM[latestGrade!] || 'bg-muted'}>
+                              {latestGradeLabel}
+                            </Badge>
+                          )}
+                          {getStatusIcon(latestPrediction.status)}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Confidence</p>
+                        <p className="text-2xl font-bold mt-1">
+                          {latestPrediction.confidence_score
+                            ? `${(latestPrediction.confidence_score * 100).toFixed(1)}%`
+                            : 'N/A'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Risk Level</p>
+                        <p className="text-lg font-semibold mt-1 capitalize">{latestSeverity || 'Unknown'}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleTabChange('scans')}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View GradCAM
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleTabChange('xai')}
+                      >
+                        <BarChart3 className="h-4 w-4 mr-1" />
+                        View XAI Details
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* Recent Activity Timeline */}
+            <motion.div variants={shouldReduceMotion ? {} : staggerItem}>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Layers className="h-5 w-5 text-blue-500" />
+                    Recent Activity
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {predictions.length === 0 && reports.length === 0 && scans.length === 0 ? (
+                    <EmptyState
+                      icon={Activity}
+                      title="No Recent Activity"
+                      description="Patient activity will appear here"
+                    />
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Merge and sort activities */}
+                      {[
+                        ...predictions.map((p) => ({ type: 'prediction', date: p.created_at, data: p })),
+                        ...reports.map((r) => ({ type: 'report', date: r.created_at, data: r })),
+                        ...scans.map((s) => ({ type: 'scan', date: s.uploaded_at, data: s })),
+                      ]
+                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                        .slice(0, 5)
+                        .map((activity, i) => (
+                          <div key={i} className="flex items-center gap-3 text-sm">
+                            <div className={`p-2 rounded-full ${
+                              activity.type === 'prediction'
+                                ? 'bg-amber-100 text-amber-600'
+                                : activity.type === 'report'
+                                ? 'bg-blue-100 text-blue-600'
+                                : 'bg-teal-100 text-teal-600'
+                            }`}>
+                              {activity.type === 'prediction' ? (
+                                <Eye className="h-4 w-4" />
+                              ) : activity.type === 'report' ? (
+                                <FileText className="h-4 w-4" />
+                              ) : (
+                                <Scan className="h-4 w-4" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium capitalize">
+                                {activity.type === 'prediction'
+                                  ? 'DR Screening'
+                                  : activity.type === 'report'
+                                  ? 'Clinical Report'
+                                  : 'MRI Scan'} - {new Date(activity.date).toLocaleDateString()}
+                              </p>
+                              <p className="text-muted-foreground text-xs">
+                                {activity.type === 'prediction' && (activity.data as Prediction).model_name}
+                                {activity.type === 'report' && (activity.data as Report).llm_model}
+                                {activity.type === 'scan' && `ID: ${(activity.data as MRIScan).id.slice(0, 8)}`}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          </TabsContent>
+
+          {/* Scans & GradCAM Tab */}
+          <TabsContent value="scans" className="mt-6 space-y-6">
+            {/* MRI Scans Section */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <Scan className="h-5 w-5 text-[var(--brand-teal)]" />
-                <span className="text-lg font-semibold">MRI Scans ({scans.length})</span>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="p-4">
+                MRI Scans ({scans.length})
+              </h3>
               {scans.length === 0 ? (
                 <EmptyState icon={Scan} title="No MRI Scans" description="Add scans to see them here" />
               ) : (
@@ -285,108 +463,243 @@ export default function PatientProfilePage() {
                       <CardContent className="grid grid-cols-2 gap-2">
                         <div className="relative aspect-square rounded-lg bg-muted overflow-hidden">
                           {scan.left_scan_path ? (
-                            <Image src={`${API_BASE}/` + scan.left_scan_path} alt="Left eye" fill className="object-cover" unoptimized />
+                            <Image
+                              src={`${API_BASE}/` + scan.left_scan_path}
+                              alt="Left eye"
+                              fill
+                              className="object-cover"
+                              unoptimized
+                            />
                           ) : (
-                            <div className="flex items-center justify-center h-full text-muted-foreground">No image</div>
+                            <div className="flex items-center justify-center h-full text-muted-foreground">
+                              No image
+                            </div>
                           )}
-                          <span className="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">Left</span>
+                          <span className="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                            Left
+                          </span>
                         </div>
                         <div className="relative aspect-square rounded-lg bg-muted overflow-hidden">
                           {scan.right_scan_path ? (
-                            <Image src={`${API_BASE}/` + scan.right_scan_path} alt="Right eye" fill className="object-cover" unoptimized />
+                            <Image
+                              src={`${API_BASE}/` + scan.right_scan_path}
+                              alt="Right eye"
+                              fill
+                              className="object-cover"
+                              unoptimized
+                            />
                           ) : (
-                            <div className="flex items-center justify-center h-full text-muted-foreground">No image</div>
+                            <div className="flex items-center justify-center h-full text-muted-foreground">
+                              No image
+                            </div>
                           )}
-                          <span className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">Right</span>
+                          <span className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                            Right
+                          </span>
                         </div>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
               )}
-            </AccordionContent>
-          </AccordionItem>
+            </div>
 
-          {/* Predictions */}
-          <AccordionItem value="predictions" className="border rounded-lg mb-2">
-            <AccordionTrigger className="px-4 hover:no-underline bg-muted/30 rounded-t-lg">
-              <div className="flex items-center gap-2">
+            {/* GradCAM Analysis Section */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <Eye className="h-5 w-5 text-amber-500" />
-                <span className="text-lg font-semibold">Predictions ({predictions.length})</span>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="p-4">
-              {predictions.length === 0 ? (
-                <EmptyState icon={FileText} title="No Predictions" description="Run predictions to see them here" />
+                GradCAM Analysis ({predictions.filter((p) => p.status === 'success').length})
+              </h3>
+              {predictions.filter((p) => p.status === 'success').length === 0 ? (
+                <EmptyState icon={Eye} title="No GradCAM Available" description="Run predictions to generate GradCAM analysis" />
               ) : (
-                <div className="space-y-3">
-                  {predictions.map((pred) => {
-                    const grade = pred.output_payload?.combined_grade as number | undefined;
-                    const gradeLabel = grade !== undefined ? GRADE_LABELS[grade] : null;
-                    return (
-                      <Card key={pred.id}>
-                        <CardContent className="py-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-3">
-                              {getStatusIcon(pred.status)}
-                              <div>
-                                <p className="font-medium">{pred.model_name}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {new Date(pred.created_at).toLocaleString()}
-                                </p>
+                <div className="space-y-4">
+                  {predictions
+                    .filter((p) => p.status === 'success')
+                    .map((pred) => {
+                      const grade = pred.output_payload?.combined_grade as number | undefined;
+                      const gradeLabel = grade !== undefined ? GRADE_LABELS[grade] : null;
+                      return (
+                        <Card key={pred.id}>
+                          <CardHeader className="pb-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                {getStatusIcon(pred.status)}
+                                <div>
+                                  <CardTitle className="text-sm">{pred.model_name}</CardTitle>
+                                  <CardDescription>
+                                    {new Date(pred.created_at).toLocaleString()}
+                                  </CardDescription>
+                                </div>
                               </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-medium">
-                                {pred.confidence_score ? `${(pred.confidence_score * 100).toFixed(1)}%` : 'N/A'}
-                              </p>
-                              <Badge variant={pred.status === 'success' ? 'default' : 'secondary'}>
-                                {pred.status}
-                              </Badge>
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between mt-2 pt-2 border-t">
-                            <div className="flex items-center gap-2">
-                              {gradeLabel && (
-                                <>
-                                  <span className="text-sm text-muted-foreground">DR Grade:</span>
-                                  <Badge className={GRADE_COLORS[String(grade)] || 'bg-muted'}>
+                              <div className="text-right">
+                                <p className="text-lg font-bold">
+                                  {pred.confidence_score
+                                    ? `${(pred.confidence_score * 100).toFixed(1)}%`
+                                    : 'N/A'}
+                                </p>
+                                {gradeLabel && (
+                                  <Badge className={GRADE_COLORS_NUM[grade!] || 'bg-muted'}>
                                     {gradeLabel}
                                   </Badge>
-                                </>
-                              )}
+                                )}
+                              </div>
                             </div>
-                            {pred.status === 'success' && (
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => router.push(`/dashboard/predictions/${pred.id}/gradcam`)}
-                              >
-                                <Eye className="h-4 w-4 mr-1" />
-                                View GradCAM
-                              </Button>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid grid-cols-2 gap-4">
+                              <GradCAMDisplay
+                                title="Left Eye (OS)"
+                                gradcamBase64={pred.output_payload?.gradcam_left as string | undefined}
+                              />
+                              <GradCAMDisplay
+                                title="Right Eye (OD)"
+                                gradcamBase64={pred.output_payload?.gradcam_right as string | undefined}
+                              />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                 </div>
               )}
-            </AccordionContent>
-          </AccordionItem>
+            </div>
+          </TabsContent>
 
-          {/* Clinical Reports */}
-          <AccordionItem value="reports" className="border rounded-lg mb-2">
-            <AccordionTrigger className="px-4 hover:no-underline bg-muted/30 rounded-t-lg">
-              <div className="flex items-center gap-2">
+          {/* XAI Explanations Tab */}
+          <TabsContent value="xai" className="mt-6 space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Brain className="h-5 w-5 text-purple-500" />
+                AI Explanations
+              </h3>
+              {predictions.filter((p) => p.status === 'success').length === 0 ? (
+                <EmptyState
+                  icon={Brain}
+                  title="No XAI Explanations Available"
+                  description="Run predictions to generate AI explanations"
+                />
+              ) : (
+                <div className="space-y-4">
+                  {predictions
+                    .filter((p) => p.status === 'success')
+                    .map((pred) => {
+                      const grade = pred.output_payload?.combined_grade as number | undefined;
+                      const gradeLabel = grade !== undefined ? GRADE_LABELS[grade] : null;
+                      const shapValues = pred.output_payload?.shap_values;
+                      const explanation = pred.output_payload?.explanation;
+
+                      return (
+                        <Card key={pred.id}>
+                          <CardHeader>
+                            <div className="flex items-center justify-between">
+                              <CardTitle className="text-base">
+                                Prediction - {new Date(pred.created_at).toLocaleDateString()}
+                              </CardTitle>
+                              {gradeLabel && (
+                                <Badge className={GRADE_COLORS_NUM[grade!] || 'bg-muted'}>
+                                  {gradeLabel}
+                                </Badge>
+                              )}
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            {/* Confidence Score */}
+                            <div>
+                              <p className="text-sm text-muted-foreground mb-1">Confidence Score</p>
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                                  <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{
+                                      width: `${(pred.confidence_score || 0) * 100}%`,
+                                    }}
+                                    className="h-full bg-[var(--brand-teal)]"
+                                  />
+                                </div>
+                                <span className="text-sm font-medium">
+                                  {pred.confidence_score
+                                    ? `${(pred.confidence_score * 100).toFixed(1)}%`
+                                    : 'N/A'}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* SHAP Values */}
+                            {shapValues && (
+                              <div>
+                                <p className="text-sm text-muted-foreground mb-2 flex items-center gap-1">
+                                  <BarChart3 className="h-4 w-4" />
+                                  Top Contributing Features
+                                </p>
+                                <div className="space-y-2">
+                                  {(shapValues as any)?.top_positive?.slice(0, 5).map(
+                                    (feature: { name: string; contribution: number }, i: number) => (
+                                      <div key={i} className="flex items-center gap-2">
+                                        <span className="text-sm w-32 truncate">{feature.name}</span>
+                                        <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                                          <motion.div
+                                            initial={{ width: 0 }}
+                                            animate={{
+                                              width: `${Math.min(Math.abs(feature.contribution) * 100, 100)}%`,
+                                            }}
+                                            transition={{ delay: i * 0.1 }}
+                                            className="h-full bg-emerald-500"
+                                          />
+                                        </div>
+                                        <span className="text-xs text-muted-foreground w-12 text-right">
+                                          {feature.contribution.toFixed(3)}
+                                        </span>
+                                      </div>
+                                    )
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* LLM Explanation */}
+                            {explanation && (
+                              <div>
+                                <p className="text-sm text-muted-foreground mb-2 flex items-center gap-1">
+                                  <FileText className="h-4 w-4" />
+                                  AI Interpretation
+                                </p>
+                                <div className="bg-muted/50 rounded-lg p-3 text-sm">
+                                  {typeof explanation === 'string'
+                                    ? explanation
+                                    : JSON.stringify(explanation, null, 2)}
+                                </div>
+                              </div>
+                            )}
+
+                            {!shapValues && !explanation && (
+                              <p className="text-sm text-muted-foreground italic">
+                                No XAI explanations generated for this prediction
+                              </p>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Reports Tab */}
+          <TabsContent value="reports" className="mt-6 space-y-6">
+            {/* Clinical Reports */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <FileText className="h-5 w-5 text-blue-500" />
-                <span className="text-lg font-semibold">Clinical Reports ({reports.length})</span>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="p-4">
+                Clinical Reports ({reports.length})
+              </h3>
               {reports.length === 0 ? (
-                <EmptyState icon={FileText} title="No Reports" description="Generate reports to see them here" />
+                <EmptyState
+                  icon={FileText}
+                  title="No Clinical Reports"
+                  description="Generate reports to see them here"
+                />
               ) : (
                 <div className="space-y-3">
                   {reports.map((report) => (
@@ -403,9 +716,12 @@ export default function PatientProfilePage() {
                                 </p>
                               </div>
                             </div>
-                            <Badge variant={report.status === 'completed' ? 'default' : 'secondary'}>
-                              {report.status}
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge variant={report.status === 'completed' ? 'default' : 'secondary'}>
+                                {report.status}
+                              </Badge>
+                              <Download className="h-4 w-4 text-muted-foreground" />
+                            </div>
                           </CardContent>
                         </Card>
                       </DialogTrigger>
@@ -413,7 +729,8 @@ export default function PatientProfilePage() {
                         <DialogHeader>
                           <DialogTitle>Clinical Report</DialogTitle>
                           <DialogDescription>
-                            Generated by {report.llm_model} on {new Date(report.created_at).toLocaleString()}
+                            Generated by {report.llm_model} on{' '}
+                            {new Date(report.created_at).toLocaleString()}
                           </DialogDescription>
                         </DialogHeader>
                         <div className="mt-4 space-y-4">
@@ -438,20 +755,20 @@ export default function PatientProfilePage() {
                   ))}
                 </div>
               )}
-            </AccordionContent>
-          </AccordionItem>
+            </div>
 
-          {/* OCT Reports */}
-          <AccordionItem value="oct" className="border rounded-lg mb-2">
-            <AccordionTrigger className="px-4 hover:no-underline bg-muted/30 rounded-t-lg">
-              <div className="flex items-center gap-2">
+            {/* OCT Reports */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <Activity className="h-5 w-5 text-purple-500" />
-                <span className="text-lg font-semibold">OCT Reports ({octReports.length})</span>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="p-4">
+                OCT Analysis ({octReports.length})
+              </h3>
               {octReports.length === 0 ? (
-                <EmptyState icon={Activity} title="No OCT Reports" description="Process OCT scans to see them here" />
+                <EmptyState
+                  icon={Activity}
+                  title="No OCT Reports"
+                  description="Process OCT scans to see them here"
+                />
               ) : (
                 <Card>
                   <CardContent className="p-0">
@@ -486,10 +803,38 @@ export default function PatientProfilePage() {
                   </CardContent>
                 </Card>
               )}
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+            </div>
+          </TabsContent>
+        </Tabs>
       </motion.div>
     </PageContainer>
+  );
+}
+
+function GradCAMDisplay({
+  title,
+  gradcamBase64,
+}: {
+  title: string;
+  gradcamBase64?: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-medium text-muted-foreground">{title}</p>
+      {gradcamBase64 ? (
+        <div className="relative aspect-square rounded-lg overflow-hidden bg-black">
+          <img
+            src={`data:image/png;base64,${gradcamBase64}`}
+            alt={title}
+            className="w-full h-full object-contain"
+          />
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center aspect-square bg-muted rounded-lg">
+          <ImageIcon className="h-8 w-8 text-muted-foreground" />
+          <p className="text-xs text-muted-foreground mt-1">No GradCAM</p>
+        </div>
+      )}
+    </div>
   );
 }
